@@ -148,6 +148,31 @@ describe("posts", () => {
       previous: { title: "Old post", slug: "old-post" },
       next: { title: "New post", slug: "new-post" },
     });
+
+    await admin.mutation(api.siteSettings.mutations.setBookmarksEnabled, {
+      bookmarksEnabled: true,
+    });
+    const groupId = await admin.mutation(api.bookmarkGroups.mutations.create, {
+      name: "Favorites",
+    });
+    const middle = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_slug", (q) => q.eq("slug", "middle-post"))
+        .first(),
+    );
+    await admin.mutation(api.bookmarkGroupPosts.mutations.add, {
+      groupId,
+      postId: middle!._id,
+    });
+    await expect(
+      t.query(api.posts.publicQueries.getAdjacentBySlug, {
+        slug: "middle-post",
+      }),
+    ).resolves.toEqual({
+      previous: { title: "Old post", slug: "old-post" },
+      next: { title: "New post", slug: "new-post" },
+    });
   });
 
   test("search only returns published listed posts", async () => {

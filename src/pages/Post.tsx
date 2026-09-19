@@ -8,6 +8,44 @@ import { ZoomableImage } from "@/components/ImageOverlay";
 import { formatDate, isAdminUser } from "@/lib/format";
 import { markdownOverlayImages, postOverlayImages } from "@/lib/images";
 
+function PostNavigation({
+  previous,
+  next,
+}: {
+  previous?: { title: string; slug: string } | null;
+  next?: { title: string; slug: string } | null;
+}) {
+  return (
+    <nav
+      className="flex min-h-6 w-full shrink-0 items-center justify-between gap-4 text-sm"
+      aria-label="Post navigation"
+    >
+      {previous ? (
+        <Link
+          to={`/posts/${previous.slug}`}
+          title={previous.title || "Previous post"}
+          className="text-muted hover:text-foreground"
+        >
+          ← Prev post
+        </Link>
+      ) : (
+        <span />
+      )}
+      {next ? (
+        <Link
+          to={`/posts/${next.slug}`}
+          title={next.title || "Next post"}
+          className="text-muted hover:text-foreground"
+        >
+          Next post →
+        </Link>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
+}
+
 export default function Post() {
   const { slug } = useParams();
   const post = useQuery(api.posts.publicQueries.getBySlug, slug ? { slug } : "skip");
@@ -42,40 +80,28 @@ export default function Post() {
     markdownOverlayImages(post.body, post.assets),
   );
 
-  const postNavigation = (
-    <nav
-      className="flex min-h-6 items-center justify-between gap-4 text-sm"
-      aria-label="Post navigation"
-    >
-      {navigation?.previous ? (
-        <Link
-          to={`/posts/${navigation.previous.slug}`}
-          title={navigation.previous.title || "Previous post"}
-          className="text-muted hover:text-foreground"
-        >
-          ← Prev post
-        </Link>
-      ) : (
-        <span />
-      )}
-      {navigation?.next ? (
-        <Link
-          to={`/posts/${navigation.next.slug}`}
-          title={navigation.next.title || "Next post"}
-          className="text-muted hover:text-foreground"
-        >
-          Next post →
-        </Link>
-      ) : (
-        <span />
-      )}
-    </nav>
-  );
+  const prev = navigation?.previous ?? null;
+  const next = navigation?.next ?? null;
 
   return (
-    <Layout bookmarks>
+    <Layout
+      bookmarks
+      header={
+        <div className="border-b border-border pb-4">
+          <div className="mx-auto max-w-2xl">
+            <PostNavigation previous={prev} next={next} />
+          </div>
+        </div>
+      }
+      footer={
+        <div className="border-t border-border pt-4">
+          <div className="mx-auto max-w-2xl">
+            <PostNavigation previous={prev} next={next} />
+          </div>
+        </div>
+      }
+    >
       <article className="mx-auto max-w-2xl">
-        <div className="mb-8 border-b border-border pb-4">{postNavigation}</div>
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             {post.status === "draft" ? (
@@ -119,7 +145,6 @@ export default function Post() {
           />
         ) : null}
         <MarkdownBody content={post.body} assets={post.assets} gallery={gallery} />
-        <div className="mt-10 border-t border-border pt-4">{postNavigation}</div>
       </article>
     </Layout>
   );

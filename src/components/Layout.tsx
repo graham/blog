@@ -8,10 +8,14 @@ export function Layout({
   children,
   variant = "page",
   bookmarks = false,
+  header = null,
+  footer = null,
 }: {
   children: ReactNode;
   variant?: "page" | "workspace";
   bookmarks?: boolean;
+  header?: ReactNode;
+  footer?: ReactNode;
 }) {
   const config = useQuery(api.config.getConfig, bookmarks ? {} : "skip");
   const groups = useQuery(
@@ -34,16 +38,20 @@ export function Layout({
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <main className="mx-auto max-w-5xl px-4 py-10">
-        {showNav ? (
-          <div className="flex flex-col gap-10 md:flex-row">
-            <aside className="md:w-44 md:shrink-0">
-              <BookmarkNav groups={groups} />
-            </aside>
-            <div className="min-w-0 flex-1">{children}</div>
-          </div>
-        ) : (
-          children
-        )}
+        <div className="flex flex-col gap-8">
+          {header}
+          {showNav ? (
+            <div className="grid gap-10 md:grid-cols-[11rem_minmax(0,1fr)] md:items-start">
+              <div className="min-w-0 md:col-start-2 md:row-start-1">{children}</div>
+              <aside className="md:col-start-1 md:row-start-1">
+                <BookmarkNav groups={groups} />
+              </aside>
+            </div>
+          ) : (
+            children
+          )}
+          {footer}
+        </div>
       </main>
     </div>
   );
