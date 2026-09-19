@@ -14,6 +14,7 @@ export const getConfig = query({
     googleAuthEnabled: v.boolean(),
     passwordAuthEnabled: v.boolean(),
     requireAuth: v.boolean(),
+    bookmarksEnabled: v.boolean(),
   }),
   handler: async (ctx) => {
     const settings: SiteSettings = await ctx.runQuery(internal.siteSettings.internal.get, {});
@@ -24,6 +25,7 @@ export const getConfig = query({
           Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET)),
       passwordAuthEnabled: process.env.AUTH_PASSWORD_ENABLED !== "false",
       requireAuth: settings.requireAuth,
+      bookmarksEnabled: settings.bookmarksEnabled,
     };
   },
 });

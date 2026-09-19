@@ -59,6 +59,31 @@ export const channelRefValidator = v.object({
   name: v.string(),
 });
 
+export const bookmarkGroupValidator = v.object({
+  _id: v.id("bookmarkGroups"),
+  _creationTime: v.number(),
+  name: v.string(),
+  slug: v.string(),
+  createdBy: v.id("users"),
+});
+
+export const bookmarkGroupRefValidator = v.object({
+  _id: v.id("bookmarkGroups"),
+  name: v.string(),
+});
+
+export const bookmarkNavPostValidator = v.object({
+  title: v.string(),
+  slug: v.string(),
+});
+
+export const bookmarkGroupNavValidator = v.object({
+  _id: v.id("bookmarkGroups"),
+  name: v.string(),
+  slug: v.string(),
+  posts: v.array(bookmarkNavPostValidator),
+});
+
 export const adminPostSummaryValidator = v.object({
   ...postSummaryValidator.fields,
   channels: v.array(channelRefValidator),
@@ -76,6 +101,7 @@ export const adminPostDetailValidator = v.object({
   body: v.string(),
   coverImageId: v.union(v.id("_storage"), v.null()),
   channels: v.array(channelRefValidator),
+  bookmarkGroups: v.array(bookmarkGroupRefValidator),
   aiSummary: v.union(v.string(), v.null()),
   ai: v.union(aiJobValidator, v.null()),
 });
@@ -91,6 +117,7 @@ export const userSummaryValidator = v.object({
 
 export const siteSettingsValidator = v.object({
   requireAuth: v.boolean(),
+  bookmarksEnabled: v.boolean(),
 });
 
 export const inviteValidator = v.object({

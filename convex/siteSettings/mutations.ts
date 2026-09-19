@@ -22,3 +22,19 @@ export const setRequireAuth = mutation({
     return settings;
   },
 });
+
+export const setBookmarksEnabled = mutation({
+  args: { bookmarksEnabled: v.boolean() },
+  returns: siteSettingsValidator,
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    const settings: SiteSettings = await ctx.runMutation(
+      internal.siteSettings.internal.setBookmarksEnabled,
+      { bookmarksEnabled: args.bookmarksEnabled, updatedBy: admin._id },
+    );
+    console.log(
+      `Site bookmarksEnabled set to ${args.bookmarksEnabled} by ${admin.email ?? admin._id}`,
+    );
+    return settings;
+  },
+});

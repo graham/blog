@@ -54,6 +54,7 @@ describe("site-wide requireAuth", () => {
       googleAuthEnabled: false,
       passwordAuthEnabled: true,
       requireAuth: false,
+      bookmarksEnabled: false,
     });
     const list = await t.query(api.posts.publicQueries.listPublished, {
       paginationOpts: pageOpts,

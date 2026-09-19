@@ -17,6 +17,8 @@ import ChannelDetail from "./pages/admin/ChannelDetail";
 import ApiKeys from "./pages/admin/ApiKeys";
 import AdminUsers from "./pages/admin/Users";
 import AdminSettings from "./pages/admin/Settings";
+import AdminBookmarkGroups from "./pages/admin/BookmarkGroups";
+import BookmarkGroupDetail from "./pages/admin/BookmarkGroupDetail";
 
 export default function App() {
   return (
@@ -105,6 +107,22 @@ export default function App() {
             element={
               <AdminRoute>
                 <ChannelDetail />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/bookmarks"
+            element={
+              <AdminRoute>
+                <AdminBookmarkGroups />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/bookmarks/:id"
+            element={
+              <AdminRoute>
+                <BookmarkGroupDetail />
               </AdminRoute>
             }
           />

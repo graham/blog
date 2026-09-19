@@ -6,6 +6,7 @@ import { readSiteSettings } from "../siteSettings/internal";
 type Ctx = QueryCtx | MutationCtx;
 
 export const MAX_CHANNELS = 32;
+export const MAX_BOOKMARK_GROUPS = 32;
 
 export type PublicViewer = {
   viewerUserId: Id<"users"> | null;
@@ -117,5 +118,60 @@ export async function deletePostChannelLinks(
     .take(MAX_CHANNELS);
   for (const row of rows) {
     await ctx.db.delete("channelPosts", row._id);
+  }
+}
+
+export async function listPostBookmarkGroups(ctx: Ctx, postId: Id<"posts">) {
+  const rows = await ctx.db
+    .query("bookmarkGroupPosts")
+    .withIndex("by_postId", (q) => q.eq("postId", postId))
+    .take(MAX_BOOKMARK_GROUPS);
+  const groups = [];
+  for (const row of rows) {
+    const group = await ctx.db.get("bookmarkGroups", row.groupId);
+    if (group) {
+      groups.push({ _id: group._id, name: group.name });
+    }
+  }
+  return groups;
+}
+
+export async function syncPostBookmarkGroups(
+  ctx: MutationCtx,
+  postId: Id<"posts">,
+  groupIds: Array<Id<"bookmarkGroups">>,
+): Promise<void> {
+  const unique = [...new Set(groupIds)].slice(0, MAX_BOOKMARK_GROUPS);
+  const wanted = new Set<Id<"bookmarkGroups">>();
+  for (const id of unique) {
+    const group = await ctx.db.get("bookmarkGroups", id);
+    if (group) wanted.add(id);
+  }
+  const existing = await ctx.db
+    .query("bookmarkGroupPosts")
+    .withIndex("by_postId", (q) => q.eq("postId", postId))
+    .take(MAX_BOOKMARK_GROUPS);
+  for (const row of existing) {
+    if (!wanted.has(row.groupId)) {
+      await ctx.db.delete("bookmarkGroupPosts", row._id);
+    } else {
+      wanted.delete(row.groupId);
+    }
+  }
+  for (const groupId of wanted) {
+    await ctx.db.insert("bookmarkGroupPosts", { groupId, postId });
+  }
+}
+
+export async function deletePostBookmarkLinks(
+  ctx: MutationCtx,
+  postId: Id<"posts">,
+): Promise<void> {
+  const rows = await ctx.db
+    .query("bookmarkGroupPosts")
+    .withIndex("by_postId", (q) => q.eq("postId", postId))
+    .take(MAX_BOOKMARK_GROUPS);
+  for (const row of rows) {
+    await ctx.db.delete("bookmarkGroupPosts", row._id);
   }
 }

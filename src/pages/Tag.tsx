@@ -16,7 +16,7 @@ export default function Tag() {
   );
 
   return (
-    <Layout>
+    <Layout bookmarks>
       <div className="mx-auto max-w-2xl">
         <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
           #{tag}

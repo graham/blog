@@ -13,6 +13,8 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const [params] = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
   const admin = isAdminUser(currentUser);
+  const config = useQuery(api.config.getConfig, admin ? {} : "skip");
+  const bookmarksEnabled = config?.bookmarksEnabled === true;
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -54,6 +56,14 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
               >
                 Channels
               </Link>
+              {bookmarksEnabled ? (
+                <Link
+                  to="/admin/bookmarks"
+                  className="text-muted hover:text-foreground"
+                >
+                  Bookmarks
+                </Link>
+              ) : null}
               <Link
                 to="/admin/api-keys"
                 className="text-muted hover:text-foreground"

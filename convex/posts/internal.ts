@@ -14,9 +14,12 @@ import {
 import { buildSearchText, excerptFrom, normalizeTags, slugify } from "../lib/text";
 import {
   canViewPost,
+  deletePostBookmarkLinks,
   deletePostChannelLinks,
+  listPostBookmarkGroups,
   listPostChannels,
   listUserChannelIdSet,
+  syncPostBookmarkGroups,
   syncPostChannels,
 } from "../lib/access";
 import { loadPostAssets } from "../postAssets/internal";
@@ -111,6 +114,7 @@ async function toAdminDetail(ctx: Ctx, post: Doc<"posts">) {
     ...(await toAdminSummary(ctx, post)),
     body: post.body,
     coverImageId: post.coverImageId,
+    bookmarkGroups: await listPostBookmarkGroups(ctx, post._id),
     aiSummary: post.aiSummary ?? null,
     ai: await loadAiJob(ctx, post._id),
   };
@@ -190,6 +194,7 @@ export async function saveHandler(
     tags: string[];
     coverImageId?: Id<"_storage"> | null;
     channelIds?: Id<"channels">[];
+    bookmarkGroupIds?: Id<"bookmarkGroups">[];
   },
 ): Promise<{ slug: string }> {
   const post = await ctx.db.get("posts", args.postId);
@@ -233,6 +238,9 @@ export async function saveHandler(
   if (args.channelIds !== undefined) {
     await syncPostChannels(ctx, post._id, args.channelIds);
   }
+  if (args.bookmarkGroupIds !== undefined) {
+    await syncPostBookmarkGroups(ctx, post._id, args.bookmarkGroupIds);
+  }
   return { slug };
 }
 
@@ -247,6 +255,7 @@ export const save = internalMutation({
     tags: v.array(v.string()),
     coverImageId: v.optional(v.union(v.id("_storage"), v.null())),
     channelIds: v.optional(v.array(v.id("channels"))),
+    bookmarkGroupIds: v.optional(v.array(v.id("bookmarkGroups"))),
   },
   returns: v.object({ slug: v.string() }),
   handler: saveHandler,
@@ -312,6 +321,7 @@ export const remove = internalMutation({
       await ctx.db.delete("postAiJobs", job._id);
     }
     await deletePostChannelLinks(ctx, post._id);
+    await deletePostBookmarkLinks(ctx, post._id);
     const assets = await ctx.db
       .query("postAssets")
       .withIndex("by_postId", (q) => q.eq("postId", post._id))

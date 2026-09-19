@@ -38,6 +38,12 @@ export default function Editor() {
   const removeAsset = useMutation(api.postAssets.mutations.remove);
   const updateAssetText = useMutation(api.postAssets.mutations.updateText);
   const allChannels = useQuery(api.channels.queries.listAll);
+  const config = useQuery(api.config.getConfig);
+  const bookmarksEnabled = config?.bookmarksEnabled === true;
+  const allBookmarkGroups = useQuery(
+    api.bookmarkGroups.queries.listAll,
+    bookmarksEnabled ? {} : "skip",
+  );
   const requestAi = useMutation(api.postAi.mutations.request);
   const applyAiTitle = useMutation(api.postAi.mutations.applyTitle);
   const applyAiSummary = useMutation(api.postAi.mutations.applySummary);
@@ -50,6 +56,9 @@ export default function Editor() {
   const [visibility, setVisibility] = useState<"listed" | "unlisted">("listed");
   const [published, setPublishedLocal] = useState(false);
   const [channelIds, setChannelIds] = useState<Id<"channels">[]>([]);
+  const [bookmarkGroupIds, setBookmarkGroupIds] = useState<
+    Id<"bookmarkGroups">[]
+  >([]);
   const [hydrated, setHydrated] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("saved");
@@ -73,6 +82,7 @@ export default function Editor() {
     setVisibility(post.visibility);
     setPublishedLocal(post.status === "published");
     setChannelIds(post.channels.map((channel) => channel._id));
+    setBookmarkGroupIds(post.bookmarkGroups.map((group) => group._id));
     setHydrated(true);
   }, [post, hydrated]);
 
@@ -114,6 +124,7 @@ export default function Editor() {
         visibility,
         tags,
         channelIds,
+        ...(bookmarksEnabled ? { bookmarkGroupIds } : {}),
       })
         .then((result) => {
           setSlug(result.slug);
@@ -123,7 +134,21 @@ export default function Editor() {
         .catch(() => setSaveState("error"));
     }, 700);
     return () => window.clearTimeout(handle);
-  }, [postId, hydrated, dirty, title, slug, excerpt, body, visibility, tags, channelIds, savePost]);
+  }, [
+    postId,
+    hydrated,
+    dirty,
+    title,
+    slug,
+    excerpt,
+    body,
+    visibility,
+    tags,
+    channelIds,
+    bookmarkGroupIds,
+    bookmarksEnabled,
+    savePost,
+  ]);
 
   useEffect(() => {
     if (!hydrated || assetRows === undefined) return;
@@ -450,6 +475,45 @@ export default function Editor() {
                 </div>
               )}
             </div>
+            {bookmarksEnabled ? (
+              <div>
+                <p className="text-xs text-muted">Bookmark groups</p>
+                <p className="mt-1 text-xs text-muted">
+                  Listed published posts in these groups appear in the reader
+                  sidebar.
+                </p>
+                {allBookmarkGroups === undefined ? (
+                  <p className="mt-2 text-xs text-muted">Loading groups...</p>
+                ) : allBookmarkGroups.length === 0 ? (
+                  <p className="mt-2 text-xs text-muted">
+                    No groups yet. Create them under Bookmarks.
+                  </p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {allBookmarkGroups.map((group) => {
+                      const checked = bookmarkGroupIds.includes(group._id);
+                      return (
+                        <label key={group._id} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(event) => {
+                              setBookmarkGroupIds((current) =>
+                                event.target.checked
+                                  ? [...current, group._id]
+                                  : current.filter((id) => id !== group._id),
+                              );
+                              markDirty();
+                            }}
+                          />
+                          {group.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
             <label className="block text-xs text-muted">
               Excerpt
               <textarea
@@ -633,6 +697,7 @@ export default function Editor() {
                                 visibility,
                                 tags,
                                 channelIds,
+                                ...(bookmarksEnabled ? { bookmarkGroupIds } : {}),
                                 coverImageId: isCover ? null : asset.storageId,
                               });
                             }}

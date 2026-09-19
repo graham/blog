@@ -20,7 +20,7 @@ export default function Post() {
 
   if (post === undefined) {
     return (
-      <Layout>
+      <Layout bookmarks>
         <p className="text-sm text-muted">Loading...</p>
       </Layout>
     );
@@ -28,7 +28,7 @@ export default function Post() {
 
   if (post === null) {
     return (
-      <Layout>
+      <Layout bookmarks>
         <h1 className="text-2xl font-semibold">Not found</h1>
         <p className="mt-2 text-sm text-muted">
           This post is missing, unpublished, or not available.
@@ -73,7 +73,7 @@ export default function Post() {
   );
 
   return (
-    <Layout>
+    <Layout bookmarks>
       <article className="mx-auto max-w-2xl">
         <div className="mb-8 border-b border-border pb-4">{postNavigation}</div>
         <div className="mb-6 flex items-start justify-between gap-4">

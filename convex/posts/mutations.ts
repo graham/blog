@@ -29,6 +29,7 @@ export const save = mutation({
     tags: v.array(v.string()),
     coverImageId: v.optional(v.union(v.id("_storage"), v.null())),
     channelIds: v.optional(v.array(v.id("channels"))),
+    bookmarkGroupIds: v.optional(v.array(v.id("bookmarkGroups"))),
   },
   returns: v.object({ slug: v.string() }),
   handler: async (ctx, args) => {

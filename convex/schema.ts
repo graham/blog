@@ -14,6 +14,7 @@ const schema = defineSchema({
 
   siteSettings: defineTable({
     requireAuth: v.boolean(),
+    bookmarksEnabled: v.optional(v.boolean()),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
   }),
@@ -104,6 +105,20 @@ const schema = defineSchema({
     error: v.union(v.string(), v.null()),
     requestedAt: v.number(),
   }).index("by_postId", ["postId"]),
+
+  bookmarkGroups: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    createdBy: v.id("users"),
+  }).index("by_slug", ["slug"]),
+
+  bookmarkGroupPosts: defineTable({
+    groupId: v.id("bookmarkGroups"),
+    postId: v.id("posts"),
+  })
+    .index("by_groupId", ["groupId"])
+    .index("by_postId", ["postId"])
+    .index("by_groupId_and_postId", ["groupId", "postId"]),
 
   postAssets: defineTable({
     postId: v.id("posts"),
