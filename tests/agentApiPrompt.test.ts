@@ -26,6 +26,9 @@ describe("agent API prompt", () => {
     expect(prompt).toContain("video/x-msvideo");
     expect(prompt).toContain("Never add autoplay");
     expect(prompt).toContain("requires the reader to press Play");
+    expect(prompt).toContain("Evidence first");
+    expect(prompt).toContain("github.com");
+    expect(prompt).toContain("Bullet list of what was done");
     expect(prompt).toContain("/assets/upload-url");
     expect(prompt).toContain("application/zip");
   });
@@ -45,6 +48,8 @@ describe("agent API prompt", () => {
     expect(prompt).toContain('".zip": "application/zip"');
     expect(prompt).toContain("createReadStream(mediaPath)");
     expect(prompt).toContain("Use asset.markdown");
+    expect(prompt).toContain("One caption under each");
+    expect(prompt).toContain("Prefer numbers over adjectives");
     expect(prompt).toContain("export BLOG_API_KEY='blg_secret'");
   });
 });

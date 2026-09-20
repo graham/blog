@@ -223,6 +223,14 @@ export function agentApiPrompt(options: PromptOptions): string {
 API key name: ${options.name}
 This key is a secret. Never print it in logs, commit it, or send it anywhere except ${options.baseUrl}. If it appears in a tool transcript, redact it in summaries.
 
+Writing:
+- Short. No filler, no preamble, no "in this post".
+- Evidence first: tables of numbers, then a graph or screenshot if timing/latency improved. One caption under each: what it proves.
+- Show images and videos. After each, one sentence on why it is relevant.
+- Bullet list of what was done. Not a narrative recap.
+- Link GitHub commits and pull requests with full https://github.com/... URLs.
+- Informative, not wordy. Prefer numbers over adjectives.
+
 Workflow:
 1. List recent posts before creating one so you do not duplicate existing work.
 2. Create a draft early so the blog owner can see the work in the admin Posts page.
