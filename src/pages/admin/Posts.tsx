@@ -42,7 +42,7 @@ export default function AdminPosts() {
             value={q}
             onChange={(event) => setQ(event.target.value)}
             placeholder="Search posts"
-            className="h-10 w-56 max-w-full rounded-md border border-input bg-card px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
+            className="h-10 w-full min-w-0 max-w-56 rounded-md border border-input bg-card px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
           />
           <Button onClick={() => void onCreate()}>New post</Button>
         </div>
@@ -56,49 +56,78 @@ export default function AdminPosts() {
             : "No posts yet. Create one to start writing."}
         </p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border bg-secondary/60 text-muted">
-              <tr>
-                <th className="px-4 py-2 font-medium">Title</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Visibility</th>
-                <th className="px-4 py-2 font-medium">Access</th>
-                <th className="px-4 py-2 font-medium">Updated</th>
-                <th className="px-4 py-2 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {posts.map((post) => (
-                <tr
-                  key={post._id}
-                  className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/40"
-                  onClick={() => navigate(`/admin/posts/${post._id}`)}
+        <>
+          <div className="space-y-3 md:hidden">
+            {posts.map((post) => (
+              <div
+                key={post._id}
+                className="cursor-pointer rounded-xl border border-border bg-card p-4"
+                onClick={() => navigate(`/admin/posts/${post._id}`)}
+              >
+                <p className="font-medium">{post.title || "Untitled"}</p>
+                <p className="mt-1 text-xs capitalize text-muted">
+                  {post.status} · {post.visibility} · {formatDate(post.updatedAt)}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {post.channels.length === 0
+                    ? "Everyone"
+                    : post.channels.map((channel) => channel.name).join(", ")}
+                </p>
+                <div
+                  className="mt-3"
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  <td className="px-4 py-3">{post.title || "Untitled"}</td>
-                  <td className="px-4 py-3 capitalize">{post.status}</td>
-                  <td className="px-4 py-3 capitalize">{post.visibility}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {post.channels.length === 0
-                      ? "Everyone"
-                      : post.channels.map((channel) => channel.name).join(", ")}
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {formatDate(post.updatedAt)}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-right"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <Button asChild variant="outline" size="sm">
-                      <Link to={`/posts/${post.slug}`}>View</Link>
-                    </Button>
-                  </td>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/posts/${post.slug}`}>View</Link>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto rounded-xl border border-border bg-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border bg-secondary/60 text-muted">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Title</th>
+                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium">Visibility</th>
+                  <th className="px-4 py-2 font-medium">Access</th>
+                  <th className="px-4 py-2 font-medium">Updated</th>
+                  <th className="px-4 py-2 font-medium" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr
+                    key={post._id}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/40"
+                    onClick={() => navigate(`/admin/posts/${post._id}`)}
+                  >
+                    <td className="px-4 py-3">{post.title || "Untitled"}</td>
+                    <td className="px-4 py-3 capitalize">{post.status}</td>
+                    <td className="px-4 py-3 capitalize">{post.visibility}</td>
+                    <td className="px-4 py-3 text-muted">
+                      {post.channels.length === 0
+                        ? "Everyone"
+                        : post.channels.map((channel) => channel.name).join(", ")}
+                    </td>
+                    <td className="px-4 py-3 text-muted">
+                      {formatDate(post.updatedAt)}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-right"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/posts/${post.slug}`}>View</Link>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
       {!searching && list.status === "CanLoadMore" ? (
         <div className="pt-4">

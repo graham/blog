@@ -151,7 +151,7 @@ export default function AdminUsers() {
           {users.status === "LoadingFirstPage" ? (
             <p className="text-sm text-muted">Loading...</p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-border bg-secondary/60 text-muted">
                   <tr>
@@ -237,7 +237,7 @@ export default function AdminUsers() {
           {pendingInvites.length === 0 ? (
             <p className="text-sm text-muted">No invites waiting to be accepted.</p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-border bg-secondary/60 text-muted">
                   <tr>

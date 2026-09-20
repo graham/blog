@@ -88,20 +88,20 @@ export default function Post() {
       bookmarks
       header={
         <div className="border-b border-border pb-4">
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto w-full min-w-0 max-w-2xl">
             <PostNavigation previous={prev} next={next} />
           </div>
         </div>
       }
       footer={
         <div className="border-t border-border pt-4">
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto w-full min-w-0 max-w-2xl">
             <PostNavigation previous={prev} next={next} />
           </div>
         </div>
       }
     >
-      <article className="mx-auto max-w-2xl">
+      <article className="mx-auto w-full min-w-0 max-w-2xl">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             {post.status === "draft" ? (
@@ -110,7 +110,7 @@ export default function Post() {
             <time className="text-xs uppercase tracking-wide text-muted">
               {formatDate(post.publishedAt ?? post.updatedAt)}
             </time>
-            <h1 className="mt-2 font-sans text-4xl font-semibold tracking-tight">
+            <h1 className="mt-2 font-sans text-3xl font-semibold tracking-tight sm:text-4xl">
               {post.title || "Untitled"}
             </h1>
             {post.tags.length > 0 ? (
@@ -140,7 +140,7 @@ export default function Post() {
           <ZoomableImage
             src={post.coverImageUrl}
             alt={post.title || "Cover image"}
-            className="mb-8 w-full rounded-xl object-cover"
+            className="mb-8 h-auto w-full max-w-full rounded-xl object-cover"
             gallery={gallery}
           />
         ) : null}

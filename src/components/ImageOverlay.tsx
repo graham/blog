@@ -168,7 +168,7 @@ export function ZoomableImage({
           setIndex(startIndex);
           setOpen(true);
         }}
-        className={cn("cursor-zoom-in", className)}
+        className={cn("h-auto max-w-full cursor-zoom-in", className)}
       />
       <ImageOverlay
         images={images}

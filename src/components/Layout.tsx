@@ -38,18 +38,18 @@ export function Layout({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <main className="mx-auto max-w-5xl px-4 py-10">
-        <div className="flex flex-col gap-8">
+      <main className="mx-auto w-full min-w-0 max-w-5xl px-4 py-8 sm:py-10">
+        <div className="flex min-w-0 flex-col gap-8">
           {header}
           {showNav ? (
-            <div className="grid gap-10 md:grid-cols-[11rem_minmax(0,1fr)] md:items-start">
+            <div className="grid min-w-0 gap-10 md:grid-cols-[11rem_minmax(0,1fr)] md:items-start">
               <div className="min-w-0 md:col-start-2 md:row-start-1">{children}</div>
-              <aside className="md:col-start-1 md:row-start-1">
+              <aside className="min-w-0 md:col-start-1 md:row-start-1">
                 <BookmarkNav groups={groups} />
               </aside>
             </div>
           ) : (
-            children
+            <div className="min-w-0">{children}</div>
           )}
           {footer}
         </div>

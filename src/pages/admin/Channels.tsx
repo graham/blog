@@ -58,7 +58,7 @@ export default function AdminChannels() {
       ) : list.results.length === 0 ? (
         <p className="text-sm text-muted">No channels yet.</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border bg-secondary/60 text-muted">
               <tr>

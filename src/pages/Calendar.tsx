@@ -129,13 +129,13 @@ export default function Calendar() {
   return (
     <Layout bookmarks>
       <div className="mx-auto w-full min-w-0 max-w-3xl">
-        <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="mb-6 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="font-sans text-3xl font-semibold tracking-tight">Calendar</h1>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 items-center justify-between gap-2 sm:justify-end">
             <Button variant="outline" size="sm" onClick={() => shiftMonth(-1)}>
-              Previous
+              Prev
             </Button>
-            <p className="w-40 text-center text-sm text-muted tabular-nums">
+            <p className="min-w-0 flex-1 text-center text-sm text-muted tabular-nums sm:w-40 sm:flex-none">
               {monthLabel(year, month)}
             </p>
             <Button variant="outline" size="sm" onClick={() => shiftMonth(1)}>

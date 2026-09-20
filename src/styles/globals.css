@@ -219,6 +219,18 @@ body,
   min-height: 100%;
 }
 
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
 body {
   margin: 0;
   background: var(--color-background);
@@ -229,11 +241,14 @@ body {
 
 .md {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   font-family: var(--font-serif);
   font-size: 1.125rem;
   line-height: 1.78;
   color: var(--md-body);
   overflow-wrap: break-word;
+  overflow-x: clip;
 }
 
 .md > *:first-child {
@@ -306,6 +321,7 @@ body {
 .md img {
   display: block;
   max-width: 100%;
+  width: auto;
   height: auto;
   border-radius: 0.75rem;
   margin: 1.75rem 0;
@@ -313,11 +329,16 @@ body {
 
 .md-image {
   display: block;
+  max-width: 100%;
+  min-width: 0;
   margin: 1.75rem 0;
 }
 
 .md-image img {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
   cursor: zoom-in;
 }
 

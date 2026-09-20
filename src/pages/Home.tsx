@@ -52,7 +52,7 @@ export default function Home() {
 
   return (
     <Layout bookmarks>
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto w-full min-w-0 max-w-2xl">
         <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
           {searching ? `Search: ${q}` : "Posts"}
         </h1>
