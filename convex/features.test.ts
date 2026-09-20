@@ -23,7 +23,8 @@ async function seedUser(t: ReturnType<typeof createT>, email: string, userType: 
 
 const DEFAULT_FEATURES = {
   bookmarks: false,
-  timings: { showTimeDelta: false, timingsPage: false },
+  timings: false,
+  calendar: false,
   infiniteScroll: false,
   theme: { enabled: false, id: "paper" },
 };
@@ -50,20 +51,21 @@ describe("features", () => {
     ).rejects.toThrow(/Forbidden/);
   });
 
-  test("admin can toggle nested timings, infinite scroll, theme, and bookmarks", async () => {
+  test("admin can toggle timings, calendar, infinite scroll, theme, and bookmarks", async () => {
     const t = createT();
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
     const features = await asAdmin.mutation(api.features.mutations.set, {
       bookmarks: true,
-      timingsShowDelta: true,
-      timingsPage: true,
+      timings: true,
+      calendar: true,
       infiniteScroll: true,
       themeEnabled: true,
       themeId: "ink",
     });
     expect(features).toEqual({
       bookmarks: true,
-      timings: { showTimeDelta: true, timingsPage: true },
+      timings: true,
+      calendar: true,
       infiniteScroll: true,
       theme: { enabled: true, id: "ink" },
     });
@@ -80,8 +82,8 @@ describe("features", () => {
   });
 });
 
-describe("timings page query", () => {
-  test("returns nothing while the timings page is off", async () => {
+describe("calendar page query", () => {
+  test("returns nothing while the calendar is off", async () => {
     const t = createT();
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
     const postId = await asAdmin.mutation(api.posts.mutations.create, {});
@@ -112,7 +114,7 @@ describe("timings page query", () => {
   test("when on, returns listed published posts in the window", async () => {
     const t = createT();
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
-    await asAdmin.mutation(api.features.mutations.set, { timingsPage: true });
+    await asAdmin.mutation(api.features.mutations.set, { calendar: true });
     const postId = await asAdmin.mutation(api.posts.mutations.create, {});
     await asAdmin.mutation(api.posts.mutations.save, {
       postId,

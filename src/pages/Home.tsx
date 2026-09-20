@@ -67,7 +67,7 @@ export default function Home() {
             {posts.map((post, index) => {
               const previous = index > 0 ? posts[index - 1] : null;
               const delta =
-                features.timings.showTimeDelta && previous
+                features.timings && previous
                   ? formatTimeDelta(postTime(previous), postTime(post))
                   : null;
               return (

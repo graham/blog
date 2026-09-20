@@ -48,7 +48,7 @@ export default function AdminSettings() {
             <h2 className="font-medium">Require sign-in to read</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted">
               Private-site mode. Signed-out visitors are sent to sign-in and
-              every public read (timeline, posts, tags, search, timings) comes
+              every public read (timeline, posts, tags, search, calendar) comes
               back empty. API keys still work. Channel membership still applies
               on top for signed-in readers.
             </p>
@@ -110,14 +110,12 @@ export default function AdminSettings() {
             </FeatureCard>
 
             <FeatureCard
-              title="Timings: show time delta"
-              on={features.timings.showTimeDelta}
+              title="Timings"
+              on={features.timings}
               disabled={busy !== null}
               onClick={() =>
-                void run("delta", () =>
-                  setFeatures({
-                    timingsShowDelta: !features.timings.showTimeDelta,
-                  }),
+                void run("timings", () =>
+                  setFeatures({ timings: !features.timings }),
                 )
               }
             >
@@ -134,21 +132,21 @@ export default function AdminSettings() {
             </FeatureCard>
 
             <FeatureCard
-              title="Timings: timings page"
-              on={features.timings.timingsPage}
+              title="Calendar"
+              on={features.calendar}
               disabled={busy !== null}
               onClick={() =>
-                void run("page", () =>
-                  setFeatures({ timingsPage: !features.timings.timingsPage }),
+                void run("calendar", () =>
+                  setFeatures({ calendar: !features.calendar }),
                 )
               }
             >
               <p>
-                Adds a <code className="text-foreground">/timings</code> page and
-                a Timings link in the header. The page is a month calendar: each
-                day shows how many listed published posts went up that day.
-                Click a day to open a table (time, title, slug) instead of the
-                usual card list on home.
+                Adds a <code className="text-foreground">/calendar</code> page
+                and a Calendar link in the header. The page is a month calendar:
+                each day shows how many listed published posts went up that day.
+                Click a day for an hourly bar chart and a table (time, title,
+                slug), not the usual card list on home.
               </p>
               <p>
                 Previous/next month buttons move the calendar. Channel rules

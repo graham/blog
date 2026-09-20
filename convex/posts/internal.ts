@@ -9,7 +9,7 @@ import {
   postDetailValidator,
   postNavigationValidator,
   postSummaryValidator,
-  timingPostValidator,
+  calendarPostValidator,
   visibilityValidator,
 } from "../lib/validators";
 import { buildSearchText, excerptFrom, normalizeTags, slugify } from "../lib/text";
@@ -446,7 +446,7 @@ export const getAdjacentBySlug = internalQuery({
   },
 });
 
-const MAX_TIMING_POSTS = 200;
+const MAX_CALENDAR_POSTS = 200;
 
 export const listPublishedBetween = internalQuery({
   args: {
@@ -455,7 +455,7 @@ export const listPublishedBetween = internalQuery({
     viewerUserId: v.union(v.id("users"), v.null()),
     asAdmin: v.boolean(),
   },
-  returns: v.array(timingPostValidator),
+  returns: v.array(calendarPostValidator),
   handler: async (ctx, args) => {
     const start = Math.min(args.start, args.end);
     const end = Math.max(args.start, args.end);
@@ -469,7 +469,7 @@ export const listPublishedBetween = internalQuery({
           .lt("publishedAt", end),
       )
       .order("asc")
-      .take(MAX_TIMING_POSTS);
+      .take(MAX_CALENDAR_POSTS);
     const viewer = viewerFrom(args);
     const memberships =
       args.viewerUserId && !args.asAdmin

@@ -26,35 +26,45 @@ function HourChart({ posts }: { posts: Array<{ publishedAt: number }> }) {
     hours[new Date(post.publishedAt).getHours()] += 1;
   }
   const max = Math.max(1, ...hours);
+  const mid = max > 1 ? Math.round(max / 2) : null;
   return (
     <div className="min-w-0">
       <p className="mb-2 text-xs text-muted">Posts during the day</p>
-      <div className="flex h-20 w-full min-w-0 items-end gap-px rounded-md border border-border bg-card px-1.5 pt-2">
-        {hours.map((count, hour) => (
-          <div
-            key={hour}
-            title={`${hour.toString().padStart(2, "0")}:00 · ${count}`}
-            className="flex h-full min-w-0 flex-1 flex-col justify-end"
-          >
-            <div
-              className="w-full rounded-t-sm bg-accent"
-              style={{ height: `${(count / max) * 100}%` }}
-            />
+      <div className="flex min-w-0 gap-2">
+        <div className="flex h-20 w-6 shrink-0 flex-col justify-between py-0.5 text-right text-[10px] text-muted tabular-nums">
+          <span>{max}</span>
+          {mid !== null ? <span>{mid}</span> : <span />}
+          <span>0</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex h-20 w-full min-w-0 items-end gap-px rounded-md border border-border bg-card px-1.5 pt-2">
+            {hours.map((count, hour) => (
+              <div
+                key={hour}
+                title={`${hour.toString().padStart(2, "0")}:00 · ${count} ${count === 1 ? "post" : "posts"}`}
+                className="flex h-full min-w-0 flex-1 flex-col justify-end"
+              >
+                <div
+                  className="w-full rounded-t-sm bg-accent"
+                  style={{ height: `${(count / max) * 100}%` }}
+                />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="mt-1 flex justify-between px-1.5 text-[10px] text-muted tabular-nums">
-        <span>12a</span>
-        <span>6a</span>
-        <span>12p</span>
-        <span>6p</span>
-        <span>11p</span>
+          <div className="mt-1 flex justify-between px-1.5 text-[10px] text-muted tabular-nums">
+            <span>12a</span>
+            <span>6a</span>
+            <span>12p</span>
+            <span>6p</span>
+            <span>11p</span>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-export default function Timings() {
+export default function Calendar() {
   const features = useQuery(api.features.publicQueries.get);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -71,7 +81,7 @@ export default function Timings() {
 
   const posts = useQuery(
     api.posts.publicQueries.listPublishedBetween,
-    features?.timings.timingsPage === true ? range : "skip",
+    features?.calendar === true ? range : "skip",
   );
 
   if (features === undefined) {
@@ -82,7 +92,7 @@ export default function Timings() {
     );
   }
 
-  if (!features.timings.timingsPage) {
+  if (!features.calendar) {
     return <Navigate to="/" replace />;
   }
 
@@ -120,7 +130,7 @@ export default function Timings() {
     <Layout bookmarks>
       <div className="mx-auto w-full min-w-0 max-w-3xl">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <h1 className="font-sans text-3xl font-semibold tracking-tight">Timings</h1>
+          <h1 className="font-sans text-3xl font-semibold tracking-tight">Calendar</h1>
           <div className="flex shrink-0 items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => shiftMonth(-1)}>
               Previous

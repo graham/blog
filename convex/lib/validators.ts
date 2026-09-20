@@ -128,10 +128,8 @@ export const themeIdValidator = v.union(
 
 export const featuresValidator = v.object({
   bookmarks: v.boolean(),
-  timings: v.object({
-    showTimeDelta: v.boolean(),
-    timingsPage: v.boolean(),
-  }),
+  timings: v.boolean(),
+  calendar: v.boolean(),
   infiniteScroll: v.boolean(),
   theme: v.object({
     enabled: v.boolean(),
@@ -145,7 +143,7 @@ export const siteSettingsValidator = v.object({
   features: featuresValidator,
 });
 
-export const timingPostValidator = v.object({
+export const calendarPostValidator = v.object({
   title: v.string(),
   slug: v.string(),
   publishedAt: v.number(),

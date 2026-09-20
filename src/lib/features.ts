@@ -1,9 +1,7 @@
 export type Features = {
   bookmarks: boolean;
-  timings: {
-    showTimeDelta: boolean;
-    timingsPage: boolean;
-  };
+  timings: boolean;
+  calendar: boolean;
   infiniteScroll: boolean;
   theme: {
     enabled: boolean;
@@ -13,7 +11,8 @@ export type Features = {
 
 export const DEFAULT_FEATURES: Features = {
   bookmarks: false,
-  timings: { showTimeDelta: false, timingsPage: false },
+  timings: false,
+  calendar: false,
   infiniteScroll: false,
   theme: { enabled: false, id: "paper" },
 };

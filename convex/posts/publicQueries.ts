@@ -7,7 +7,7 @@ import {
   postDetailValidator,
   postNavigationValidator,
   postSummaryValidator,
-  timingPostValidator,
+  calendarPostValidator,
 } from "../lib/validators";
 import { resolvePublicViewer } from "../lib/access";
 import { readSiteSettings } from "../siteSettings/internal";
@@ -15,7 +15,7 @@ import { readSiteSettings } from "../siteSettings/internal";
 type PostSummary = Infer<typeof postSummaryValidator>;
 type PostDetail = Infer<typeof postDetailValidator>;
 type PostNavigation = Infer<typeof postNavigationValidator>;
-type TimingPost = Infer<typeof timingPostValidator>;
+type CalendarPost = Infer<typeof calendarPostValidator>;
 type Page<T> = {
   page: T[];
   continueCursor: string;
@@ -79,17 +79,17 @@ export const listPublishedBetween = query({
     start: v.number(),
     end: v.number(),
   },
-  returns: v.array(timingPostValidator),
+  returns: v.array(calendarPostValidator),
   handler: async (ctx, args) => {
     const settings = await readSiteSettings(ctx);
-    if (!settings.features.timings.timingsPage) {
+    if (!settings.features.calendar) {
       return [];
     }
     const viewer = await resolvePublicViewer(ctx);
     if (viewer.blocked) {
       return [];
     }
-    const result: TimingPost[] = await ctx.runQuery(
+    const result: CalendarPost[] = await ctx.runQuery(
       internal.posts.internal.listPublishedBetween,
       {
         start: args.start,

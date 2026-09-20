@@ -57,7 +57,8 @@ describe("site-wide requireAuth", () => {
       bookmarksEnabled: false,
       features: {
         bookmarks: false,
-        timings: { showTimeDelta: false, timingsPage: false },
+        timings: false,
+        calendar: false,
         infiniteScroll: false,
         theme: { enabled: false, id: "paper" },
       },

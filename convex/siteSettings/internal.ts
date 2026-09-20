@@ -27,7 +27,8 @@ const THEME_IDS: ThemeId[] = [
 
 export const DEFAULT_FEATURES: Features = {
   bookmarks: false,
-  timings: { showTimeDelta: false, timingsPage: false },
+  timings: false,
+  calendar: false,
   infiniteScroll: false,
   theme: { enabled: false, id: "paper" },
 };
@@ -50,10 +51,8 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
   if (!row) return { ...DEFAULT_SETTINGS, features: { ...DEFAULT_FEATURES } };
   const features: Features = {
     bookmarks: row.bookmarksEnabled === true,
-    timings: {
-      showTimeDelta: row.timingsShowDelta === true,
-      timingsPage: row.timingsPage === true,
-    },
+    timings: row.timingsShowDelta === true,
+    calendar: row.calendar === true || row.timingsPage === true,
     infiniteScroll: row.infiniteScroll === true,
     theme: {
       enabled: row.themeEnabled === true,
@@ -71,8 +70,9 @@ function toRow(settings: Settings, updatedBy: Id<"users">) {
   return {
     requireAuth: settings.requireAuth,
     bookmarksEnabled: settings.features.bookmarks,
-    timingsShowDelta: settings.features.timings.showTimeDelta,
-    timingsPage: settings.features.timings.timingsPage,
+    timingsShowDelta: settings.features.timings,
+    timingsPage: settings.features.calendar,
+    calendar: settings.features.calendar,
     infiniteScroll: settings.features.infiniteScroll,
     themeEnabled: settings.features.theme.enabled,
     themeId: settings.features.theme.id,
@@ -142,8 +142,8 @@ export const setFeatures = internalMutation({
   args: {
     updatedBy: v.id("users"),
     bookmarks: v.optional(v.boolean()),
-    timingsShowDelta: v.optional(v.boolean()),
-    timingsPage: v.optional(v.boolean()),
+    timings: v.optional(v.boolean()),
+    calendar: v.optional(v.boolean()),
     infiniteScroll: v.optional(v.boolean()),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(themeIdValidator),
@@ -153,10 +153,8 @@ export const setFeatures = internalMutation({
     const current = await readSiteSettings(ctx);
     const features: Features = {
       bookmarks: args.bookmarks ?? current.features.bookmarks,
-      timings: {
-        showTimeDelta: args.timingsShowDelta ?? current.features.timings.showTimeDelta,
-        timingsPage: args.timingsPage ?? current.features.timings.timingsPage,
-      },
+      timings: args.timings ?? current.features.timings,
+      calendar: args.calendar ?? current.features.calendar,
       infiniteScroll: args.infiniteScroll ?? current.features.infiniteScroll,
       theme: {
         enabled: args.themeEnabled ?? current.features.theme.enabled,

@@ -10,8 +10,8 @@ type Features = Infer<typeof featuresValidator>;
 export const set = mutation({
   args: {
     bookmarks: v.optional(v.boolean()),
-    timingsShowDelta: v.optional(v.boolean()),
-    timingsPage: v.optional(v.boolean()),
+    timings: v.optional(v.boolean()),
+    calendar: v.optional(v.boolean()),
     infiniteScroll: v.optional(v.boolean()),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(themeIdValidator),

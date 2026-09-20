@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import ConvexClientProvider from "./components/ConvexClientProvider";
 import { FeaturesProvider } from "./components/FeaturesProvider";
-import Timings from "./pages/Timings";
+import Calendar from "./pages/Calendar";
 import { AdminRoute } from "./components/AdminRoute";
 import { SiteGate } from "./components/SiteGate";
 import Home from "./pages/Home";
@@ -53,13 +53,14 @@ export default function App() {
             }
           />
           <Route
-            path="/timings"
+            path="/calendar"
             element={
               <SiteGate>
-                <Timings />
+                <Calendar />
               </SiteGate>
             }
           />
+          <Route path="/timings" element={<Navigate to="/calendar" replace />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/invite/:token" element={<Invite />} />
           <Route path="/signout" element={<SignOut />} />

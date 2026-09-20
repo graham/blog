@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
@@ -41,6 +41,7 @@ export default function AdminPosts() {
                 <th className="px-4 py-2 font-medium">Visibility</th>
                 <th className="px-4 py-2 font-medium">Access</th>
                 <th className="px-4 py-2 font-medium">Updated</th>
+                <th className="px-4 py-2 font-medium" />
               </tr>
             </thead>
             <tbody>
@@ -60,6 +61,14 @@ export default function AdminPosts() {
                   </td>
                   <td className="px-4 py-3 text-muted">
                     {formatDate(post.updatedAt)}
+                  </td>
+                  <td
+                    className="px-4 py-3 text-right"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/posts/${post.slug}`}>View</Link>
+                    </Button>
                   </td>
                 </tr>
               ))}

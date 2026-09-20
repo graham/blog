@@ -15,7 +15,7 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const admin = isAdminUser(currentUser);
   const features = useQuery(api.features.publicQueries.get);
   const bookmarksEnabled = features?.bookmarks === true;
-  const timingsPage = features?.timings.timingsPage === true;
+  const calendar = features?.calendar === true;
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -46,9 +46,9 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
           />
         </form>
         <nav className="flex items-center gap-3 text-sm">
-          {timingsPage ? (
-            <Link to="/timings" className="text-muted hover:text-foreground">
-              Timings
+          {calendar ? (
+            <Link to="/calendar" className="text-muted hover:text-foreground">
+              Calendar
             </Link>
           ) : null}
           {admin ? (
