@@ -34,6 +34,8 @@ import type * as channels_internal from "../channels/internal.js";
 import type * as channels_mutations from "../channels/mutations.js";
 import type * as channels_queries from "../channels/queries.js";
 import type * as config from "../config.js";
+import type * as features_mutations from "../features/mutations.js";
+import type * as features_publicQueries from "../features/publicQueries.js";
 import type * as http from "../http.js";
 import type * as invites_internal from "../invites/internal.js";
 import type * as invites_mutations from "../invites/mutations.js";
@@ -100,6 +102,8 @@ declare const fullApi: ApiFromModules<{
   "channels/mutations": typeof channels_mutations;
   "channels/queries": typeof channels_queries;
   config: typeof config;
+  "features/mutations": typeof features_mutations;
+  "features/publicQueries": typeof features_publicQueries;
   http: typeof http;
   "invites/internal": typeof invites_internal;
   "invites/mutations": typeof invites_mutations;

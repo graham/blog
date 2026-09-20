@@ -13,8 +13,9 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const [params] = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
   const admin = isAdminUser(currentUser);
-  const config = useQuery(api.config.getConfig, admin ? {} : "skip");
-  const bookmarksEnabled = config?.bookmarksEnabled === true;
+  const features = useQuery(api.features.publicQueries.get);
+  const bookmarksEnabled = features?.bookmarks === true;
+  const timingsPage = features?.timings.timingsPage === true;
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -45,6 +46,11 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
           />
         </form>
         <nav className="flex items-center gap-3 text-sm">
+          {timingsPage ? (
+            <Link to="/timings" className="text-muted hover:text-foreground">
+              Timings
+            </Link>
+          ) : null}
           {admin ? (
             <>
               <Link to="/admin" className="text-muted hover:text-foreground">

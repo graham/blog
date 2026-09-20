@@ -55,6 +55,12 @@ describe("site-wide requireAuth", () => {
       passwordAuthEnabled: true,
       requireAuth: false,
       bookmarksEnabled: false,
+      features: {
+        bookmarks: false,
+        timings: { showTimeDelta: false, timingsPage: false },
+        infiniteScroll: false,
+        theme: { enabled: false, id: "paper" },
+      },
     });
     const list = await t.query(api.posts.publicQueries.listPublished, {
       paginationOpts: pageOpts,

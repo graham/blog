@@ -1,23 +1,102 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { siteSettingsValidator } from "../lib/validators";
+import type { Id } from "../_generated/dataModel";
+import {
+  featuresValidator,
+  siteSettingsValidator,
+  themeIdValidator,
+} from "../lib/validators";
+import type { Infer } from "convex/values";
 
 type Ctx = QueryCtx | MutationCtx;
+type Features = Infer<typeof featuresValidator>;
+type ThemeId = Infer<typeof themeIdValidator>;
+type Settings = Infer<typeof siteSettingsValidator>;
 
-export const DEFAULT_SETTINGS = { requireAuth: false, bookmarksEnabled: false };
+const THEME_IDS: ThemeId[] = [
+  "paper",
+  "ink",
+  "ocean",
+  "forest",
+  "sunset",
+  "violet",
+  "contrast",
+  "news",
+];
 
-// One row holds every global setting. Queries never write, so a missing row
-// reads as the defaults and the first admin write creates it.
-export async function readSiteSettings(ctx: Ctx): Promise<{
-  requireAuth: boolean;
-  bookmarksEnabled: boolean;
-}> {
+export const DEFAULT_FEATURES: Features = {
+  bookmarks: false,
+  timings: { showTimeDelta: false, timingsPage: false },
+  infiniteScroll: false,
+  theme: { enabled: false, id: "paper" },
+};
+
+export const DEFAULT_SETTINGS: Settings = {
+  requireAuth: false,
+  bookmarksEnabled: false,
+  features: DEFAULT_FEATURES,
+};
+
+function parseThemeId(value: string | undefined): ThemeId {
+  if (value && (THEME_IDS as string[]).includes(value)) {
+    return value as ThemeId;
+  }
+  return "paper";
+}
+
+export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
   const row = await ctx.db.query("siteSettings").first();
-  if (!row) return { ...DEFAULT_SETTINGS };
+  if (!row) return { ...DEFAULT_SETTINGS, features: { ...DEFAULT_FEATURES } };
+  const features: Features = {
+    bookmarks: row.bookmarksEnabled === true,
+    timings: {
+      showTimeDelta: row.timingsShowDelta === true,
+      timingsPage: row.timingsPage === true,
+    },
+    infiniteScroll: row.infiniteScroll === true,
+    theme: {
+      enabled: row.themeEnabled === true,
+      id: parseThemeId(row.themeId),
+    },
+  };
   return {
     requireAuth: row.requireAuth,
-    bookmarksEnabled: row.bookmarksEnabled === true,
+    bookmarksEnabled: features.bookmarks,
+    features,
+  };
+}
+
+function toRow(settings: Settings, updatedBy: Id<"users">) {
+  return {
+    requireAuth: settings.requireAuth,
+    bookmarksEnabled: settings.features.bookmarks,
+    timingsShowDelta: settings.features.timings.showTimeDelta,
+    timingsPage: settings.features.timings.timingsPage,
+    infiniteScroll: settings.features.infiniteScroll,
+    themeEnabled: settings.features.theme.enabled,
+    themeId: settings.features.theme.id,
+    updatedAt: Date.now(),
+    updatedBy,
+  };
+}
+
+async function writeSettings(
+  ctx: MutationCtx,
+  settings: Settings,
+  updatedBy: Id<"users">,
+): Promise<Settings> {
+  const row = await ctx.db.query("siteSettings").first();
+  const next = toRow(settings, updatedBy);
+  if (row) {
+    await ctx.db.patch("siteSettings", row._id, next);
+  } else {
+    await ctx.db.insert("siteSettings", next);
+  }
+  return {
+    requireAuth: settings.requireAuth,
+    bookmarksEnabled: settings.features.bookmarks,
+    features: settings.features,
   };
 }
 
@@ -33,20 +112,12 @@ export const setRequireAuth = internalMutation({
   args: { requireAuth: v.boolean(), updatedBy: v.id("users") },
   returns: siteSettingsValidator,
   handler: async (ctx, args) => {
-    const row = await ctx.db.query("siteSettings").first();
     const current = await readSiteSettings(ctx);
-    const next = {
-      requireAuth: args.requireAuth,
-      bookmarksEnabled: current.bookmarksEnabled,
-      updatedAt: Date.now(),
-      updatedBy: args.updatedBy,
-    };
-    if (row) {
-      await ctx.db.patch("siteSettings", row._id, next);
-    } else {
-      await ctx.db.insert("siteSettings", next);
-    }
-    return { requireAuth: next.requireAuth, bookmarksEnabled: next.bookmarksEnabled };
+    return await writeSettings(
+      ctx,
+      { ...current, requireAuth: args.requireAuth },
+      args.updatedBy,
+    );
   },
 });
 
@@ -54,19 +125,49 @@ export const setBookmarksEnabled = internalMutation({
   args: { bookmarksEnabled: v.boolean(), updatedBy: v.id("users") },
   returns: siteSettingsValidator,
   handler: async (ctx, args) => {
-    const row = await ctx.db.query("siteSettings").first();
     const current = await readSiteSettings(ctx);
-    const next = {
-      requireAuth: current.requireAuth,
-      bookmarksEnabled: args.bookmarksEnabled,
-      updatedAt: Date.now(),
-      updatedBy: args.updatedBy,
+    const features: Features = {
+      ...current.features,
+      bookmarks: args.bookmarksEnabled,
     };
-    if (row) {
-      await ctx.db.patch("siteSettings", row._id, next);
-    } else {
-      await ctx.db.insert("siteSettings", next);
-    }
-    return { requireAuth: next.requireAuth, bookmarksEnabled: next.bookmarksEnabled };
+    return await writeSettings(
+      ctx,
+      { ...current, bookmarksEnabled: args.bookmarksEnabled, features },
+      args.updatedBy,
+    );
+  },
+});
+
+export const setFeatures = internalMutation({
+  args: {
+    updatedBy: v.id("users"),
+    bookmarks: v.optional(v.boolean()),
+    timingsShowDelta: v.optional(v.boolean()),
+    timingsPage: v.optional(v.boolean()),
+    infiniteScroll: v.optional(v.boolean()),
+    themeEnabled: v.optional(v.boolean()),
+    themeId: v.optional(themeIdValidator),
+  },
+  returns: featuresValidator,
+  handler: async (ctx, args) => {
+    const current = await readSiteSettings(ctx);
+    const features: Features = {
+      bookmarks: args.bookmarks ?? current.features.bookmarks,
+      timings: {
+        showTimeDelta: args.timingsShowDelta ?? current.features.timings.showTimeDelta,
+        timingsPage: args.timingsPage ?? current.features.timings.timingsPage,
+      },
+      infiniteScroll: args.infiniteScroll ?? current.features.infiniteScroll,
+      theme: {
+        enabled: args.themeEnabled ?? current.features.theme.enabled,
+        id: args.themeId ?? current.features.theme.id,
+      },
+    };
+    const saved = await writeSettings(
+      ctx,
+      { ...current, bookmarksEnabled: features.bookmarks, features },
+      args.updatedBy,
+    );
+    return saved.features;
   },
 });

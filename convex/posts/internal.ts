@@ -9,6 +9,7 @@ import {
   postDetailValidator,
   postNavigationValidator,
   postSummaryValidator,
+  timingPostValidator,
   visibilityValidator,
 } from "../lib/validators";
 import { buildSearchText, excerptFrom, normalizeTags, slugify } from "../lib/text";
@@ -442,6 +443,49 @@ export const getAdjacentBySlug = internalQuery({
       previous: await findVisible("older"),
       next: await findVisible("newer"),
     };
+  },
+});
+
+const MAX_TIMING_POSTS = 200;
+
+export const listPublishedBetween = internalQuery({
+  args: {
+    start: v.number(),
+    end: v.number(),
+    viewerUserId: v.union(v.id("users"), v.null()),
+    asAdmin: v.boolean(),
+  },
+  returns: v.array(timingPostValidator),
+  handler: async (ctx, args) => {
+    const start = Math.min(args.start, args.end);
+    const end = Math.max(args.start, args.end);
+    const rows = await ctx.db
+      .query("posts")
+      .withIndex("by_status_and_visibility_and_publishedAt", (q) =>
+        q
+          .eq("status", "published")
+          .eq("visibility", "listed")
+          .gte("publishedAt", start)
+          .lt("publishedAt", end),
+      )
+      .order("asc")
+      .take(MAX_TIMING_POSTS);
+    const viewer = viewerFrom(args);
+    const memberships =
+      args.viewerUserId && !args.asAdmin
+        ? await listUserChannelIdSet(ctx, args.viewerUserId)
+        : undefined;
+    const posts = [];
+    for (const post of rows) {
+      if (post.publishedAt === null) continue;
+      if (!(await canViewPost(ctx, post, viewer, memberships))) continue;
+      posts.push({
+        title: post.title,
+        slug: post.slug,
+        publishedAt: post.publishedAt,
+      });
+    }
+    return posts;
   },
 });
 

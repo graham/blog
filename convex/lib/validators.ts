@@ -115,9 +115,40 @@ export const userSummaryValidator = v.object({
   disabledAt: v.union(v.number(), v.null()),
 });
 
+export const themeIdValidator = v.union(
+  v.literal("paper"),
+  v.literal("ink"),
+  v.literal("ocean"),
+  v.literal("forest"),
+  v.literal("sunset"),
+  v.literal("violet"),
+  v.literal("contrast"),
+  v.literal("news"),
+);
+
+export const featuresValidator = v.object({
+  bookmarks: v.boolean(),
+  timings: v.object({
+    showTimeDelta: v.boolean(),
+    timingsPage: v.boolean(),
+  }),
+  infiniteScroll: v.boolean(),
+  theme: v.object({
+    enabled: v.boolean(),
+    id: themeIdValidator,
+  }),
+});
+
 export const siteSettingsValidator = v.object({
   requireAuth: v.boolean(),
   bookmarksEnabled: v.boolean(),
+  features: featuresValidator,
+});
+
+export const timingPostValidator = v.object({
+  title: v.string(),
+  slug: v.string(),
+  publishedAt: v.number(),
 });
 
 export const inviteValidator = v.object({

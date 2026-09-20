@@ -15,6 +15,11 @@ const schema = defineSchema({
   siteSettings: defineTable({
     requireAuth: v.boolean(),
     bookmarksEnabled: v.optional(v.boolean()),
+    timingsShowDelta: v.optional(v.boolean()),
+    timingsPage: v.optional(v.boolean()),
+    infiniteScroll: v.optional(v.boolean()),
+    themeEnabled: v.optional(v.boolean()),
+    themeId: v.optional(v.string()),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
   }),
@@ -59,6 +64,11 @@ const schema = defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_status_and_visibility", ["status", "visibility"])
+    .index("by_status_and_visibility_and_publishedAt", [
+      "status",
+      "visibility",
+      "publishedAt",
+    ])
     .index("by_authorId", ["authorId"])
     .searchIndex("search_text", {
       searchField: "searchText",

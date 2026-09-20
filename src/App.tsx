@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ConvexClientProvider from "./components/ConvexClientProvider";
+import { FeaturesProvider } from "./components/FeaturesProvider";
+import Timings from "./pages/Timings";
 import { AdminRoute } from "./components/AdminRoute";
 import { SiteGate } from "./components/SiteGate";
 import Home from "./pages/Home";
@@ -23,6 +25,7 @@ import BookmarkGroupDetail from "./pages/admin/BookmarkGroupDetail";
 export default function App() {
   return (
     <ConvexClientProvider>
+      <FeaturesProvider>
       <BrowserRouter>
         <Routes>
           <Route
@@ -46,6 +49,14 @@ export default function App() {
             element={
               <SiteGate>
                 <Tag />
+              </SiteGate>
+            }
+          />
+          <Route
+            path="/timings"
+            element={
+              <SiteGate>
+                <Timings />
               </SiteGate>
             }
           />
@@ -128,6 +139,7 @@ export default function App() {
           />
         </Routes>
       </BrowserRouter>
+      </FeaturesProvider>
     </ConvexClientProvider>
   );
 }

@@ -7,12 +7,15 @@ import {
   postDetailValidator,
   postNavigationValidator,
   postSummaryValidator,
+  timingPostValidator,
 } from "../lib/validators";
 import { resolvePublicViewer } from "../lib/access";
+import { readSiteSettings } from "../siteSettings/internal";
 
 type PostSummary = Infer<typeof postSummaryValidator>;
 type PostDetail = Infer<typeof postDetailValidator>;
 type PostNavigation = Infer<typeof postNavigationValidator>;
+type TimingPost = Infer<typeof timingPostValidator>;
 type Page<T> = {
   page: T[];
   continueCursor: string;
@@ -68,6 +71,34 @@ export const getAdjacentBySlug = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
+  },
+});
+
+export const listPublishedBetween = query({
+  args: {
+    start: v.number(),
+    end: v.number(),
+  },
+  returns: v.array(timingPostValidator),
+  handler: async (ctx, args) => {
+    const settings = await readSiteSettings(ctx);
+    if (!settings.features.timings.timingsPage) {
+      return [];
+    }
+    const viewer = await resolvePublicViewer(ctx);
+    if (viewer.blocked) {
+      return [];
+    }
+    const result: TimingPost[] = await ctx.runQuery(
+      internal.posts.internal.listPublishedBetween,
+      {
+        start: args.start,
+        end: args.end,
+        viewerUserId: viewer.viewerUserId,
+        asAdmin: viewer.asAdmin,
+      },
+    );
+    return result;
   },
 });
 

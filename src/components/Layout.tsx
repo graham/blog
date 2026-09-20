@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Header } from "./Header";
 import { BookmarkNav } from "./BookmarkNav";
+import { useFeatures } from "./FeaturesProvider";
 
 export function Layout({
   children,
@@ -17,10 +18,10 @@ export function Layout({
   header?: ReactNode;
   footer?: ReactNode;
 }) {
-  const config = useQuery(api.config.getConfig, bookmarks ? {} : "skip");
+  const features = useFeatures();
   const groups = useQuery(
     api.bookmarkGroups.publicQueries.listForViewer,
-    bookmarks && config?.bookmarksEnabled === true ? {} : "skip",
+    bookmarks && features.bookmarks ? {} : "skip",
   );
 
   if (variant === "workspace") {

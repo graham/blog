@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { siteSettingsValidator } from "./lib/validators";
+import { featuresValidator, siteSettingsValidator } from "./lib/validators";
 import type { Infer } from "convex/values";
 
 type SiteSettings = Infer<typeof siteSettingsValidator>;
@@ -15,6 +15,7 @@ export const getConfig = query({
     passwordAuthEnabled: v.boolean(),
     requireAuth: v.boolean(),
     bookmarksEnabled: v.boolean(),
+    features: featuresValidator,
   }),
   handler: async (ctx) => {
     const settings: SiteSettings = await ctx.runQuery(internal.siteSettings.internal.get, {});
@@ -26,6 +27,7 @@ export const getConfig = query({
       passwordAuthEnabled: process.env.AUTH_PASSWORD_ENABLED !== "false",
       requireAuth: settings.requireAuth,
       bookmarksEnabled: settings.bookmarksEnabled,
+      features: settings.features,
     };
   },
 });
