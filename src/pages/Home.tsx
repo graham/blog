@@ -66,15 +66,16 @@ export default function Home() {
           <div>
             {posts.map((post, index) => {
               const previous = index > 0 ? posts[index - 1] : null;
-              const delta =
-                features.timings && previous
-                  ? formatTimeDelta(postTime(previous), postTime(post))
-                  : null;
+              const delta = !features.timings
+                ? null
+                : previous
+                  ? `${formatTimeDelta(postTime(previous), postTime(post))} earlier`
+                  : `${formatTimeDelta(Date.now(), postTime(post))} ago`;
               return (
                 <Fragment key={post._id}>
                   {delta ? (
                     <p className="py-3 text-center text-[11px] uppercase tracking-[0.18em] text-muted">
-                      {delta} earlier
+                      {delta}
                     </p>
                   ) : null}
                   <PostCard post={post} />

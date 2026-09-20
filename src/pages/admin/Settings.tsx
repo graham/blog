@@ -121,8 +121,8 @@ export default function AdminSettings() {
             >
               <p>
                 On the home timeline (<code className="text-foreground">/</code>
-                ), a quiet line between consecutive posts names how much earlier
-                the older one is (“3 days earlier”, “2 hours earlier”).
+                ), a quiet line above the first post names how old it is (“3 days
+                ago”). Between later posts it names the gap (“2 hours earlier”).
               </p>
               <p>
                 Uses each post’s publish time. Search results are unchanged. Off:
