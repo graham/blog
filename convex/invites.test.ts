@@ -46,6 +46,16 @@ describe("invites", () => {
     expect(created.token).toMatch(/^inv_[0-9a-f]{64}$/);
     expect(created.invite.email).toBe("new@example.com");
     expect(created.invite.status).toBe("pending");
+    const invitedUser = await t.run(async (ctx) =>
+      ctx.db
+        .query("users")
+        .withIndex("email", (q) => q.eq("email", "new@example.com"))
+        .first(),
+    );
+    expect(invitedUser).toMatchObject({
+      email: "new@example.com",
+      userType: "user",
+    });
 
     const stored = await t.run(async (ctx) =>
       ctx.db.get("invites", created.invite._id),
@@ -208,16 +218,29 @@ describe("invites", () => {
     ).toBe("valid");
   });
 
-  test("an email that already has an account cannot be invited", async () => {
+  test("an email that already has a password cannot be invited", async () => {
     const t = createT();
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
-    await seedUser(t, "taken@example.com", "user");
+    await asAdmin.mutation(api.users.mutations.create, {
+      email: "google@example.com",
+      userType: "user",
+    });
+    const created = await asAdmin.mutation(api.invites.mutations.create, {
+      email: "google@example.com",
+      userType: "user",
+    });
+    expect(created.invite.status).toBe("pending");
+    await t.mutation(api.invites.publicMutations.acceptWithPassword, {
+      token: created.token,
+      name: "G",
+      password: "a long enough password",
+    });
     await expect(
       asAdmin.mutation(api.invites.mutations.create, {
-        email: "taken@example.com",
+        email: "google@example.com",
         userType: "user",
       }),
-    ).rejects.toThrow(/already has an account/);
+    ).rejects.toThrow(/already has a password/);
   });
 
   test("a bad email address is refused", async () => {

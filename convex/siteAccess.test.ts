@@ -51,7 +51,9 @@ describe("site-wide requireAuth", () => {
     const { slug } = await seedPublishedPost(t, asAdmin);
 
     expect(await t.query(api.config.getConfig, {})).toEqual({
+      googleAuthAvailable: false,
       googleAuthEnabled: false,
+      passwordAuthAvailable: true,
       passwordAuthEnabled: true,
       requireAuth: false,
       bookmarksEnabled: false,

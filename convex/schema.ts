@@ -24,6 +24,8 @@ const schema = defineSchema({
     postSort: v.optional(v.union(v.literal("created"), v.literal("updated"))),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(v.string()),
+    googleSignIn: v.optional(v.boolean()),
+    passwordSignIn: v.optional(v.boolean()),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
   }),

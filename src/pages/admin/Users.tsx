@@ -25,6 +25,7 @@ export default function AdminUsers() {
     {},
     { initialNumItems: PAGE_SIZE },
   );
+  const createUser = useMutation(api.users.mutations.create);
   const createInvite = useMutation(api.invites.mutations.create);
   const revokeInvite = useMutation(api.invites.mutations.revoke);
   const setDisabled = useMutation(api.users.mutations.setDisabled);
@@ -47,6 +48,18 @@ export default function AdminUsers() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function onCreateUser() {
+    await run(async () => {
+      await createUser({
+        email,
+        userType: asAdmin ? "admin" : "user",
+      });
+      setEmail("");
+      setAsAdmin(false);
+      setRevealed(null);
+    });
   }
 
   async function onInvite(event: FormEvent) {
@@ -82,8 +95,9 @@ export default function AdminUsers() {
         <div>
           <h1 className="font-sans text-2xl font-semibold tracking-tight">Users</h1>
           <p className="mt-1 text-sm text-muted">
-            Invite links are shown once, here. Send one however you like, then
-            disable the account whenever you want the access back.
+            Create user makes an account with no password so they can sign in
+            with Google. Create invite does that and also gives a one-time link
+            to set a password.
           </p>
         </div>
 
@@ -111,6 +125,14 @@ export default function AdminUsers() {
             />
             Make admin
           </label>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || email.trim().length === 0}
+            onClick={() => void onCreateUser()}
+          >
+            Create user
+          </Button>
           <Button type="submit" disabled={busy}>
             Create invite
           </Button>
@@ -124,7 +146,9 @@ export default function AdminUsers() {
               Invite link for {revealed.email}
             </p>
             <p className="text-sm text-muted">
-              Copy it now. It works once, expires in 7 days, and is never shown again.
+              The account exists now (no password). Copy this link if they should
+              set a password. It works once, expires in 7 days, and is never shown
+              again.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <code className="min-w-0 flex-1 overflow-x-auto rounded-md border border-border bg-background px-3 py-2 text-xs">

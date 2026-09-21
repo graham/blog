@@ -36,10 +36,24 @@ describe("features", () => {
     const t = createT();
     expect(await t.query(api.features.publicQueries.get, {})).toEqual(DEFAULT_FEATURES);
     expect(await t.query(api.config.getConfig, {})).toMatchObject({
+      googleAuthAvailable: false,
+      googleAuthEnabled: false,
+      passwordAuthAvailable: true,
+      passwordAuthEnabled: true,
       requireAuth: false,
       bookmarksEnabled: false,
       features: DEFAULT_FEATURES,
     });
+  });
+
+  test("password sign-in cannot be the last method turned off", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    await expect(
+      asAdmin.mutation(api.siteSettings.mutations.setSignInMethods, {
+        passwordSignIn: false,
+      }),
+    ).rejects.toThrow(/at least one available sign-in method/);
   });
 
   test("only an admin can change features", async () => {

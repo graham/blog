@@ -103,9 +103,25 @@ export const create = internalMutation({
     if (email.length === 0 || !email.includes("@") || email.length > 200) {
       throw new Error("Enter a valid email address");
     }
-    const existing = await userByEmail(ctx, email);
-    if (existing) {
-      throw new Error("That email already has an account");
+    let user = await userByEmail(ctx, email);
+    if (user) {
+      const passwordAccount = await ctx.db
+        .query("authAccounts")
+        .withIndex("providerAndAccountId", (q) =>
+          q.eq("provider", "password").eq("providerAccountId", email),
+        )
+        .first();
+      if (passwordAccount) {
+        throw new Error("That email already has a password sign-in");
+      }
+    } else {
+      const userId = await ctx.db.insert("users", {
+        email,
+        name: email,
+        userType: args.userType,
+      });
+      user = await ctx.db.get("users", userId);
+      if (!user) throw new Error("User creation failed");
     }
 
     // One live invite per email: issuing a new link retires the old one.
@@ -196,23 +212,35 @@ export const acceptWithPassword = internalMutation({
       throw new Error("This invite link is no longer valid");
     }
     assertUsablePassword(args.password);
-    if (await userByEmail(ctx, invite.email)) {
-      throw new Error("That email already has an account");
-    }
-
     const name = args.name.trim().slice(0, 100) || invite.email;
-    const userId = await ctx.db.insert("users", {
-      email: invite.email,
-      name,
-      userType: invite.userType,
-    });
+    let user = await userByEmail(ctx, invite.email);
+    if (user) {
+      const passwordAccount = await ctx.db
+        .query("authAccounts")
+        .withIndex("providerAndAccountId", (q) =>
+          q.eq("provider", "password").eq("providerAccountId", invite.email),
+        )
+        .first();
+      if (passwordAccount) {
+        throw new Error("That email already has a password sign-in");
+      }
+      await ctx.db.patch("users", user._id, { name });
+    } else {
+      const userId = await ctx.db.insert("users", {
+        email: invite.email,
+        name,
+        userType: invite.userType,
+      });
+      user = await ctx.db.get("users", userId);
+      if (!user) throw new Error("User creation failed");
+    }
     await ctx.db.insert("authAccounts", {
-      userId,
+      userId: user._id,
       provider: "password",
       providerAccountId: invite.email,
       secret: await pbkdf2Hash(args.password),
     });
-    await consumeInvite(ctx, invite._id, userId);
+    await consumeInvite(ctx, invite._id, user._id);
     console.log(`Invite accepted with a password by ${invite.email}`);
     return { email: invite.email };
   },

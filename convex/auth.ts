@@ -1,9 +1,16 @@
 import { convexAuth } from "@convex-dev/auth/server";
 import Google from "@auth/core/providers/google";
 import { Password } from "@convex-dev/auth/providers/Password";
-import { isAdminEmail, parseList } from "./lib/env";
+import {
+  envGoogleAuthAvailable,
+  envPasswordAuthAvailable,
+  isAdminEmail,
+  parseList,
+} from "./lib/env";
+import { readSiteSettings } from "./siteSettings/internal";
 import { pbkdf2Hash, verifyPassword } from "./lib/password";
 import { consumeInvite, findPendingInviteByEmail, normalizeEmail } from "./invites/internal";
+import { findUserByEmail } from "./users/internal";
 
 const passwordCrypto = {
   async hashSecret(password: string): Promise<string> {
@@ -15,14 +22,9 @@ const passwordCrypto = {
 };
 
 const rejectUsers: Array<string> = parseList(process.env.REJECT_USERS);
-const allowUsers: Array<string> = parseList(process.env.ALLOW_USERS);
-const allowDomains: Array<string> = parseList(process.env.ALLOW_DOMAINS);
 
-const passwordAuthEnabled = process.env.AUTH_PASSWORD_ENABLED !== "false";
-const googleAuthEnabled =
-  process.env.AUTH_GOOGLE_ENABLED === "true" ||
-  (process.env.AUTH_GOOGLE_ENABLED !== "false" &&
-    Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET));
+const passwordAuthEnabled = envPasswordAuthAvailable();
+const googleAuthEnabled = envGoogleAuthAvailable();
 
 // Accounts still need a password secret (via `npm run create-user` or an
 // accepted invite); OAuth-only users cannot sign in with a password.
@@ -59,65 +61,48 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         throw new Error("No email, no access");
       }
 
+      const settings = await readSiteSettings(ctx);
+      if (args.type === "oauth" && !settings.googleSignIn) {
+        throw new Error("Google sign-in is turned off");
+      }
+      if (args.type === "credentials" && !settings.passwordSignIn) {
+        throw new Error("Password sign-in is turned off");
+      }
+
       if (rejectUsers.includes(args.profile.email)) {
         throw new Error(`User ${args.profile.email} is banned.`);
       }
 
-      const existingUser = await ctx.db
-        .query("users")
-        .withIndex("email", (q: any) => q.eq("email", args.profile.email))
-        .first();
+      const existingUser = await findUserByEmail(ctx, args.profile.email);
 
-      if (existingUser) {
-        if (existingUser.disabledAt !== undefined) {
-          throw new Error(`User ${args.profile.email} is disabled.`);
-        }
-        await ctx.db.patch(existingUser._id, {
-          email: args.profile.email,
-          ...(args.profile.name !== undefined && { name: args.profile.name }),
-          ...(args.profile.image !== undefined && { image: args.profile.image }),
-          ...(isAdminEmail(args.profile.email) && existingUser.userType !== "admin"
-            ? { userType: "admin" }
-            : {}),
-        });
-        return existingUser._id;
-      }
-
-      // Password users must be pre-created via the admin CLI tool or by
-      // accepting an invite, which creates the account before sign-in.
-      if (args.type === "credentials") {
+      if (!existingUser) {
         throw new Error(`User ${args.profile.email} does not exist`);
       }
 
-      // An invite is one of two doors: the env allowlist still works, and an
-      // invite for this email opens it too. OAuth carries no invite token
-      // through the redirect, so the email is what we match on.
-      const invite = await findPendingInviteByEmail(ctx, normalizeEmail(args.profile.email));
-
-      const emailDomain = args.profile.email.split("@")[1];
-      const isAllowedByEmail = allowUsers.includes(args.profile.email);
-      const isAllowedByDomain = allowDomains.length > 0 && allowDomains.includes(emailDomain);
-
-      if (!invite && !isAllowedByEmail && !isAllowedByDomain) {
-        throw new Error(`User ${args.profile.email} is not authorized`);
+      if (existingUser.disabledAt !== undefined) {
+        throw new Error(`User ${args.profile.email} is disabled.`);
       }
 
       if (args.type === "oauth") {
-        const userType = isAdminEmail(args.profile.email) ? "admin" : (invite?.userType ?? "user");
-        const userId = await ctx.db.insert("users", {
-          email: args.profile.email,
-          name: args.profile.name,
-          image: args.profile.image,
-          userType,
-        });
+        const invite = await findPendingInviteByEmail(
+          ctx,
+          normalizeEmail(args.profile.email),
+        );
         if (invite) {
-          await consumeInvite(ctx, invite._id, userId);
-          console.log(`Invite accepted via OAuth by ${args.profile.email}`);
+          await consumeInvite(ctx, invite._id, existingUser._id);
+          console.log(`Invite accepted via Google by ${args.profile.email}`);
         }
-        return userId;
       }
 
-      throw new Error(`User ${args.profile.email} doesn't exist`);
+      await ctx.db.patch(existingUser._id, {
+        email: args.profile.email,
+        ...(args.profile.name !== undefined && { name: args.profile.name }),
+        ...(args.profile.image !== undefined && { image: args.profile.image }),
+        ...(isAdminEmail(args.profile.email) && existingUser.userType !== "admin"
+          ? { userType: "admin" }
+          : {}),
+      });
+      return existingUser._id;
     },
   },
 });

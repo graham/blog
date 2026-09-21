@@ -10,6 +10,7 @@ import type { FeatureMode } from "@/lib/features";
 export default function AdminSettings() {
   const config = useQuery(api.config.getConfig);
   const setRequireAuth = useMutation(api.siteSettings.mutations.setRequireAuth);
+  const setSignInMethods = useMutation(api.siteSettings.mutations.setSignInMethods);
   const setFeatures = useMutation(api.features.mutations.set);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +72,46 @@ export default function AdminSettings() {
                   }
                 />
               </div>
+            </SettingRow>
+
+            <SettingRow
+              title="Google sign-in"
+              description={
+                config.googleAuthAvailable
+                  ? "Show Continue with Google. Only existing users can sign in; create or invite them first."
+                  : "Unavailable until AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are set on the deployment."
+              }
+            >
+              <OnOff
+                on={config.googleAuthEnabled}
+                disabled={busy !== null || !config.googleAuthAvailable}
+                onClick={() =>
+                  void run("google", () =>
+                    setSignInMethods({ googleSignIn: !config.googleAuthEnabled }),
+                  )
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Password sign-in"
+              description={
+                config.passwordAuthAvailable
+                  ? "Show the email and password form. Turn off to require Google for everyone."
+                  : "Unavailable until AUTH_PASSWORD_ENABLED is true on the deployment."
+              }
+            >
+              <OnOff
+                on={config.passwordAuthEnabled}
+                disabled={busy !== null || !config.passwordAuthAvailable}
+                onClick={() =>
+                  void run("password", () =>
+                    setSignInMethods({
+                      passwordSignIn: !config.passwordAuthEnabled,
+                    }),
+                  )
+                }
+              />
             </SettingRow>
 
             <SettingRow

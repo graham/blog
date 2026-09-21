@@ -28,6 +28,12 @@ export default function SignIn() {
           </div>
 
           <div className="space-y-6">
+            {config && !config.googleAuthEnabled && !config.passwordAuthEnabled ? (
+              <p className="text-center text-sm text-muted-foreground">
+                Sign-in is turned off. Ask an administrator to enable Google or
+                password sign-in.
+              </p>
+            ) : null}
             {config?.googleAuthEnabled && (
               <Button
                 onClick={() => void signIn("google")}

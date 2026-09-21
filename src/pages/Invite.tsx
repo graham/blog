@@ -17,6 +17,7 @@ export default function Invite() {
   const navigate = useNavigate();
   const { signIn } = useAuthActions();
   const preview = useQuery(api.invites.publicQueries.preview, { token });
+  const config = useQuery(api.config.getConfig);
   const accept = useMutation(api.invites.publicMutations.acceptWithPassword);
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -64,16 +65,19 @@ export default function Invite() {
               </p>
             </div>
 
-            <Button
-              onClick={() => void signIn("google")}
-              variant="outline"
-              size="lg"
-              className="w-full"
-              type="button"
-            >
-              Continue with Google
-            </Button>
+            {config?.googleAuthEnabled ? (
+              <Button
+                onClick={() => void signIn("google")}
+                variant="outline"
+                size="lg"
+                className="w-full"
+                type="button"
+              >
+                Continue with Google
+              </Button>
+            ) : null}
 
+            {config?.googleAuthEnabled && config.passwordAuthEnabled ? (
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border"></div>
@@ -84,7 +88,9 @@ export default function Invite() {
                 </span>
               </div>
             </div>
+            ) : null}
 
+            {config?.passwordAuthEnabled ? (
             <form onSubmit={(event) => void onAccept(event)} className="space-y-4">
               <div>
                 <label htmlFor="name" className="mb-2 block text-sm font-medium text-foreground">
@@ -119,6 +125,7 @@ export default function Invite() {
                 {busy ? "Creating account..." : "Create account"}
               </Button>
             </form>
+            ) : null}
           </div>
         )}
       </div>

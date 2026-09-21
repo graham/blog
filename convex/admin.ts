@@ -17,17 +17,28 @@ async function hashPassword(password: string): Promise<string> {
 export const createUser = internalAction({
   args: {
     email: v.string(),
-    password: v.string(),
+    password: v.optional(v.string()),
     name: v.optional(v.string()),
+    userType: v.optional(v.union(v.literal("user"), v.literal("admin"))),
   },
-  handler: async (ctx, { email, password, name }) => {
-    const hashedPassword = await hashPassword(password);
-    await ctx.runMutation(internal.users.internal.insertAdminUser, {
+  handler: async (ctx, { email, password, name, userType }) => {
+    if (password !== undefined && password.length > 0) {
+      assertUsablePassword(password);
+      const hashedPassword = await hashPassword(password);
+      await ctx.runMutation(internal.users.internal.insertAdminUser, {
+        email,
+        hashedPassword,
+        name: name ?? email,
+      });
+      console.log(`Admin user created or updated: ${email}`);
+      return;
+    }
+    await ctx.runMutation(internal.users.internal.insertUser, {
       email,
-      hashedPassword,
       name: name ?? email,
+      userType: userType ?? "user",
     });
-    console.log(`Admin user created or updated: ${email}`);
+    console.log(`User created without a password: ${email}`);
   },
 });
 

@@ -21,6 +21,31 @@ export function toUserSummary(user: Doc<"users">) {
   };
 }
 
+export async function findUserByEmail(
+  ctx: Ctx,
+  email: string,
+): Promise<Doc<"users"> | null> {
+  const trimmed = email.trim();
+  const normalized = trimmed.toLowerCase();
+  const exact = await ctx.db
+    .query("users")
+    .withIndex("email", (q) => q.eq("email", trimmed))
+    .first();
+  if (exact) return exact;
+  if (normalized !== trimmed) {
+    const lower = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", normalized))
+      .first();
+    if (lower) return lower;
+  }
+  const users = await ctx.db.query("users").take(1000);
+  return (
+    users.find((user) => (user.email ?? "").trim().toLowerCase() === normalized) ??
+    null
+  );
+}
+
 export async function countEnabledAdmins(ctx: Ctx): Promise<number> {
   const users = await ctx.db.query("users").take(1000);
   return users.filter(
@@ -50,6 +75,38 @@ export async function revokeSessions(
   }
   return sessions.length;
 }
+
+export const insertUser = internalMutation({
+  args: {
+    email: v.string(),
+    name: v.optional(v.string()),
+    userType: v.union(v.literal("user"), v.literal("admin")),
+  },
+  returns: userSummaryValidator,
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+    if (email.length === 0 || !email.includes("@") || email.length > 200) {
+      throw new Error("Enter a valid email address");
+    }
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .first();
+    if (existing) {
+      throw new Error("That email already has an account");
+    }
+    const name = (args.name ?? email).trim().slice(0, 100) || email;
+    const userId = await ctx.db.insert("users", {
+      email,
+      name,
+      userType: args.userType,
+    });
+    const user = await ctx.db.get("users", userId);
+    if (!user) throw new Error("User creation failed");
+    console.log(`User created without a password: ${email}`);
+    return toUserSummary(user);
+  },
+});
 
 export const resetPassword = internalMutation({
   args: {
@@ -105,10 +162,8 @@ export const insertAdminUser = internalMutation({
     name: v.string(),
   },
   handler: async (ctx, { email, hashedPassword, name }) => {
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", email))
-      .first();
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await findUserByEmail(ctx, normalizedEmail);
 
     let userId;
     if (existingUser) {
@@ -118,7 +173,7 @@ export const insertAdminUser = internalMutation({
       }
     } else {
       userId = await ctx.db.insert("users", {
-        email,
+        email: normalizedEmail,
         name,
         userType: "admin",
       });
@@ -127,7 +182,7 @@ export const insertAdminUser = internalMutation({
     const existingAccount = await ctx.db
       .query("authAccounts")
       .withIndex("providerAndAccountId", (q) =>
-        q.eq("provider", "password").eq("providerAccountId", email)
+        q.eq("provider", "password").eq("providerAccountId", normalizedEmail),
       )
       .first();
 
@@ -137,7 +192,7 @@ export const insertAdminUser = internalMutation({
       await ctx.db.insert("authAccounts", {
         userId,
         provider: "password",
-        providerAccountId: email,
+        providerAccountId: normalizedEmail,
         secret: hashedPassword,
       });
     }

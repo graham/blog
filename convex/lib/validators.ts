@@ -149,6 +149,8 @@ export const featuresValidator = v.object({
 export const siteSettingsValidator = v.object({
   requireAuth: v.boolean(),
   bookmarksEnabled: v.boolean(),
+  googleSignIn: v.boolean(),
+  passwordSignIn: v.boolean(),
   features: featuresValidator,
 });
 

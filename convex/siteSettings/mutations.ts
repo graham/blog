@@ -23,6 +23,25 @@ export const setRequireAuth = mutation({
   },
 });
 
+export const setSignInMethods = mutation({
+  args: {
+    googleSignIn: v.optional(v.boolean()),
+    passwordSignIn: v.optional(v.boolean()),
+  },
+  returns: siteSettingsValidator,
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    const settings: SiteSettings = await ctx.runMutation(
+      internal.siteSettings.internal.setSignInMethods,
+      { ...args, updatedBy: admin._id },
+    );
+    console.log(
+      `Sign-in methods updated by ${admin.email ?? admin._id}: google=${settings.googleSignIn} password=${settings.passwordSignIn}`,
+    );
+    return settings;
+  },
+});
+
 export const setBookmarksEnabled = mutation({
   args: { bookmarksEnabled: v.boolean() },
   returns: siteSettingsValidator,

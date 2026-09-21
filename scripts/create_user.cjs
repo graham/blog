@@ -9,7 +9,9 @@
 //   PROD=1 npm run create-user            (target the prod deployment)
 //   npm run create-user -- --prod <email> <password> [name]
 //
-// Creates the users row if missing and upserts authAccounts (provider: password).
+// Creates the users row if missing. With a password, upserts authAccounts
+// (provider: password) as an admin. With no password, creates a Google-only
+// user (default userType user; pass --admin for admin).
 
 const { execFileSync } = require("child_process");
 const readline = require("readline");
@@ -45,7 +47,8 @@ function promptSecret(question) {
 async function main() {
   const argv = process.argv.slice(2);
   const prod = process.env.PROD === "1" || argv.includes("--prod");
-  const positional = argv.filter((arg) => arg !== "--prod");
+  const asAdmin = argv.includes("--admin");
+  const positional = argv.filter((arg) => arg !== "--prod" && arg !== "--admin");
 
   let email = positional[0] || process.env.ADMIN_EMAIL || "";
   let password = positional[1] || process.env.ADMIN_PASSWORD || "";
@@ -56,12 +59,18 @@ async function main() {
   if (!email) email = await prompt("Email: ");
   if (!email) { process.stderr.write("Error: email is required\n"); process.exit(1); }
 
-  if (!password) password = await promptSecret("Password: ");
-  if (!password) { process.stderr.write("Error: password is required\n"); process.exit(1); }
+  if (!password && !process.env.ADMIN_PASSWORD && positional[1] === undefined) {
+    password = await promptSecret("Password (empty for Google-only): ");
+  }
 
   if (!name) name = await prompt(`Name (press enter to use '${email}'): `);
 
-  const args = JSON.stringify({ email, password, ...(name ? { name } : {}) });
+  const args = JSON.stringify({
+    email,
+    ...(password ? { password } : {}),
+    ...(name ? { name } : {}),
+    ...(password ? {} : { userType: asAdmin ? "admin" : "user" }),
+  });
 
   try {
     const convexArgs = ["convex", "run", ...(prod ? ["--prod"] : []), "admin:createUser", args];
@@ -70,7 +79,9 @@ async function main() {
       stdio: "inherit",
     });
     process.stdout.write(
-      `Password user ready${prod ? " on prod" : ""}: ${email}\n` +
+      (password
+        ? `Password user ready${prod ? " on prod" : ""}: ${email}\n`
+        : `Google-only user ready${prod ? " on prod" : ""}: ${email}\n`) +
         `(Use --prod on this command to create the user on production.)\n`,
     );
   } catch {

@@ -7,6 +7,19 @@ import type { Infer } from "convex/values";
 
 type UserSummary = Infer<typeof userSummaryValidator>;
 
+export const create = mutation({
+  args: {
+    email: v.string(),
+    name: v.optional(v.string()),
+    userType: v.union(v.literal("user"), v.literal("admin")),
+  },
+  returns: userSummaryValidator,
+  handler: async (ctx, args): Promise<UserSummary> => {
+    await requireAdmin(ctx);
+    return await ctx.runMutation(internal.users.internal.insertUser, args);
+  },
+});
+
 export const setDisabled = mutation({
   args: { userId: v.id("users"), disabled: v.boolean() },
   returns: userSummaryValidator,

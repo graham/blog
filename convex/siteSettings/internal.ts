@@ -13,6 +13,7 @@ import {
   featureModeValidator,
   parseFeatureMode,
 } from "../lib/featureMode";
+import { envGoogleAuthAvailable, envPasswordAuthAvailable } from "../lib/env";
 import type { Infer } from "convex/values";
 
 type Ctx = QueryCtx | MutationCtx;
@@ -49,6 +50,8 @@ export const DEFAULT_FEATURES: Features = {
 export const DEFAULT_SETTINGS: Settings = {
   requireAuth: false,
   bookmarksEnabled: false,
+  googleSignIn: true,
+  passwordSignIn: true,
   features: DEFAULT_FEATURES,
 };
 
@@ -84,6 +87,8 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
   return {
     requireAuth: row.requireAuth,
     bookmarksEnabled: features.bookmarks !== "off",
+    googleSignIn: row.googleSignIn !== false,
+    passwordSignIn: row.passwordSignIn !== false,
     features,
   };
 }
@@ -100,6 +105,8 @@ function toRow(settings: Settings, updatedBy: Id<"users">) {
     postSort: settings.features.sortOrder,
     themeEnabled: settings.features.theme.enabled,
     themeId: settings.features.theme.id,
+    googleSignIn: settings.googleSignIn,
+    passwordSignIn: settings.passwordSignIn,
     updatedAt: Date.now(),
     updatedBy,
   };
@@ -120,6 +127,8 @@ async function writeSettings(
   return {
     requireAuth: settings.requireAuth,
     bookmarksEnabled: settings.features.bookmarks !== "off",
+    googleSignIn: settings.googleSignIn,
+    passwordSignIn: settings.passwordSignIn,
     features: settings.features,
   };
 }
@@ -155,6 +164,29 @@ export const setBookmarksEnabled = internalMutation({
       { ...current, bookmarksEnabled: args.bookmarksEnabled, features },
       args.updatedBy,
     );
+  },
+});
+
+export const setSignInMethods = internalMutation({
+  args: {
+    updatedBy: v.id("users"),
+    googleSignIn: v.optional(v.boolean()),
+    passwordSignIn: v.optional(v.boolean()),
+  },
+  returns: siteSettingsValidator,
+  handler: async (ctx, args) => {
+    const current = await readSiteSettings(ctx);
+    const next = {
+      ...current,
+      googleSignIn: args.googleSignIn ?? current.googleSignIn,
+      passwordSignIn: args.passwordSignIn ?? current.passwordSignIn,
+    };
+    const googleOn = envGoogleAuthAvailable() && next.googleSignIn;
+    const passwordOn = envPasswordAuthAvailable() && next.passwordSignIn;
+    if (!googleOn && !passwordOn) {
+      throw new Error("Keep at least one available sign-in method on");
+    }
+    return await writeSettings(ctx, next, args.updatedBy);
   },
 });
 
