@@ -51,11 +51,9 @@ export default function Home() {
   return (
     <Layout bookmarks>
       <div className="mx-auto w-full min-w-0 max-w-2xl">
-        {imagesOnly ? null : (
-          <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
-            {searching ? `Search: ${q}` : "Posts"}
-          </h1>
-        )}
+        <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
+          {searching ? `Search: ${q}` : "Posts"}
+        </h1>
         {loading ? (
           <p className="text-sm text-muted">Loading...</p>
         ) : posts.length === 0 ? (

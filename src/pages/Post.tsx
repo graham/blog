@@ -78,9 +78,7 @@ export default function Post() {
   }
 
   const gallery = postOverlayImages(
-    post.coverImageUrl
-      ? { src: post.coverImageUrl, alt: imagesOnly ? "" : post.title || "Cover image" }
-      : null,
+    post.coverImageUrl ? { src: post.coverImageUrl, alt: post.title || "Cover image" } : null,
     markdownOverlayImages(post.body, post.assets),
   );
 
@@ -106,46 +104,51 @@ export default function Post() {
       }
     >
       <article className="mx-auto w-full min-w-0 max-w-2xl">
-        {imagesOnly ? null : (
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <div>
-              {post.status === "draft" ? (
-                <p className="mb-2 text-xs uppercase tracking-wide text-muted">Draft preview</p>
-              ) : null}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            {imagesOnly ? null : post.status === "draft" ? (
+              <p className="mb-2 text-xs uppercase tracking-wide text-muted">Draft preview</p>
+            ) : null}
+            {imagesOnly ? null : (
               <time className="text-xs uppercase tracking-wide text-muted">
                 {formatDate(post.publishedAt ?? post.updatedAt)}
               </time>
-              <h1 className="mt-2 font-sans text-3xl font-semibold tracking-tight sm:text-4xl">
-                {post.title || "Untitled"}
-              </h1>
-              {post.tags.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {post.tags.map((tag) => (
-                    <Link
-                      key={tag}
-                      to={`/tags/${tag}`}
-                      className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground hover:bg-border"
-                    >
-                      {tag}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            {isAdminUser(currentUser) ? (
-              <Link
-                to={`/admin/posts/${post._id}`}
-                className="text-sm text-muted hover:text-foreground"
-              >
-                Edit
-              </Link>
+            )}
+            <h1
+              className={`${imagesOnly ? "" : "mt-2"} font-sans text-3xl font-semibold tracking-tight sm:text-4xl`}
+            >
+              {post.title || "Untitled"}
+            </h1>
+            {imagesOnly && post.excerpt ? (
+              <p className="mt-3 text-[1.05rem] leading-7 text-muted">{post.excerpt}</p>
             ) : null}
+            {imagesOnly || post.tags.length === 0 ? null : (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    to={`/tags/${tag}`}
+                    className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground hover:bg-border"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+          {isAdminUser(currentUser) ? (
+            <Link
+              to={`/admin/posts/${post._id}`}
+              className="text-sm text-muted hover:text-foreground"
+            >
+              Edit
+            </Link>
+          ) : null}
+        </div>
         {post.coverImageUrl ? (
           <ZoomableImage
             src={post.coverImageUrl}
-            alt={imagesOnly ? "" : post.title || "Cover image"}
+            alt={post.title || "Cover image"}
             className={`${imagesOnly ? "mb-6" : "mb-8"} h-auto w-full max-w-full rounded-xl object-cover`}
             gallery={gallery}
           />

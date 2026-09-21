@@ -188,9 +188,9 @@ export default function AdminSettings() {
               }
             >
               <p>
-                Signed-out visitors see only images and videos. Titles, excerpts,
-                body text, tags, captions, and search are hidden. The public
-                queries strip that prose too, so it is not in the API response.
+                Signed-out visitors still see titles and descriptions, plus
+                images and videos. Body text, tags, and captions are hidden.
+                The public queries strip that body prose too.
               </p>
               <p>
                 Anyone who signs in still sees the full post. Off: everyone sees

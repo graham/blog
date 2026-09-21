@@ -74,11 +74,7 @@ export const getAdjacentBySlug = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    if (!viewer.stripText) return result;
-    return {
-      previous: result.previous ? { ...result.previous, title: "" } : null,
-      next: result.next ? { ...result.next, title: "" } : null,
-    };
+    return result;
   },
 });
 
@@ -106,8 +102,7 @@ export const listPublishedBetween = query({
         asAdmin: viewer.asAdmin,
       },
     );
-    if (!viewer.stripText) return result;
-    return result.map((post) => ({ ...post, title: "" }));
+    return result;
   },
 });
 

@@ -222,12 +222,8 @@ export default function Calendar() {
                     <thead className="border-b border-border bg-secondary/60 text-muted">
                       <tr>
                         <th className="w-24 px-4 py-2 font-medium">Time</th>
-                        {imagesOnly ? null : (
-                          <>
-                            <th className="px-4 py-2 font-medium">Title</th>
-                            <th className="w-40 px-4 py-2 font-medium">Slug</th>
-                          </>
-                        )}
+                        <th className="px-4 py-2 font-medium">Title</th>
+                        {imagesOnly ? null : <th className="w-40 px-4 py-2 font-medium">Slug</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -241,18 +237,16 @@ export default function Calendar() {
                               })}
                             </Link>
                           </td>
+                          <td className="px-4 py-3">
+                            <Link
+                              to={`/posts/${post.slug}`}
+                              className="block truncate hover:text-accent"
+                            >
+                              {post.title || "Untitled"}
+                            </Link>
+                          </td>
                           {imagesOnly ? null : (
-                            <>
-                              <td className="px-4 py-3">
-                                <Link
-                                  to={`/posts/${post.slug}`}
-                                  className="block truncate hover:text-accent"
-                                >
-                                  {post.title || "Untitled"}
-                                </Link>
-                              </td>
-                              <td className="truncate px-4 py-3 text-muted">/{post.slug}</td>
-                            </>
+                            <td className="truncate px-4 py-3 text-muted">/{post.slug}</td>
                           )}
                         </tr>
                       ))}

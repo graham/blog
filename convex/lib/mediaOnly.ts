@@ -37,8 +37,6 @@ export function stripSummaryText<
 >(post: T): T {
   return {
     ...post,
-    title: "",
-    excerpt: "",
     tags: [],
     authorName: null,
   };

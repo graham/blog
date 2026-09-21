@@ -534,14 +534,16 @@ describe("posts", () => {
     const listed = await t.query(api.posts.publicQueries.listPublished, {
       paginationOpts: pageOpts,
     });
-    expect(listed.page).toMatchObject([{ title: "", excerpt: "", tags: [], slug: "photo-essay" }]);
+    expect(listed.page).toMatchObject([
+      { title: "Photo essay", excerpt: "secret excerpt", tags: [], slug: "photo-essay" },
+    ]);
 
     const anonymous = await t.query(api.posts.publicQueries.getBySlug, {
       slug: "photo-essay",
     });
     expect(anonymous).toMatchObject({
-      title: "",
-      excerpt: "",
+      title: "Photo essay",
+      excerpt: "secret excerpt",
       tags: [],
       body: "![](https://cdn.example/pic.jpg)\n\n[video](https://youtu.be/abcdefghijk)",
     });

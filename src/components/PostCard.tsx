@@ -15,10 +15,18 @@ type PostCardPost = {
 
 export function PostCard({ post }: { post: PostCardPost }) {
   const imagesOnly = useImagesOnly();
-  if (imagesOnly || (!post.title && !post.excerpt)) {
+  if (imagesOnly) {
     return (
-      <article className="border-b border-border py-6 first:pt-0">
-        <Link to={`/posts/${post.slug}`} className="block" aria-label="Post">
+      <article className="border-b border-border py-8 first:pt-0">
+        <h2 className="font-sans text-2xl font-semibold tracking-tight">
+          <Link to={`/posts/${post.slug}`} className="hover:text-accent">
+            {post.title || "Untitled"}
+          </Link>
+        </h2>
+        {post.excerpt ? (
+          <p className="mt-2 text-[0.95rem] leading-6 text-muted">{post.excerpt}</p>
+        ) : null}
+        <Link to={`/posts/${post.slug}`} className="mt-4 block" aria-label={post.title || "Post"}>
           {post.coverImageUrl ? (
             <img
               src={post.coverImageUrl}
