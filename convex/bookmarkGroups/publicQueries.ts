@@ -27,6 +27,11 @@ export const listForViewer = query({
         asAdmin: viewer.asAdmin,
       },
     );
-    return result;
+    if (!viewer.stripText) return result;
+    return result.map((group) => ({
+      ...group,
+      name: "",
+      posts: group.posts.map((post) => ({ ...post, title: "" })),
+    }));
   },
 });

@@ -135,6 +135,7 @@ export const featuresValidator = v.object({
   timings: v.boolean(),
   calendar: v.boolean(),
   infiniteScroll: v.boolean(),
+  imagesOnly: v.boolean(),
   theme: v.object({
     enabled: v.boolean(),
     id: themeIdValidator,

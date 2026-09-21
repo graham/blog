@@ -13,16 +13,17 @@ export const set = mutation({
     timings: v.optional(v.boolean()),
     calendar: v.optional(v.boolean()),
     infiniteScroll: v.optional(v.boolean()),
+    imagesOnly: v.optional(v.boolean()),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(themeIdValidator),
   },
   returns: featuresValidator,
   handler: async (ctx, args): Promise<Features> => {
     const admin = await requireAdmin(ctx);
-    const features: Features = await ctx.runMutation(
-      internal.siteSettings.internal.setFeatures,
-      { ...args, updatedBy: admin._id },
-    );
+    const features: Features = await ctx.runMutation(internal.siteSettings.internal.setFeatures, {
+      ...args,
+      updatedBy: admin._id,
+    });
     console.log(`Site features updated by ${admin.email ?? admin._id}`);
     return features;
   },

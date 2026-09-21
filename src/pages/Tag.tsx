@@ -4,23 +4,23 @@ import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
+import { useImagesOnly } from "@/lib/useImagesOnly";
 
 const PAGE_SIZE = 10;
 
 export default function Tag() {
   const { tag } = useParams();
-  const list = usePaginatedQuery(
-    api.posts.publicQueries.listByTag,
-    tag ? { tag } : "skip",
-    { initialNumItems: PAGE_SIZE },
-  );
+  const imagesOnly = useImagesOnly();
+  const list = usePaginatedQuery(api.posts.publicQueries.listByTag, tag ? { tag } : "skip", {
+    initialNumItems: PAGE_SIZE,
+  });
 
   return (
     <Layout bookmarks>
       <div className="mx-auto w-full min-w-0 max-w-2xl">
-        <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
-          #{tag}
-        </h1>
+        {imagesOnly ? null : (
+          <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">#{tag}</h1>
+        )}
         {list.status === "LoadingFirstPage" ? (
           <p className="text-sm text-muted">Loading...</p>
         ) : list.results.length === 0 ? (

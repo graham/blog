@@ -30,9 +30,15 @@ function YouTubeEmbed({ id }: { id: string }) {
   );
 }
 
-function VideoAsset({ asset }: { asset: Asset & { url: string } }) {
+function VideoAsset({
+  asset,
+  mediaOnly = false,
+}: {
+  asset: Asset & { url: string };
+  mediaOnly?: boolean;
+}) {
   const [failed, setFailed] = useState(false);
-  const label = (asset.alt || asset.filename).trim();
+  const label = mediaOnly ? "Video" : (asset.alt || asset.filename).trim();
   return (
     <span className="md-video">
       <video
@@ -44,15 +50,19 @@ function VideoAsset({ asset }: { asset: Asset & { url: string } }) {
       >
         <source src={asset.url} type={asset.contentType} />
       </video>
-      {failed ? (
+      {mediaOnly ? null : failed ? (
         <span className="md-video-error">
           This browser cannot play this video format. Download it or convert it to MP4/WebM.
         </span>
       ) : null}
-      {asset.description ? <span className="md-caption">{asset.description}</span> : null}
-      <a href={asset.url} download={asset.filename} className="md-video-download">
-        Download {asset.filename}
-      </a>
+      {!mediaOnly && asset.description ? (
+        <span className="md-caption">{asset.description}</span>
+      ) : null}
+      {mediaOnly ? null : (
+        <a href={asset.url} download={asset.filename} className="md-video-download">
+          Download {asset.filename}
+        </a>
+      )}
     </span>
   );
 }
@@ -61,10 +71,12 @@ export function MarkdownBody({
   content,
   assets = NO_ASSETS,
   gallery,
+  mediaOnly = false,
 }: {
   content: string;
   assets?: Asset[];
   gallery?: OverlayImage[];
+  mediaOnly?: boolean;
 }) {
   const byStorageId = new Map(assets.map((asset) => [asset.storageId, asset]));
   const collected = useMemo(() => markdownOverlayImages(content, assets), [content, assets]);
@@ -118,9 +130,10 @@ export function MarkdownBody({
             const resolved = storageId ? (asset?.url ?? undefined) : src;
             if (!resolved) return null;
             if (asset && isVideoAsset(asset.contentType)) {
-              return <VideoAsset asset={{ ...asset, url: resolved }} />;
+              return <VideoAsset asset={{ ...asset, url: resolved }} mediaOnly={mediaOnly} />;
             }
             if (asset && !isImageAsset(asset.contentType)) {
+              if (mediaOnly) return null;
               return (
                 <span className="md-file">
                   <a href={resolved} download={asset.filename}>
@@ -129,8 +142,8 @@ export function MarkdownBody({
                 </span>
               );
             }
-            const altText = (asset?.alt || alt || asset?.filename || "").trim();
-            const description = (asset?.description || title || "").trim();
+            const altText = mediaOnly ? "" : (asset?.alt || alt || asset?.filename || "").trim();
+            const description = mediaOnly ? "" : (asset?.description || title || "").trim();
             return (
               <span className="md-image">
                 <ZoomableImage src={resolved} alt={altText} gallery={images} />

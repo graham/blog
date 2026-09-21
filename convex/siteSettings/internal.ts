@@ -30,6 +30,7 @@ export const DEFAULT_FEATURES: Features = {
   timings: false,
   calendar: false,
   infiniteScroll: false,
+  imagesOnly: false,
   theme: { enabled: false, id: "paper" },
 };
 
@@ -54,6 +55,7 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
     timings: row.timingsShowDelta === true,
     calendar: row.calendar === true || row.timingsPage === true,
     infiniteScroll: row.infiniteScroll === true,
+    imagesOnly: row.imagesOnly === true,
     theme: {
       enabled: row.themeEnabled === true,
       id: parseThemeId(row.themeId),
@@ -74,6 +76,7 @@ function toRow(settings: Settings, updatedBy: Id<"users">) {
     timingsPage: settings.features.calendar,
     calendar: settings.features.calendar,
     infiniteScroll: settings.features.infiniteScroll,
+    imagesOnly: settings.features.imagesOnly,
     themeEnabled: settings.features.theme.enabled,
     themeId: settings.features.theme.id,
     updatedAt: Date.now(),
@@ -141,6 +144,7 @@ export const setFeatures = internalMutation({
     timings: v.optional(v.boolean()),
     calendar: v.optional(v.boolean()),
     infiniteScroll: v.optional(v.boolean()),
+    imagesOnly: v.optional(v.boolean()),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(themeIdValidator),
   },
@@ -152,6 +156,7 @@ export const setFeatures = internalMutation({
       timings: args.timings ?? current.features.timings,
       calendar: args.calendar ?? current.features.calendar,
       infiniteScroll: args.infiniteScroll ?? current.features.infiniteScroll,
+      imagesOnly: args.imagesOnly ?? current.features.imagesOnly,
       theme: {
         enabled: args.themeEnabled ?? current.features.theme.enabled,
         id: args.themeId ?? current.features.theme.id,

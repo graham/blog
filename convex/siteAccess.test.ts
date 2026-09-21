@@ -60,6 +60,7 @@ describe("site-wide requireAuth", () => {
         timings: false,
         calendar: false,
         infiniteScroll: false,
+        imagesOnly: false,
         theme: { enabled: false, id: "paper" },
       },
     });

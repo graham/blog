@@ -19,6 +19,7 @@ const schema = defineSchema({
     timingsPage: v.optional(v.boolean()),
     calendar: v.optional(v.boolean()),
     infiniteScroll: v.optional(v.boolean()),
+    imagesOnly: v.optional(v.boolean()),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(v.string()),
     updatedAt: v.number(),

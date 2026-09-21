@@ -177,6 +177,27 @@ export default function AdminSettings() {
               </p>
             </FeatureCard>
 
+            <FeatureCard
+              title="Images only"
+              on={features.imagesOnly}
+              disabled={busy !== null}
+              onClick={() =>
+                void run("images", () =>
+                  setFeatures({ imagesOnly: !features.imagesOnly }),
+                )
+              }
+            >
+              <p>
+                Signed-out visitors see only images and videos. Titles, excerpts,
+                body text, tags, captions, and search are hidden. The public
+                queries strip that prose too, so it is not in the API response.
+              </p>
+              <p>
+                Anyone who signs in still sees the full post. Off: everyone sees
+                the usual text.
+              </p>
+            </FeatureCard>
+
             <section className="space-y-4 rounded-xl border border-border bg-card p-5">
               <div>
                 <h3 className="font-medium">Theme</h3>

@@ -5,6 +5,7 @@ export type Features = {
   timings: boolean;
   calendar: boolean;
   infiniteScroll: boolean;
+  imagesOnly: boolean;
   theme: {
     enabled: boolean;
     id: ThemeId;
@@ -16,5 +17,6 @@ export const DEFAULT_FEATURES: Features = {
   timings: false,
   calendar: false,
   infiniteScroll: false,
+  imagesOnly: false,
   theme: { enabled: false, id: "paper" },
 };

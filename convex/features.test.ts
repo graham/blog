@@ -26,6 +26,7 @@ const DEFAULT_FEATURES = {
   timings: false,
   calendar: false,
   infiniteScroll: false,
+  imagesOnly: false,
   theme: { enabled: false, id: "paper" },
 };
 
@@ -59,6 +60,7 @@ describe("features", () => {
       timings: true,
       calendar: true,
       infiniteScroll: true,
+      imagesOnly: true,
       themeEnabled: true,
       themeId: "ink",
     });
@@ -67,6 +69,7 @@ describe("features", () => {
       timings: true,
       calendar: true,
       infiniteScroll: true,
+      imagesOnly: true,
       theme: { enabled: true, id: "ink" },
     });
     expect(await t.query(api.features.publicQueries.get, {})).toEqual(features);

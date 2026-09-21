@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { Header } from "./Header";
 import { BookmarkNav } from "./BookmarkNav";
 import { useFeatures } from "./FeaturesProvider";
+import { useImagesOnly } from "@/lib/useImagesOnly";
 
 export function Layout({
   children,
@@ -19,9 +20,10 @@ export function Layout({
   footer?: ReactNode;
 }) {
   const features = useFeatures();
+  const imagesOnly = useImagesOnly();
   const groups = useQuery(
     api.bookmarkGroups.publicQueries.listForViewer,
-    bookmarks && features.bookmarks ? {} : "skip",
+    bookmarks && features.bookmarks && !imagesOnly ? {} : "skip",
   );
 
   if (variant === "workspace") {

@@ -10,6 +10,7 @@ import {
   calendarPostValidator,
 } from "../lib/validators";
 import { resolvePublicViewer } from "../lib/access";
+import { stripDetailText, stripSummaryText } from "../lib/mediaOnly";
 import { readSiteSettings } from "../siteSettings/internal";
 
 type PostSummary = Infer<typeof postSummaryValidator>;
@@ -41,7 +42,8 @@ export const listPublished = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    return result;
+    if (!viewer.stripText) return result;
+    return { ...result, page: result.page.map(stripSummaryText) };
   },
 });
 
@@ -56,7 +58,8 @@ export const getBySlug = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    return result;
+    if (result === null || !viewer.stripText) return result;
+    return stripDetailText(result);
   },
 });
 
@@ -66,11 +69,16 @@ export const getAdjacentBySlug = query({
   handler: async (ctx, args): Promise<PostNavigation> => {
     const viewer = await resolvePublicViewer(ctx);
     if (viewer.blocked) return { previous: null, next: null };
-    return await ctx.runQuery(internal.posts.internal.getAdjacentBySlug, {
+    const result: PostNavigation = await ctx.runQuery(internal.posts.internal.getAdjacentBySlug, {
       slug: args.slug,
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
+    if (!viewer.stripText) return result;
+    return {
+      previous: result.previous ? { ...result.previous, title: "" } : null,
+      next: result.next ? { ...result.next, title: "" } : null,
+    };
   },
 });
 
@@ -98,7 +106,8 @@ export const listPublishedBetween = query({
         asAdmin: viewer.asAdmin,
       },
     );
-    return result;
+    if (!viewer.stripText) return result;
+    return result.map((post) => ({ ...post, title: "" }));
   },
 });
 
@@ -116,7 +125,8 @@ export const searchPublished = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    return result;
+    if (!viewer.stripText) return result;
+    return result.map(stripSummaryText);
   },
 });
 
@@ -136,6 +146,7 @@ export const listByTag = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    return result;
+    if (!viewer.stripText) return result;
+    return { ...result, page: result.page.map(stripSummaryText) };
   },
 });

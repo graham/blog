@@ -7,6 +7,7 @@ import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { useFeatures } from "@/components/FeaturesProvider";
 import { formatTimeDelta, postTime } from "@/lib/format";
+import { useImagesOnly } from "@/lib/useImagesOnly";
 
 const PAGE_SIZE = 10;
 
@@ -15,22 +16,19 @@ export default function Home() {
   const q = (params.get("q") ?? "").trim();
   const searching = q.length > 0;
   const features = useFeatures();
+  const imagesOnly = useImagesOnly();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const searchResults = useQuery(
     api.posts.publicQueries.searchPublished,
     searching ? { query: q, tag: null } : "skip",
   );
-  const list = usePaginatedQuery(
-    api.posts.publicQueries.listPublished,
-    searching ? "skip" : {},
-    { initialNumItems: PAGE_SIZE },
-  );
+  const list = usePaginatedQuery(api.posts.publicQueries.listPublished, searching ? "skip" : {}, {
+    initialNumItems: PAGE_SIZE,
+  });
 
   const posts = searching ? (searchResults ?? []) : list.results;
-  const loading = searching
-    ? searchResults === undefined
-    : list.status === "LoadingFirstPage";
+  const loading = searching ? searchResults === undefined : list.status === "LoadingFirstPage";
   const canLoadMore = !searching && list.status === "CanLoadMore";
   const infinite = features.infiniteScroll && !searching;
 
@@ -53,24 +51,25 @@ export default function Home() {
   return (
     <Layout bookmarks>
       <div className="mx-auto w-full min-w-0 max-w-2xl">
-        <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
-          {searching ? `Search: ${q}` : "Posts"}
-        </h1>
+        {imagesOnly ? null : (
+          <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
+            {searching ? `Search: ${q}` : "Posts"}
+          </h1>
+        )}
         {loading ? (
           <p className="text-sm text-muted">Loading...</p>
         ) : posts.length === 0 ? (
-          <p className="text-sm text-muted">
-            {searching ? "No matching posts." : "No posts yet."}
-          </p>
+          <p className="text-sm text-muted">{searching ? "No matching posts." : "No posts yet."}</p>
         ) : (
           <div>
             {posts.map((post, index) => {
               const previous = index > 0 ? posts[index - 1] : null;
-              const delta = !features.timings
-                ? null
-                : previous
-                  ? `${formatTimeDelta(postTime(previous), postTime(post))} earlier`
-                  : `${formatTimeDelta(Date.now(), postTime(post))} ago`;
+              const delta =
+                !features.timings || imagesOnly
+                  ? null
+                  : previous
+                    ? `${formatTimeDelta(postTime(previous), postTime(post))} earlier`
+                    : `${formatTimeDelta(Date.now(), postTime(post))} ago`;
               return (
                 <Fragment key={post._id}>
                   {delta ? (

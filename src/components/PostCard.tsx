@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { formatDate } from "@/lib/format";
+import { useImagesOnly } from "@/lib/useImagesOnly";
 
 type PostCardPost = {
   _id: string;
@@ -13,6 +14,25 @@ type PostCardPost = {
 };
 
 export function PostCard({ post }: { post: PostCardPost }) {
+  const imagesOnly = useImagesOnly();
+  if (imagesOnly || (!post.title && !post.excerpt)) {
+    return (
+      <article className="border-b border-border py-6 first:pt-0">
+        <Link to={`/posts/${post.slug}`} className="block" aria-label="Post">
+          {post.coverImageUrl ? (
+            <img
+              src={post.coverImageUrl}
+              alt=""
+              className="h-auto w-full max-w-full rounded-xl object-cover"
+            />
+          ) : (
+            <span className="block aspect-video w-full rounded-xl bg-secondary" />
+          )}
+        </Link>
+      </article>
+    );
+  }
+
   return (
     <article className="border-b border-border py-8 first:pt-0">
       <div className="flex gap-6">
@@ -44,11 +64,7 @@ export function PostCard({ post }: { post: PostCardPost }) {
         </div>
         {post.coverImageUrl ? (
           <Link to={`/posts/${post.slug}`} className="hidden shrink-0 sm:block">
-            <img
-              src={post.coverImageUrl}
-              alt=""
-              className="h-24 w-32 rounded-lg object-cover"
-            />
+            <img src={post.coverImageUrl} alt="" className="h-24 w-32 rounded-lg object-cover" />
           </Link>
         ) : null}
       </div>

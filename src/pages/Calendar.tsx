@@ -6,6 +6,7 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { calendarMonth, dayKey } from "@/lib/calendar";
 import { formatDate } from "@/lib/format";
+import { useImagesOnly } from "@/lib/useImagesOnly";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -62,6 +63,7 @@ function HourChart({ posts }: { posts: Array<{ publishedAt: number }> }) {
 
 export default function Calendar() {
   const features = useQuery(api.features.publicQueries.get);
+  const imagesOnly = useImagesOnly();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -220,28 +222,38 @@ export default function Calendar() {
                     <thead className="border-b border-border bg-secondary/60 text-muted">
                       <tr>
                         <th className="w-24 px-4 py-2 font-medium">Time</th>
-                        <th className="px-4 py-2 font-medium">Title</th>
-                        <th className="w-40 px-4 py-2 font-medium">Slug</th>
+                        {imagesOnly ? null : (
+                          <>
+                            <th className="px-4 py-2 font-medium">Title</th>
+                            <th className="w-40 px-4 py-2 font-medium">Slug</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
                       {selected.map((post) => (
                         <tr key={post.slug} className="border-b border-border last:border-0">
                           <td className="px-4 py-3 text-muted tabular-nums">
-                            {new Date(post.publishedAt).toLocaleTimeString("en-US", {
-                              hour: "numeric",
-                              minute: "2-digit",
-                            })}
-                          </td>
-                          <td className="px-4 py-3">
-                            <Link
-                              to={`/posts/${post.slug}`}
-                              className="block truncate hover:text-accent"
-                            >
-                              {post.title || "Untitled"}
+                            <Link to={`/posts/${post.slug}`} className="hover:text-accent">
+                              {new Date(post.publishedAt).toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
                             </Link>
                           </td>
-                          <td className="truncate px-4 py-3 text-muted">/{post.slug}</td>
+                          {imagesOnly ? null : (
+                            <>
+                              <td className="px-4 py-3">
+                                <Link
+                                  to={`/posts/${post.slug}`}
+                                  className="block truncate hover:text-accent"
+                                >
+                                  {post.title || "Untitled"}
+                                </Link>
+                              </td>
+                              <td className="truncate px-4 py-3 text-muted">/{post.slug}</td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>

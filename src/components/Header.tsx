@@ -4,6 +4,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import { isAdminUser } from "@/lib/format";
+import { useImagesOnly } from "@/lib/useImagesOnly";
 
 export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const { isAuthenticated } = useConvexAuth();
@@ -16,6 +17,7 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const features = useQuery(api.features.publicQueries.get);
   const bookmarksEnabled = features?.bookmarks === true;
   const calendar = features?.calendar === true;
+  const imagesOnly = useImagesOnly();
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -85,14 +87,18 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
         <Link to="/" className="shrink-0 text-sm font-semibold tracking-tight">
           Blog
         </Link>
-        <form onSubmit={onSearch} className="min-w-0 flex-1">
-          <input
-            value={q}
-            onChange={(event) => setQ(event.target.value)}
-            placeholder="Search posts"
-            className="h-8 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
-          />
-        </form>
+        {imagesOnly ? (
+          <div className="min-w-0 flex-1" />
+        ) : (
+          <form onSubmit={onSearch} className="min-w-0 flex-1">
+            <input
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="Search posts"
+              className="h-8 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
+            />
+          </form>
+        )}
         <nav className="hidden items-center gap-3 text-sm lg:flex">
           {extraLinks}
           {authLink}
