@@ -2,11 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import {
-  featuresValidator,
-  siteSettingsValidator,
-  themeIdValidator,
-} from "../lib/validators";
+import { featuresValidator, siteSettingsValidator, themeIdValidator } from "../lib/validators";
 import type { Infer } from "convex/values";
 
 type Ctx = QueryCtx | MutationCtx;
@@ -23,6 +19,10 @@ const THEME_IDS: ThemeId[] = [
   "violet",
   "contrast",
   "news",
+  "midnight",
+  "ember",
+  "signal",
+  "citrus",
 ];
 
 export const DEFAULT_FEATURES: Features = {
@@ -113,11 +113,7 @@ export const setRequireAuth = internalMutation({
   returns: siteSettingsValidator,
   handler: async (ctx, args) => {
     const current = await readSiteSettings(ctx);
-    return await writeSettings(
-      ctx,
-      { ...current, requireAuth: args.requireAuth },
-      args.updatedBy,
-    );
+    return await writeSettings(ctx, { ...current, requireAuth: args.requireAuth }, args.updatedBy);
   },
 });
 

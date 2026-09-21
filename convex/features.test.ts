@@ -43,9 +43,9 @@ describe("features", () => {
   test("only an admin can change features", async () => {
     const t = createT();
     const { asUser } = await seedUser(t, "reader@example.com", "user");
-    await expect(
-      t.mutation(api.features.mutations.set, { infiniteScroll: true }),
-    ).rejects.toThrow(/Not authenticated/);
+    await expect(t.mutation(api.features.mutations.set, { infiniteScroll: true })).rejects.toThrow(
+      /Not authenticated/,
+    );
     await expect(
       asUser.mutation(api.features.mutations.set, { infiniteScroll: true }),
     ).rejects.toThrow(/Forbidden/);
@@ -80,6 +80,18 @@ describe("features", () => {
       asAdmin.mutation(api.features.mutations.set, { themeId: "neon" as "paper" }),
     ).rejects.toThrow();
   });
+
+  test("admin can pick the extra dark and high-contrast themes", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    for (const themeId of ["midnight", "ember", "signal", "citrus"] as const) {
+      const features = await asAdmin.mutation(api.features.mutations.set, {
+        themeEnabled: true,
+        themeId,
+      });
+      expect(features.theme).toEqual({ enabled: true, id: themeId });
+    }
+  });
 });
 
 describe("calendar page query", () => {
@@ -106,9 +118,7 @@ describe("calendar page query", () => {
         publishedAt: Date.parse("2026-01-15T12:00:00.000Z"),
       });
     });
-    expect(
-      await t.query(api.posts.publicQueries.listPublishedBetween, { start, end }),
-    ).toEqual([]);
+    expect(await t.query(api.posts.publicQueries.listPublishedBetween, { start, end })).toEqual([]);
   });
 
   test("when on, returns listed published posts in the window", async () => {
@@ -138,9 +148,7 @@ describe("calendar page query", () => {
       start,
       end,
     });
-    expect(rows).toEqual([
-      { title: "Dated", slug: "dated", publishedAt },
-    ]);
+    expect(rows).toEqual([{ title: "Dated", slug: "dated", publishedAt }]);
     expect(
       await t.query(api.posts.publicQueries.listPublishedBetween, {
         start: Date.parse("2026-02-01T00:00:00.000Z"),

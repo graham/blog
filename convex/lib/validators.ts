@@ -124,6 +124,10 @@ export const themeIdValidator = v.union(
   v.literal("violet"),
   v.literal("contrast"),
   v.literal("news"),
+  v.literal("midnight"),
+  v.literal("ember"),
+  v.literal("signal"),
+  v.literal("citrus"),
 );
 
 export const featuresValidator = v.object({

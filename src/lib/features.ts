@@ -1,3 +1,5 @@
+import type { ThemeId } from "./themes";
+
 export type Features = {
   bookmarks: boolean;
   timings: boolean;
@@ -5,7 +7,7 @@ export type Features = {
   infiniteScroll: boolean;
   theme: {
     enabled: boolean;
-    id: "paper" | "ink" | "ocean" | "forest" | "sunset" | "violet" | "contrast" | "news";
+    id: ThemeId;
   };
 };
 

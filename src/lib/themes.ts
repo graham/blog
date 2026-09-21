@@ -7,6 +7,10 @@ export const THEME_IDS = [
   "violet",
   "contrast",
   "news",
+  "midnight",
+  "ember",
+  "signal",
+  "citrus",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];
@@ -64,6 +68,30 @@ export const THEMES: Array<{
     name: "News",
     swatch: "#f4f1e8",
     description: "Newsprint cream with crimson links.",
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    swatch: "#0b1220",
+    description: "Deep navy background, silver text, bright blue accents.",
+  },
+  {
+    id: "ember",
+    name: "Ember",
+    swatch: "#1a110c",
+    description: "Warm near-black page, cream text, amber accents.",
+  },
+  {
+    id: "signal",
+    name: "Signal",
+    swatch: "#ffffff",
+    description: "White page, black type, magenta links, cyan and yellow highlights.",
+  },
+  {
+    id: "citrus",
+    name: "Citrus",
+    swatch: "#fffbeb",
+    description: "Bright cream page, black type, orange links, lime and blue.",
   },
 ];
 
