@@ -70,7 +70,7 @@ export function ThemeSelect({
         <ul
           id={listId}
           role="listbox"
-          className="absolute right-0 z-30 mt-1 max-h-80 w-full min-w-0 overflow-auto rounded-md border border-border bg-card py-1 shadow-sm sm:w-80"
+          className="absolute right-0 z-30 mt-1 max-h-80 w-full min-w-0 overflow-auto rounded-md border-2 border-foreground/50 bg-card py-1 shadow-md sm:w-80"
         >
           {THEMES.map((theme) => {
             const active = theme.id === selected.id;
