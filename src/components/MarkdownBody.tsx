@@ -6,6 +6,7 @@ import { ZoomableImage } from "@/components/ImageOverlay";
 import { markdownOverlayImages, type OverlayImage } from "@/lib/images";
 import { isImageAsset, isVideoAsset } from "@/lib/assets";
 import { mediaOnlyMarkdown } from "@/lib/mediaOnly";
+import { SortableTable } from "@/components/SortableTable";
 
 type Asset = {
   storageId: string;
@@ -97,7 +98,7 @@ export function MarkdownBody({
               aria-label="Scrollable table"
               tabIndex={0}
             >
-              <table>{children}</table>
+              <SortableTable>{children}</SortableTable>
             </div>
           ),
           a: ({ href, children }) => {

@@ -605,6 +605,32 @@ body {
   letter-spacing: 0.02em;
 }
 
+.md-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.md-sort:hover {
+  color: var(--color-accent);
+}
+
+.md-sort-indicator {
+  flex: none;
+  font-size: 0.7em;
+  color: var(--color-muted);
+}
+
 .md tr:last-child td {
   border-bottom: 0;
 }

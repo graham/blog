@@ -5,10 +5,12 @@ import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { ZoomableImage } from "@/components/ImageOverlay";
+import { Button } from "@/components/ui/button";
 import { formatDate, isAdminUser } from "@/lib/format";
 import { markdownOverlayImages, postOverlayImages } from "@/lib/images";
 import { hasPublicMedia, NO_PUBLIC_TEXT_MESSAGE } from "@/lib/mediaOnly";
 import { useImagesOnly } from "@/lib/useImagesOnly";
+import { usePostWide } from "@/lib/usePostWide";
 
 function PostNavigation({
   previous,
@@ -54,6 +56,7 @@ export default function Post() {
   const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
   const navigation = useQuery(api.posts.publicQueries.getAdjacentBySlug, slug ? { slug } : "skip");
   const imagesOnly = useImagesOnly();
+  const [wide, toggleWide] = usePostWide();
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -61,7 +64,7 @@ export default function Post() {
 
   if (post === undefined) {
     return (
-      <Layout bookmarks>
+      <Layout bookmarks wide={wide}>
         <p className="text-sm text-muted">Loading...</p>
       </Layout>
     );
@@ -69,7 +72,7 @@ export default function Post() {
 
   if (post === null) {
     return (
-      <Layout bookmarks>
+      <Layout bookmarks wide={wide}>
         <h1 className="text-2xl font-semibold">Not found</h1>
         <p className="mt-2 text-sm text-muted">
           This post is missing, unpublished, or not available.
@@ -90,22 +93,23 @@ export default function Post() {
   return (
     <Layout
       bookmarks
+      wide={wide}
       header={
         <div className="border-b border-border pb-4">
-          <div className="mx-auto w-full min-w-0 max-w-2xl">
+          <div className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
             <PostNavigation previous={prev} next={next} />
           </div>
         </div>
       }
       footer={
         <div className="border-t border-border pt-4">
-          <div className="mx-auto w-full min-w-0 max-w-2xl">
+          <div className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
             <PostNavigation previous={prev} next={next} />
           </div>
         </div>
       }
     >
-      <article className="mx-auto w-full min-w-0 max-w-2xl">
+      <article className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             {imagesOnly ? null : post.status === "draft" ? (
@@ -138,14 +142,19 @@ export default function Post() {
               </div>
             )}
           </div>
-          {isAdminUser(currentUser) ? (
-            <Link
-              to={`/admin/posts/${post._id}`}
-              className="text-sm text-muted hover:text-foreground"
-            >
-              Edit
-            </Link>
-          ) : null}
+          <div className="flex shrink-0 items-center gap-3">
+            <Button type="button" variant="outline" size="sm" onClick={toggleWide}>
+              {wide ? "Default width" : "Full width"}
+            </Button>
+            {isAdminUser(currentUser) ? (
+              <Link
+                to={`/admin/posts/${post._id}`}
+                className="text-sm text-muted hover:text-foreground"
+              >
+                Edit
+              </Link>
+            ) : null}
+          </div>
         </div>
         {imagesOnly && !publicMedia ? (
           <p className="text-sm text-muted">{NO_PUBLIC_TEXT_MESSAGE}</p>

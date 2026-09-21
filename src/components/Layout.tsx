@@ -11,12 +11,14 @@ export function Layout({
   bookmarks = false,
   header = null,
   footer = null,
+  wide = false,
 }: {
   children: ReactNode;
   variant?: "page" | "workspace";
   bookmarks?: boolean;
   header?: ReactNode;
   footer?: ReactNode;
+  wide?: boolean;
 }) {
   const features = useFeatures();
   const groups = useQuery(
@@ -37,8 +39,10 @@ export function Layout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Header />
-      <main className="mx-auto w-full min-w-0 max-w-5xl px-4 py-8 sm:py-10">
+      <Header fullWidth={wide} />
+      <main
+        className={`mx-auto w-full min-w-0 px-4 py-8 sm:py-10 ${wide ? "max-w-none" : "max-w-5xl"}`}
+      >
         <div className="flex min-w-0 flex-col gap-8">
           {header}
           {showNav ? (
