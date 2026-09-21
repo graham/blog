@@ -61,6 +61,7 @@ describe("site-wide requireAuth", () => {
         calendar: false,
         infiniteScroll: false,
         imagesOnly: false,
+        sortOrder: "created",
         theme: { enabled: false, id: "paper" },
       },
     });

@@ -27,6 +27,7 @@ const DEFAULT_FEATURES = {
   calendar: false,
   infiniteScroll: false,
   imagesOnly: false,
+  sortOrder: "created",
   theme: { enabled: false, id: "paper" },
 };
 
@@ -70,10 +71,22 @@ describe("features", () => {
       calendar: true,
       infiniteScroll: true,
       imagesOnly: true,
+      sortOrder: "created",
       theme: { enabled: true, id: "ink" },
     });
     expect(await t.query(api.features.publicQueries.get, {})).toEqual(features);
     expect((await t.query(api.config.getConfig, {})).bookmarksEnabled).toBe(true);
+  });
+
+  test("admin can set post sort order", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    expect((await t.query(api.features.publicQueries.get, {})).sortOrder).toBe("created");
+    const features = await asAdmin.mutation(api.features.mutations.set, {
+      sortOrder: "updated",
+    });
+    expect(features.sortOrder).toBe("updated");
+    expect((await t.query(api.features.publicQueries.get, {})).sortOrder).toBe("updated");
   });
 
   test("rejects an unknown theme id", async () => {

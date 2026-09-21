@@ -20,6 +20,7 @@ const schema = defineSchema({
     calendar: v.optional(v.boolean()),
     infiniteScroll: v.optional(v.boolean()),
     imagesOnly: v.optional(v.boolean()),
+    postSort: v.optional(v.union(v.literal("created"), v.literal("updated"))),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(v.string()),
     updatedAt: v.number(),
@@ -66,11 +67,17 @@ const schema = defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_status_and_visibility", ["status", "visibility"])
+    .index("by_status_and_visibility_and_updatedAt", [
+      "status",
+      "visibility",
+      "updatedAt",
+    ])
     .index("by_status_and_visibility_and_publishedAt", [
       "status",
       "visibility",
       "publishedAt",
     ])
+    .index("by_updatedAt", ["updatedAt"])
     .index("by_authorId", ["authorId"])
     .searchIndex("search_text", {
       searchField: "searchText",
@@ -82,11 +89,25 @@ const schema = defineSchema({
     tag: v.string(),
     status: v.union(v.literal("draft"), v.literal("published")),
     visibility: v.union(v.literal("listed"), v.literal("unlisted")),
+    postCreatedAt: v.optional(v.number()),
+    postUpdatedAt: v.optional(v.number()),
   })
     .index("by_postId", ["postId"])
     .index("by_tag", ["tag"])
     .index("by_tag_and_postId", ["tag", "postId"])
-    .index("by_tag_and_status_and_visibility", ["tag", "status", "visibility"]),
+    .index("by_tag_and_status_and_visibility", ["tag", "status", "visibility"])
+    .index("by_tag_status_visibility_createdAt", [
+      "tag",
+      "status",
+      "visibility",
+      "postCreatedAt",
+    ])
+    .index("by_tag_status_visibility_updatedAt", [
+      "tag",
+      "status",
+      "visibility",
+      "postUpdatedAt",
+    ]),
 
   channels: defineTable({
     name: v.string(),

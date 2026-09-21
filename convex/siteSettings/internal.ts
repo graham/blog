@@ -2,12 +2,18 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { featuresValidator, siteSettingsValidator, themeIdValidator } from "../lib/validators";
+import {
+  featuresValidator,
+  postSortValidator,
+  siteSettingsValidator,
+  themeIdValidator,
+} from "../lib/validators";
 import type { Infer } from "convex/values";
 
 type Ctx = QueryCtx | MutationCtx;
 type Features = Infer<typeof featuresValidator>;
 type ThemeId = Infer<typeof themeIdValidator>;
+type PostSort = Infer<typeof postSortValidator>;
 type Settings = Infer<typeof siteSettingsValidator>;
 
 const THEME_IDS: ThemeId[] = [
@@ -31,6 +37,7 @@ export const DEFAULT_FEATURES: Features = {
   calendar: false,
   infiniteScroll: false,
   imagesOnly: false,
+  sortOrder: "created",
   theme: { enabled: false, id: "paper" },
 };
 
@@ -47,6 +54,10 @@ function parseThemeId(value: string | undefined): ThemeId {
   return "paper";
 }
 
+function parseSortOrder(value: string | undefined): PostSort {
+  return value === "updated" ? "updated" : "created";
+}
+
 export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
   const row = await ctx.db.query("siteSettings").first();
   if (!row) return { ...DEFAULT_SETTINGS, features: { ...DEFAULT_FEATURES } };
@@ -56,6 +67,7 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
     calendar: row.calendar === true || row.timingsPage === true,
     infiniteScroll: row.infiniteScroll === true,
     imagesOnly: row.imagesOnly === true,
+    sortOrder: parseSortOrder(row.postSort),
     theme: {
       enabled: row.themeEnabled === true,
       id: parseThemeId(row.themeId),
@@ -77,6 +89,7 @@ function toRow(settings: Settings, updatedBy: Id<"users">) {
     calendar: settings.features.calendar,
     infiniteScroll: settings.features.infiniteScroll,
     imagesOnly: settings.features.imagesOnly,
+    postSort: settings.features.sortOrder,
     themeEnabled: settings.features.theme.enabled,
     themeId: settings.features.theme.id,
     updatedAt: Date.now(),
@@ -145,6 +158,7 @@ export const setFeatures = internalMutation({
     calendar: v.optional(v.boolean()),
     infiniteScroll: v.optional(v.boolean()),
     imagesOnly: v.optional(v.boolean()),
+    sortOrder: v.optional(postSortValidator),
     themeEnabled: v.optional(v.boolean()),
     themeId: v.optional(themeIdValidator),
   },
@@ -157,6 +171,7 @@ export const setFeatures = internalMutation({
       calendar: args.calendar ?? current.features.calendar,
       infiniteScroll: args.infiniteScroll ?? current.features.infiniteScroll,
       imagesOnly: args.imagesOnly ?? current.features.imagesOnly,
+      sortOrder: args.sortOrder ?? current.features.sortOrder,
       theme: {
         enabled: args.themeEnabled ?? current.features.theme.enabled,
         id: args.themeId ?? current.features.theme.id,

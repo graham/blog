@@ -23,6 +23,7 @@ import {
   syncPostBookmarkGroups,
   syncPostChannels,
 } from "../lib/access";
+import { readSiteSettings } from "../siteSettings/internal";
 import { loadPostAssets } from "../postAssets/internal";
 import { isImageContentType } from "../postAssets/contentTypes";
 
@@ -131,6 +132,8 @@ async function syncTags(
   tags: string[],
   status: "draft" | "published",
   visibility: "listed" | "unlisted",
+  postCreatedAt: number,
+  postUpdatedAt: number,
 ): Promise<string[]> {
   const normalized = normalizeTags(tags);
   const wanted = new Set(normalized);
@@ -142,14 +145,24 @@ async function syncTags(
     if (!wanted.has(row.tag)) {
       await ctx.db.delete("postTags", row._id);
     } else {
-      if (row.status !== status || row.visibility !== visibility) {
-        await ctx.db.patch("postTags", row._id, { status, visibility });
-      }
+      await ctx.db.patch("postTags", row._id, {
+        status,
+        visibility,
+        postCreatedAt,
+        postUpdatedAt,
+      });
       wanted.delete(row.tag);
     }
   }
   for (const tag of wanted) {
-    await ctx.db.insert("postTags", { postId, tag, status, visibility });
+    await ctx.db.insert("postTags", {
+      postId,
+      tag,
+      status,
+      visibility,
+      postCreatedAt,
+      postUpdatedAt,
+    });
   }
   return normalized;
 }
@@ -210,7 +223,16 @@ export async function saveHandler(
         ? args.title
         : post.slug;
   const slug = await uniqueSlug(ctx, slugSource, post._id);
-  const tags = await syncTags(ctx, post._id, args.tags, post.status, args.visibility);
+  const updatedAt = Date.now();
+  const tags = await syncTags(
+    ctx,
+    post._id,
+    args.tags,
+    post.status,
+    args.visibility,
+    post._creationTime,
+    updatedAt,
+  );
   const excerpt = excerptFrom(args.excerpt, args.body);
   let coverImageId = post.coverImageId;
   const nextCover = args.coverImageId;
@@ -232,7 +254,7 @@ export async function saveHandler(
     excerpt,
     body: args.body,
     visibility: args.visibility,
-    updatedAt: Date.now(),
+    updatedAt,
     coverImageId,
     searchText: buildSearchText(args.title, excerpt, args.body, tags),
   });
@@ -272,10 +294,11 @@ export async function setPublishedHandler(
   }
   const status = args.published ? "published" : "draft";
   const publishedAt = args.published ? (post.publishedAt ?? Date.now()) : post.publishedAt;
+  const updatedAt = Date.now();
   await ctx.db.patch("posts", post._id, {
     status,
     publishedAt,
-    updatedAt: Date.now(),
+    updatedAt,
   });
   const tags = await ctx.db
     .query("postTags")
@@ -285,6 +308,8 @@ export async function setPublishedHandler(
     await ctx.db.patch("postTags", row._id, {
       status,
       visibility: post.visibility,
+      postCreatedAt: post._creationTime,
+      postUpdatedAt: updatedAt,
     });
   }
   return null;
@@ -344,13 +369,14 @@ export const listPublished = internalQuery({
   },
   returns: paginationResultValidator(postSummaryValidator),
   handler: async (ctx, args) => {
-    const result = await ctx.db
+    const sort = (await readSiteSettings(ctx)).features.sortOrder;
+    const listed = ctx.db
       .query("posts")
-      .withIndex("by_status_and_visibility", (q) =>
-        q.eq("status", "published").eq("visibility", "listed"),
-      )
-      .order("desc")
-      .paginate(args.paginationOpts);
+      .withIndex(
+        sort === "updated" ? "by_status_and_visibility_and_updatedAt" : "by_status_and_visibility",
+        (q) => q.eq("status", "published").eq("visibility", "listed"),
+      );
+    const result = await listed.order("desc").paginate(args.paginationOpts);
     const viewer = viewerFrom(args);
     const memberships =
       args.viewerUserId && !args.asAdmin
@@ -370,7 +396,11 @@ export const listAll = internalQuery({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(adminPostSummaryValidator),
   handler: async (ctx, args) => {
-    const result = await ctx.db.query("posts").order("desc").paginate(args.paginationOpts);
+    const sort = (await readSiteSettings(ctx)).features.sortOrder;
+    const result =
+      sort === "updated"
+        ? await ctx.db.query("posts").withIndex("by_updatedAt").order("desc").paginate(args.paginationOpts)
+        : await ctx.db.query("posts").order("desc").paginate(args.paginationOpts);
     return {
       ...result,
       page: await Promise.all(result.page.map((post) => toAdminSummary(ctx, post))),
@@ -420,17 +450,31 @@ export const getAdjacentBySlug = internalQuery({
         ? await listUserChannelIdSet(ctx, args.viewerUserId)
         : undefined;
 
+    const sort = (await readSiteSettings(ctx)).features.sortOrder;
     const findVisible = async (direction: "older" | "newer") => {
-      const candidates = await ctx.db
-        .query("posts")
-        .withIndex("by_status_and_visibility", (q) => {
-          const published = q.eq("status", "published").eq("visibility", "listed");
-          return direction === "older"
-            ? published.lt("_creationTime", current._creationTime)
-            : published.gt("_creationTime", current._creationTime);
-        })
-        .order(direction === "older" ? "desc" : "asc")
-        .take(MAX_NAVIGATION_SCAN);
+      const order = direction === "older" ? "desc" : "asc";
+      const candidates =
+        sort === "updated"
+          ? await ctx.db
+              .query("posts")
+              .withIndex("by_status_and_visibility_and_updatedAt", (q) => {
+                const published = q.eq("status", "published").eq("visibility", "listed");
+                return direction === "older"
+                  ? published.lt("updatedAt", current.updatedAt)
+                  : published.gt("updatedAt", current.updatedAt);
+              })
+              .order(order)
+              .take(MAX_NAVIGATION_SCAN)
+          : await ctx.db
+              .query("posts")
+              .withIndex("by_status_and_visibility", (q) => {
+                const published = q.eq("status", "published").eq("visibility", "listed");
+                return direction === "older"
+                  ? published.lt("_creationTime", current._creationTime)
+                  : published.gt("_creationTime", current._creationTime);
+              })
+              .order(order)
+              .take(MAX_NAVIGATION_SCAN);
       for (const candidate of candidates) {
         if (await canViewPost(ctx, candidate, viewer, memberships)) {
           return { title: candidate.title, slug: candidate.slug };
@@ -564,13 +608,23 @@ export const listByTag = internalQuery({
   returns: paginationResultValidator(postSummaryValidator),
   handler: async (ctx, args) => {
     const tag = args.tag.trim().toLowerCase();
-    const result = await ctx.db
-      .query("postTags")
-      .withIndex("by_tag_and_status_and_visibility", (q) =>
-        q.eq("tag", tag).eq("status", "published").eq("visibility", "listed"),
-      )
-      .order("desc")
-      .paginate(args.paginationOpts);
+    const sort = (await readSiteSettings(ctx)).features.sortOrder;
+    const result =
+      sort === "updated"
+        ? await ctx.db
+            .query("postTags")
+            .withIndex("by_tag_status_visibility_updatedAt", (q) =>
+              q.eq("tag", tag).eq("status", "published").eq("visibility", "listed"),
+            )
+            .order("desc")
+            .paginate(args.paginationOpts)
+        : await ctx.db
+            .query("postTags")
+            .withIndex("by_tag_status_visibility_createdAt", (q) =>
+              q.eq("tag", tag).eq("status", "published").eq("visibility", "listed"),
+            )
+            .order("desc")
+            .paginate(args.paginationOpts);
     const viewer = viewerFrom(args);
     const memberships =
       args.viewerUserId && !args.asAdmin

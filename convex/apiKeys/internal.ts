@@ -13,6 +13,7 @@ import {
   setPublishedHandler,
 } from "../posts/internal";
 import { apiKeyFromToken } from "./auth";
+import { readSiteSettings } from "../siteSettings/internal";
 import { apiPostInputValidator } from "./validators";
 import {
   ALLOWED_ASSET_TYPES,
@@ -129,7 +130,11 @@ export const listPosts = internalQuery({
   handler: async (ctx, args) => {
     await requireApiKey(ctx, args.token);
     const limit = Math.max(1, Math.min(50, Math.floor(args.limit)));
-    const posts = await ctx.db.query("posts").order("desc").take(limit);
+    const sort = (await readSiteSettings(ctx)).features.sortOrder;
+    const posts =
+      sort === "updated"
+        ? await ctx.db.query("posts").withIndex("by_updatedAt").order("desc").take(limit)
+        : await ctx.db.query("posts").order("desc").take(limit);
     return posts.map((post) => ({
       id: post._id,
       title: post.title,

@@ -548,4 +548,58 @@ describe("posts", () => {
       body,
     });
   });
+
+  test("timeline sort defaults to created and can switch to last updated", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+
+    const olderId = await admin.mutation(api.posts.mutations.create, {});
+    await admin.mutation(api.posts.mutations.save, {
+      postId: olderId,
+      title: "Older created",
+      excerpt: "",
+      body: "first",
+      visibility: "listed",
+      tags: ["order"],
+    });
+    await admin.mutation(api.posts.mutations.setPublished, {
+      postId: olderId,
+      published: true,
+    });
+
+    const newerId = await admin.mutation(api.posts.mutations.create, {});
+    await admin.mutation(api.posts.mutations.save, {
+      postId: newerId,
+      title: "Newer created",
+      excerpt: "",
+      body: "second",
+      visibility: "listed",
+      tags: ["order"],
+    });
+    await admin.mutation(api.posts.mutations.setPublished, {
+      postId: newerId,
+      published: true,
+    });
+
+    const byCreated = await t.query(api.posts.publicQueries.listPublished, {
+      paginationOpts: pageOpts,
+    });
+    expect(byCreated.page.map((post: { title: string }) => post.title)).toEqual([
+      "Newer created",
+      "Older created",
+    ]);
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch("posts", olderId, { updatedAt: Date.now() + 60_000 });
+    });
+    await admin.mutation(api.features.mutations.set, { sortOrder: "updated" });
+
+    const byUpdated = await t.query(api.posts.publicQueries.listPublished, {
+      paginationOpts: pageOpts,
+    });
+    expect(byUpdated.page.map((post: { title: string }) => post.title)).toEqual([
+      "Older created",
+      "Newer created",
+    ]);
+  });
 });

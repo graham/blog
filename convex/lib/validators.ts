@@ -130,12 +130,15 @@ export const themeIdValidator = v.union(
   v.literal("citrus"),
 );
 
+export const postSortValidator = v.union(v.literal("created"), v.literal("updated"));
+
 export const featuresValidator = v.object({
   bookmarks: v.boolean(),
   timings: v.boolean(),
   calendar: v.boolean(),
   infiniteScroll: v.boolean(),
   imagesOnly: v.boolean(),
+  sortOrder: postSortValidator,
   theme: v.object({
     enabled: v.boolean(),
     id: themeIdValidator,

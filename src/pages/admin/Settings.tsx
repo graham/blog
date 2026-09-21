@@ -177,6 +177,49 @@ export default function AdminSettings() {
               </p>
             </FeatureCard>
 
+            <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+              <div>
+                <h3 className="font-medium">Post sort order</h3>
+                <div className="mt-2 max-w-2xl space-y-2 text-sm text-muted">
+                  <p>
+                    Home, tags, previous/next, and the admin posts list use this
+                    order. Default is creation time (when the post was first
+                    created). Last updated puts recently edited posts at the top.
+                  </p>
+                  <p>
+                    Each order has its own database index so the lists stay
+                    cheap to query.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={features.sortOrder === "created" ? "default" : "outline"}
+                  disabled={busy !== null}
+                  onClick={() =>
+                    void run("sort-created", () =>
+                      setFeatures({ sortOrder: "created" }),
+                    )
+                  }
+                >
+                  Created
+                </Button>
+                <Button
+                  type="button"
+                  variant={features.sortOrder === "updated" ? "default" : "outline"}
+                  disabled={busy !== null}
+                  onClick={() =>
+                    void run("sort-updated", () =>
+                      setFeatures({ sortOrder: "updated" }),
+                    )
+                  }
+                >
+                  Last updated
+                </Button>
+              </div>
+            </section>
+
             <FeatureCard
               title="Images only"
               on={features.imagesOnly}
