@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
@@ -13,7 +13,7 @@ import {
   featureModeValidator,
   parseFeatureMode,
 } from "../lib/featureMode";
-import { envGoogleAuthAvailable, envPasswordAuthAvailable } from "../lib/env";
+
 import type { Infer } from "convex/values";
 
 type Ctx = QueryCtx | MutationCtx;
@@ -176,17 +176,27 @@ export const setSignInMethods = internalMutation({
   returns: siteSettingsValidator,
   handler: async (ctx, args) => {
     const current = await readSiteSettings(ctx);
-    const next = {
-      ...current,
-      googleSignIn: args.googleSignIn ?? current.googleSignIn,
-      passwordSignIn: args.passwordSignIn ?? current.passwordSignIn,
-    };
-    const googleOn = envGoogleAuthAvailable() && next.googleSignIn;
-    const passwordOn = envPasswordAuthAvailable() && next.passwordSignIn;
-    if (!googleOn && !passwordOn) {
-      throw new Error("Keep at least one available sign-in method on");
+    const googleSignIn = args.googleSignIn ?? current.googleSignIn;
+    const passwordSignIn = args.passwordSignIn ?? current.passwordSignIn;
+    if (!googleSignIn && !passwordSignIn) {
+      throw new ConvexError("Keep at least one sign-in method on");
     }
-    return await writeSettings(ctx, next, args.updatedBy);
+    const row = await ctx.db.query("siteSettings").first();
+    const patch = {
+      googleSignIn,
+      passwordSignIn,
+      updatedAt: Date.now(),
+      updatedBy: args.updatedBy,
+    };
+    if (row) {
+      await ctx.db.patch("siteSettings", row._id, patch);
+    } else {
+      await ctx.db.insert("siteSettings", {
+        requireAuth: current.requireAuth,
+        ...patch,
+      });
+    }
+    return await readSiteSettings(ctx);
   },
 });
 

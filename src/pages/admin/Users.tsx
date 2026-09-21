@@ -85,9 +85,7 @@ export default function AdminUsers() {
     window.setTimeout(() => setCopied(false), 1500);
   }
 
-  const pendingInvites = invites.results.filter(
-    (invite) => invite.status === "pending",
-  );
+
 
   return (
     <Layout>
@@ -256,10 +254,12 @@ export default function AdminUsers() {
 
         <section className="space-y-3">
           <h2 className="font-sans text-lg font-semibold tracking-tight">
-            Pending invites
+            Invites
           </h2>
-          {pendingInvites.length === 0 ? (
-            <p className="text-sm text-muted">No invites waiting to be accepted.</p>
+          {invites.status === "LoadingFirstPage" ? (
+            <p className="text-sm text-muted">Loading...</p>
+          ) : invites.results.length === 0 ? (
+            <p className="text-sm text-muted">No invites yet.</p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <table className="w-full text-left text-sm">
@@ -267,35 +267,55 @@ export default function AdminUsers() {
                   <tr>
                     <th className="px-4 py-2 font-medium">Email</th>
                     <th className="px-4 py-2 font-medium">Role</th>
-                    <th className="px-4 py-2 font-medium">Expires</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium">User</th>
                     <th className="px-4 py-2 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingInvites.map((invite) => (
+                  {invites.results.map((invite) => (
                     <tr
                       key={invite._id}
                       className="border-b border-border last:border-0"
                     >
                       <td className="px-4 py-3">{invite.email}</td>
                       <td className="px-4 py-3">{invite.userType}</td>
+                      <td className="px-4 py-3 capitalize">
+                        {invite.status}
+                        {invite.status === "accepted" && invite.acceptedAt
+                          ? ` ${formatDate(invite.acceptedAt)}`
+                          : invite.status === "pending"
+                            ? ` · expires ${formatDate(invite.expiresAt)}`
+                            : ""}
+                      </td>
                       <td className="px-4 py-3 text-muted">
-                        {formatDate(invite.expiresAt)}
+                        {invite.status !== "accepted"
+                          ? "—"
+                          : invite.acceptedUserEmail
+                            ? invite.acceptedUserName &&
+                              invite.acceptedUserName !== invite.acceptedUserEmail
+                              ? `${invite.acceptedUserName} (${invite.acceptedUserEmail})`
+                              : invite.acceptedUserEmail
+                            : invite.acceptedUserId
+                              ? "User was deleted"
+                              : "Unknown"}
                       </td>
                       <td className="px-4 py-3">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() =>
-                            void run(async () => {
-                              await revokeInvite({ inviteId: invite._id });
-                            })
-                          }
-                        >
-                          Revoke
-                        </Button>
+                        {invite.status === "pending" ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() =>
+                              void run(async () => {
+                                await revokeInvite({ inviteId: invite._id });
+                              })
+                            }
+                          >
+                            Revoke
+                          </Button>
+                        ) : null}
                       </td>
                     </tr>
                   ))}

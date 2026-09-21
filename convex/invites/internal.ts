@@ -32,7 +32,19 @@ export function inviteStatus(
   return "pending";
 }
 
-export function toInviteSummary(invite: Doc<"invites">, now?: number) {
+export async function toInviteSummary(
+  ctx: Ctx,
+  invite: Doc<"invites">,
+  now?: number,
+) {
+  const acceptedUserId = invite.acceptedUserId ?? null;
+  let acceptedUserName: string | null = null;
+  let acceptedUserEmail: string | null = null;
+  if (acceptedUserId) {
+    const user = await ctx.db.get("users", acceptedUserId);
+    acceptedUserName = user?.name ?? null;
+    acceptedUserEmail = user?.email ?? null;
+  }
   return {
     _id: invite._id,
     _creationTime: invite._creationTime,
@@ -41,6 +53,9 @@ export function toInviteSummary(invite: Doc<"invites">, now?: number) {
     tokenPrefix: invite.tokenPrefix,
     expiresAt: invite.expiresAt,
     acceptedAt: invite.acceptedAt ?? null,
+    acceptedUserId,
+    acceptedUserName,
+    acceptedUserEmail,
     revokedAt: invite.revokedAt ?? null,
     status: inviteStatus(invite, now),
   };
@@ -150,7 +165,7 @@ export const create = internalMutation({
     });
     const invite = await ctx.db.get("invites", inviteId);
     if (!invite) throw new Error("Invite creation failed");
-    return { invite: toInviteSummary(invite), token };
+    return { invite: await toInviteSummary(ctx, invite), token };
   },
 });
 
@@ -165,7 +180,7 @@ export const revoke = internalMutation({
     }
     const updated = await ctx.db.get("invites", invite._id);
     if (!updated) throw new Error("Invite not found");
-    return toInviteSummary(updated);
+    return await toInviteSummary(ctx, updated);
   },
 });
 
@@ -178,10 +193,11 @@ export const list = internalQuery({
       .order("desc")
       .paginate(args.paginationOpts);
     const now = Date.now();
-    return {
-      ...result,
-      page: result.page.map((invite) => toInviteSummary(invite, now)),
-    };
+    const page = [];
+    for (const invite of result.page) {
+      page.push(await toInviteSummary(ctx, invite, now));
+    }
+    return { ...result, page };
   },
 });
 

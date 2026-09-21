@@ -23,6 +23,12 @@ export default function Invite() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [method, setMethod] = useState<"google" | "password" | null>(null);
+
+  const googleOn = config?.googleAuthEnabled === true;
+  const passwordOn = config?.passwordAuthEnabled === true;
+  const both = googleOn && passwordOn;
+  const chosen = both ? method : googleOn ? "google" : passwordOn ? "password" : null;
 
   async function onAccept(event: FormEvent) {
     event.preventDefault();
@@ -43,7 +49,7 @@ export default function Invite() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md rounded-lg border border-border bg-card p-8 shadow-lg">
-        {preview === undefined ? (
+        {preview === undefined || config === undefined ? (
           <p className="text-center text-sm text-muted-foreground">Loading...</p>
         ) : preview.status !== "valid" ? (
           <div className="space-y-6 text-center">
@@ -53,6 +59,13 @@ export default function Invite() {
               Go to sign in
             </Button>
           </div>
+        ) : !googleOn && !passwordOn ? (
+          <div className="space-y-6 text-center">
+            <h1 className="text-2xl font-bold text-foreground">Sign-in is off</h1>
+            <p className="text-muted-foreground">
+              Ask an administrator to enable Google or password sign-in.
+            </p>
+          </div>
         ) : (
           <div className="space-y-6">
             <div className="text-center">
@@ -60,71 +73,98 @@ export default function Invite() {
                 You're invited
               </h1>
               <p className="text-muted-foreground">
-                Setting up access for{" "}
+                Access for{" "}
                 <span className="font-medium text-foreground">{preview.email}</span>
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {both
+                  ? "Choose one way to sign in. You can add the other later."
+                  : googleOn
+                    ? "Sign in with the Google account for this email."
+                    : "Set a password for this email."}
               </p>
             </div>
 
-            {config?.googleAuthEnabled ? (
+            {both && chosen === null ? (
+              <div className="space-y-3">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => void signIn("google")}
+                >
+                  Continue with Google
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => setMethod("password")}
+                >
+                  Use a password
+                </Button>
+              </div>
+            ) : null}
+
+            {chosen === "google" && !both ? (
               <Button
-                onClick={() => void signIn("google")}
-                variant="outline"
+                type="button"
                 size="lg"
                 className="w-full"
-                type="button"
+                onClick={() => void signIn("google")}
               >
                 Continue with Google
               </Button>
             ) : null}
 
-            {config?.googleAuthEnabled && config.passwordAuthEnabled ? (
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Or set a password
-                </span>
-              </div>
-            </div>
-            ) : null}
-
-            {config?.passwordAuthEnabled ? (
-            <form onSubmit={(event) => void onAccept(event)} className="space-y-4">
-              <div>
-                <label htmlFor="name" className="mb-2 block text-sm font-medium text-foreground">
-                  Your name
-                </label>
-                <input
-                  id="name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  maxLength={100}
-                  required
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="mb-2 block text-sm font-medium text-foreground">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  minLength={8}
-                  required
-                  placeholder="At least 8 characters"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              <Button type="submit" size="lg" className="w-full" disabled={busy}>
-                {busy ? "Creating account..." : "Create account"}
-              </Button>
-            </form>
+            {chosen === "password" ? (
+              <form onSubmit={(event) => void onAccept(event)} className="space-y-4">
+                {both ? (
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setMethod(null);
+                      setError(null);
+                    }}
+                  >
+                    Back to choices
+                  </button>
+                ) : null}
+                <div>
+                  <label htmlFor="name" className="mb-2 block text-sm font-medium text-foreground">
+                    Your name
+                  </label>
+                  <input
+                    id="name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    maxLength={100}
+                    required
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="mb-2 block text-sm font-medium text-foreground">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    minLength={8}
+                    required
+                    placeholder="At least 8 characters"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                <Button type="submit" size="lg" className="w-full" disabled={busy}>
+                  {busy ? "Signing in..." : "Continue with password"}
+                </Button>
+              </form>
             ) : null}
           </div>
         )}

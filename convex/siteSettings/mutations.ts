@@ -33,7 +33,11 @@ export const setSignInMethods = mutation({
     const admin = await requireAdmin(ctx);
     const settings: SiteSettings = await ctx.runMutation(
       internal.siteSettings.internal.setSignInMethods,
-      { ...args, updatedBy: admin._id },
+      {
+        updatedBy: admin._id,
+        googleSignIn: args.googleSignIn,
+        passwordSignIn: args.passwordSignIn,
+      },
     );
     console.log(
       `Sign-in methods updated by ${admin.email ?? admin._id}: google=${settings.googleSignIn} password=${settings.passwordSignIn}`,

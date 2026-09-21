@@ -168,6 +168,9 @@ export const inviteValidator = v.object({
   tokenPrefix: v.string(),
   expiresAt: v.number(),
   acceptedAt: v.union(v.number(), v.null()),
+  acceptedUserId: v.union(v.id("users"), v.null()),
+  acceptedUserName: v.union(v.string(), v.null()),
+  acceptedUserEmail: v.union(v.string(), v.null()),
   revokedAt: v.union(v.number(), v.null()),
   status: v.union(
     v.literal("pending"),

@@ -21,9 +21,7 @@ export default function AdminSettings() {
     try {
       await work();
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Could not save the setting",
-      );
+      setError(settingErrorMessage(caught));
     } finally {
       setBusy(null);
     }
@@ -31,6 +29,10 @@ export default function AdminSettings() {
 
   const features = config?.features;
   const requireAuth = config?.requireAuth ?? false;
+  const googleOn = config?.googleAuthEnabled === true;
+  const passwordOn = config?.passwordAuthEnabled === true;
+  const onlyGoogle = googleOn && !passwordOn;
+  const onlyPassword = passwordOn && !googleOn;
 
   return (
     <Layout>
@@ -78,16 +80,18 @@ export default function AdminSettings() {
               title="Google sign-in"
               description={
                 config.googleAuthAvailable
-                  ? "Show Continue with Google. Only existing users can sign in; create or invite them first."
+                  ? onlyGoogle
+                    ? "Show Continue with Google. This is the only sign-in method on, so it cannot be turned off."
+                    : "Show Continue with Google. Only existing users can sign in; create or invite them first."
                   : "Unavailable until AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are set on the deployment."
               }
             >
               <OnOff
-                on={config.googleAuthEnabled}
-                disabled={busy !== null || !config.googleAuthAvailable}
+                on={googleOn}
+                disabled={busy !== null || !config.googleAuthAvailable || onlyGoogle}
                 onClick={() =>
                   void run("google", () =>
-                    setSignInMethods({ googleSignIn: !config.googleAuthEnabled }),
+                    setSignInMethods({ googleSignIn: !googleOn }),
                   )
                 }
               />
@@ -97,18 +101,18 @@ export default function AdminSettings() {
               title="Password sign-in"
               description={
                 config.passwordAuthAvailable
-                  ? "Show the email and password form. Turn off to require Google for everyone."
+                  ? onlyPassword
+                    ? "Show the email and password form. This is the only sign-in method on, so it cannot be turned off."
+                    : "Show the email and password form. Turn off to require Google for everyone."
                   : "Unavailable until AUTH_PASSWORD_ENABLED is true on the deployment."
               }
             >
               <OnOff
-                on={config.passwordAuthEnabled}
-                disabled={busy !== null || !config.passwordAuthAvailable}
+                on={passwordOn}
+                disabled={busy !== null || !config.passwordAuthAvailable || onlyPassword}
                 onClick={() =>
                   void run("password", () =>
-                    setSignInMethods({
-                      passwordSignIn: !config.passwordAuthEnabled,
-                    }),
+                    setSignInMethods({ passwordSignIn: !passwordOn }),
                   )
                 }
               />
@@ -241,6 +245,15 @@ export default function AdminSettings() {
       </div>
     </Layout>
   );
+}
+
+function settingErrorMessage(caught: unknown): string {
+  const raw = caught instanceof Error ? caught.message : "Could not save the setting";
+  const inner = raw.match(/\]\s*([\s\S]*?)\s*(?:\n\s*Called by client)?$/);
+  if (inner?.[1]) {
+    return inner[1].replace(/\n\s*Called by client\s*$/, "").trim();
+  }
+  return raw.replace(/\n\s*Called by client\s*$/, "").trim();
 }
 
 function SettingRow({

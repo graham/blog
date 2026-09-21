@@ -51,9 +51,25 @@ describe("features", () => {
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
     await expect(
       asAdmin.mutation(api.siteSettings.mutations.setSignInMethods, {
+        googleSignIn: false,
         passwordSignIn: false,
       }),
-    ).rejects.toThrow(/at least one available sign-in method/);
+    ).rejects.toThrow(/at least one sign-in method/);
+  });
+
+  test("admin can turn password sign-in on", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    await asAdmin.mutation(api.siteSettings.mutations.setSignInMethods, {
+      googleSignIn: true,
+      passwordSignIn: false,
+    });
+    const enabled = await asAdmin.mutation(api.siteSettings.mutations.setSignInMethods, {
+      passwordSignIn: true,
+    });
+    expect(enabled.passwordSignIn).toBe(true);
+    expect(enabled.googleSignIn).toBe(true);
+    expect((await t.query(api.config.getConfig, {})).passwordAuthEnabled).toBe(true);
   });
 
   test("only an admin can change features", async () => {

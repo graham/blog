@@ -113,6 +113,16 @@ describe("invites", () => {
     expect(stored.user!.name).toBe("New Person");
     expect(stored.invite!.acceptedAt).toBeTypeOf("number");
     expect(stored.invite!.acceptedUserId).toBe(stored.user!._id);
+    const listed = await asAdmin.query(api.invites.queries.list, {
+      paginationOpts: pageOpts,
+    });
+    const row = listed.page.find((invite) => invite._id === created.invite._id);
+    expect(row).toMatchObject({
+      status: "accepted",
+      acceptedUserId: stored.user!._id,
+      acceptedUserEmail: "new@example.com",
+      acceptedUserName: "New Person",
+    });
     expect(await verifyPassword("correct horse battery", stored.account!.secret!)).toBe(
       true,
     );
