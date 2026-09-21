@@ -45,8 +45,14 @@ if (providers.length === 0) {
   );
 }
 
+const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 90;
+
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers,
+  session: {
+    totalDurationMs: SESSION_DURATION_MS,
+    inactiveDurationMs: SESSION_DURATION_MS,
+  },
   callbacks: {
     async createOrUpdateUser(ctx: any, args: any) {
       if (!args.profile.email) {
