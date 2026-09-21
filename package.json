@@ -7,6 +7,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "create-user": "node scripts/create_user.cjs",
+    "reset-password": "node scripts/reset_password.cjs",
     "lint": "oxlint src/",
     "format": "oxfmt src/",
     "test": "vitest",

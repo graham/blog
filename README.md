@@ -144,7 +144,13 @@ Create or reset a password administrator later with:
 npm run create-user
 ```
 
-The command targets the personal development deployment. Add `-- --prod` for production.
+Reset an existing user's password (does not create accounts; revokes their sessions) with:
+
+```bash
+npm run reset-password
+```
+
+Both commands target the personal development deployment. Add `-- --prod` for production. The reset command prompts for the new password twice and does not take it from argv.
 
 ## Deployments
 

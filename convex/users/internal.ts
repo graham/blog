@@ -51,6 +51,53 @@ export async function revokeSessions(
   return sessions.length;
 }
 
+export const resetPassword = internalMutation({
+  args: {
+    email: v.string(),
+    hashedPassword: v.string(),
+  },
+  returns: v.object({
+    email: v.string(),
+    sessionsRevoked: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const email = args.email.trim();
+    if (email.length === 0) {
+      throw new Error("Email is required");
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .first();
+    if (!user) {
+      throw new Error("No user with that email");
+    }
+    const existingAccount = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", email),
+      )
+      .first();
+    if (existingAccount) {
+      await ctx.db.patch("authAccounts", existingAccount._id, {
+        secret: args.hashedPassword,
+      });
+    } else {
+      await ctx.db.insert("authAccounts", {
+        userId: user._id,
+        provider: "password",
+        providerAccountId: email,
+        secret: args.hashedPassword,
+      });
+    }
+    const sessionsRevoked = await revokeSessions(ctx, user._id);
+    console.log(
+      `Password reset for ${email}; revoked ${sessionsRevoked} session(s)`,
+    );
+    return { email, sessionsRevoked };
+  },
+});
+
 export const insertAdminUser = internalMutation({
   args: {
     email: v.string(),

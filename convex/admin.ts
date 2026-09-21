@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { pbkdf2, randomBytes } from "crypto";
 import { promisify } from "util";
+import { assertUsablePassword } from "./lib/password";
 
 const pbkdf2Async = promisify(pbkdf2);
 
@@ -27,5 +28,30 @@ export const createUser = internalAction({
       name: name ?? email,
     });
     console.log(`Admin user created or updated: ${email}`);
+  },
+});
+
+// CLI-only. Hash in this Node action, then write via internal mutation.
+// Run: npx convex run admin:resetPassword '{"email":"...","password":"..."}'
+export const resetPassword = internalAction({
+  args: {
+    email: v.string(),
+    password: v.string(),
+  },
+  returns: v.object({
+    email: v.string(),
+    sessionsRevoked: v.number(),
+  }),
+  handler: async (ctx, { email, password }) => {
+    assertUsablePassword(password);
+    const hashedPassword = await hashPassword(password);
+    const result: { email: string; sessionsRevoked: number } = await ctx.runMutation(
+      internal.users.internal.resetPassword,
+      { email, hashedPassword },
+    );
+    console.log(
+      `Password reset for ${result.email}; revoked ${result.sessionsRevoked} session(s)`,
+    );
+    return result;
   },
 });
