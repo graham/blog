@@ -94,15 +94,11 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
             className="h-8 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
           />
         </form>
-        <nav className="hidden items-center gap-3 text-sm lg:flex">
-          {extraLinks}
-          {authLink}
-        </nav>
-        <details className="relative shrink-0 lg:hidden">
+        <details className="relative shrink-0">
           <summary className="cursor-pointer list-none text-sm text-muted hover:text-foreground [&::-webkit-details-marker]:hidden">
             Menu
           </summary>
-          <div className="absolute right-0 z-20 mt-2 flex w-44 flex-col gap-2 rounded-xl border border-border bg-card p-3 text-sm shadow-sm">
+          <div className="absolute right-0 z-20 mt-2 flex w-44 flex-col gap-2 rounded-xl border-2 border-foreground/50 bg-card p-3 text-sm shadow-md">
             {extraLinks}
             {authLink}
           </div>
