@@ -506,22 +506,22 @@ describe("posts", () => {
     expect(detail?.sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  test("images-only hides text from anonymous readers and keeps it for signed-in ones", async () => {
+  test("images-only does not change public query or API payloads", async () => {
     const t = createT();
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
-    const { asUser: asReader } = await seedUser(t, "reader@example.com", "user");
     const postId = await asAdmin.mutation(api.posts.mutations.create, {});
+    const body = [
+      "A secret paragraph.",
+      "",
+      "![leaky alt](https://cdn.example/pic.jpg)",
+      "",
+      "https://youtu.be/abcdefghijk",
+    ].join("\n");
     await asAdmin.mutation(api.posts.mutations.save, {
       postId,
       title: "Photo essay",
       excerpt: "secret excerpt",
-      body: [
-        "A secret paragraph.",
-        "",
-        "![leaky alt](https://cdn.example/pic.jpg)",
-        "",
-        "https://youtu.be/abcdefghijk",
-      ].join("\n"),
+      body,
       visibility: "listed",
       tags: ["secrets"],
     });
@@ -535,7 +535,7 @@ describe("posts", () => {
       paginationOpts: pageOpts,
     });
     expect(listed.page).toMatchObject([
-      { title: "Photo essay", excerpt: "secret excerpt", tags: [], slug: "photo-essay" },
+      { title: "Photo essay", excerpt: "secret excerpt", tags: ["secrets"], slug: "photo-essay" },
     ]);
 
     const anonymous = await t.query(api.posts.publicQueries.getBySlug, {
@@ -544,19 +544,8 @@ describe("posts", () => {
     expect(anonymous).toMatchObject({
       title: "Photo essay",
       excerpt: "secret excerpt",
-      tags: [],
-      body: "![](https://cdn.example/pic.jpg)\n\n[video](https://youtu.be/abcdefghijk)",
-    });
-
-    const signedIn = await asReader.query(api.posts.publicQueries.getBySlug, {
-      slug: "photo-essay",
-    });
-    expect(signedIn).toMatchObject({
-      title: "Photo essay",
-      excerpt: "secret excerpt",
       tags: ["secrets"],
+      body,
     });
-    expect(signedIn?.body).toContain("A secret paragraph.");
-    expect(signedIn?.body).toContain("leaky alt");
   });
 });

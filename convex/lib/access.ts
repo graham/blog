@@ -12,21 +12,18 @@ export type PublicViewer = {
   viewerUserId: Id<"users"> | null;
   asAdmin: boolean;
   blocked: boolean;
-  stripText: boolean;
 };
 
 // Single entry point for every anonymous-callable read. `blocked` means the
 // site-wide requireAuth switch is on and nobody is signed in, so the caller
-// returns an empty result instead of reaching the data layer. `stripText`
-// is images-only mode: signed-out callers keep media and lose prose.
+// returns an empty result instead of reaching the data layer.
 export async function resolvePublicViewer(ctx: Ctx): Promise<PublicViewer> {
   const user = await getAuthedUser(ctx);
-  const settings = await readSiteSettings(ctx);
+  const { requireAuth } = await readSiteSettings(ctx);
   return {
     viewerUserId: user?._id ?? null,
     asAdmin: user?.userType === "admin",
-    blocked: settings.requireAuth && user === null,
-    stripText: settings.features.imagesOnly && user === null,
+    blocked: requireAuth && user === null,
   };
 }
 

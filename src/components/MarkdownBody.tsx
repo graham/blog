@@ -5,6 +5,7 @@ import { linkifyYouTube, parseYouTubeId } from "@/lib/youtube";
 import { ZoomableImage } from "@/components/ImageOverlay";
 import { markdownOverlayImages, type OverlayImage } from "@/lib/images";
 import { isImageAsset, isVideoAsset } from "@/lib/assets";
+import { mediaOnlyMarkdown } from "@/lib/mediaOnly";
 
 type Asset = {
   storageId: string;
@@ -79,7 +80,8 @@ export function MarkdownBody({
   mediaOnly?: boolean;
 }) {
   const byStorageId = new Map(assets.map((asset) => [asset.storageId, asset]));
-  const collected = useMemo(() => markdownOverlayImages(content, assets), [content, assets]);
+  const rendered = mediaOnly ? mediaOnlyMarkdown(content) : content;
+  const collected = useMemo(() => markdownOverlayImages(rendered, assets), [rendered, assets]);
   const images = gallery ?? collected;
 
   return (
@@ -153,7 +155,7 @@ export function MarkdownBody({
           },
         }}
       >
-        {linkifyYouTube(content)}
+        {linkifyYouTube(rendered)}
       </Markdown>
     </div>
   );

@@ -26,35 +26,3 @@ export function mediaOnlyMarkdown(content: string): string {
 
   return parts.join("\n\n");
 }
-
-export function stripSummaryText<
-  T extends {
-    title: string;
-    excerpt: string;
-    tags: string[];
-    authorName: string | null;
-  },
->(post: T): T {
-  return {
-    ...post,
-    tags: [],
-    authorName: null,
-  };
-}
-
-export function stripDetailText<
-  T extends {
-    title: string;
-    excerpt: string;
-    tags: string[];
-    authorName: string | null;
-    body: string;
-    assets: Array<{ alt: string; description: string }>;
-  },
->(post: T): T {
-  return {
-    ...stripSummaryText(post),
-    body: mediaOnlyMarkdown(post.body),
-    assets: post.assets.map((asset) => ({ ...asset, alt: "", description: "" })),
-  };
-}

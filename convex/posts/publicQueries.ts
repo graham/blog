@@ -10,7 +10,6 @@ import {
   calendarPostValidator,
 } from "../lib/validators";
 import { resolvePublicViewer } from "../lib/access";
-import { stripDetailText, stripSummaryText } from "../lib/mediaOnly";
 import { readSiteSettings } from "../siteSettings/internal";
 
 type PostSummary = Infer<typeof postSummaryValidator>;
@@ -32,7 +31,7 @@ function emptyPage<T>(cursor: string | null): Page<T> {
 export const listPublished = query({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(postSummaryValidator),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Page<PostSummary>> => {
     const viewer = await resolvePublicViewer(ctx);
     if (viewer.blocked) {
       return emptyPage<PostSummary>(args.paginationOpts.cursor);
@@ -42,8 +41,7 @@ export const listPublished = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    if (!viewer.stripText) return result;
-    return { ...result, page: result.page.map(stripSummaryText) };
+    return result;
   },
 });
 
@@ -58,8 +56,7 @@ export const getBySlug = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    if (result === null || !viewer.stripText) return result;
-    return stripDetailText(result);
+    return result;
   },
 });
 
@@ -112,7 +109,7 @@ export const searchPublished = query({
     tag: v.union(v.string(), v.null()),
   },
   returns: v.array(postSummaryValidator),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<PostSummary[]> => {
     const viewer = await resolvePublicViewer(ctx);
     if (viewer.blocked) return [];
     const result: PostSummary[] = await ctx.runQuery(internal.posts.internal.searchPublished, {
@@ -120,8 +117,7 @@ export const searchPublished = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    if (!viewer.stripText) return result;
-    return result.map(stripSummaryText);
+    return result;
   },
 });
 
@@ -131,7 +127,7 @@ export const listByTag = query({
     paginationOpts: paginationOptsValidator,
   },
   returns: paginationResultValidator(postSummaryValidator),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Page<PostSummary>> => {
     const viewer = await resolvePublicViewer(ctx);
     if (viewer.blocked) {
       return emptyPage<PostSummary>(args.paginationOpts.cursor);
@@ -141,7 +137,6 @@ export const listByTag = query({
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });
-    if (!viewer.stripText) return result;
-    return { ...result, page: result.page.map(stripSummaryText) };
+    return result;
   },
 });

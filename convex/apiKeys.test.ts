@@ -98,6 +98,33 @@ describe("blog API keys", () => {
     ).rejects.toThrow(/Unauthorized/);
   });
 
+  test("images-only does not change API key post reads", async () => {
+    const t = createT();
+    const admin = await seedUser(t, "admin");
+    const created = await admin.mutation(api.apiKeys.mutations.create, {
+      name: "writer",
+    });
+    const draft = await t.mutation(internal.apiKeys.internal.createPost, {
+      token: created.token,
+      input: {
+        title: "Agent draft",
+        body: "Keep this paragraph",
+        tags: ["agent"],
+        published: true,
+      },
+    });
+    await admin.mutation(api.features.mutations.set, { imagesOnly: true });
+    const post = await t.query(internal.apiKeys.internal.getPost, {
+      token: created.token,
+      postId: draft.id,
+    });
+    expect(post).toMatchObject({
+      title: "Agent draft",
+      body: "Keep this paragraph",
+      tags: ["agent"],
+    });
+  });
+
   test("a legacy hash-only key asks for one rotation", async () => {
     const t = createT();
     const admin = await seedUser(t, "admin");
