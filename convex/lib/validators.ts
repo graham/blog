@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { featureModeValidator } from "./featureMode";
 
 export const statusValidator = v.union(v.literal("draft"), v.literal("published"));
 
@@ -133,10 +134,10 @@ export const themeIdValidator = v.union(
 export const postSortValidator = v.union(v.literal("created"), v.literal("updated"));
 
 export const featuresValidator = v.object({
-  bookmarks: v.boolean(),
-  timings: v.boolean(),
-  calendar: v.boolean(),
-  infiniteScroll: v.boolean(),
+  bookmarks: featureModeValidator,
+  timings: featureModeValidator,
+  calendar: featureModeValidator,
+  infiniteScroll: featureModeValidator,
   imagesOnly: v.boolean(),
   sortOrder: postSortValidator,
   theme: v.object({

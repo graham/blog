@@ -1,10 +1,12 @@
 import type { ThemeId } from "./themes";
 
+export type FeatureMode = "off" | "on" | "adminOnly";
+
 export type Features = {
-  bookmarks: boolean;
-  timings: boolean;
-  calendar: boolean;
-  infiniteScroll: boolean;
+  bookmarks: FeatureMode;
+  timings: FeatureMode;
+  calendar: FeatureMode;
+  infiniteScroll: FeatureMode;
   imagesOnly: boolean;
   sortOrder: "created" | "updated";
   theme: {
@@ -14,11 +16,15 @@ export type Features = {
 };
 
 export const DEFAULT_FEATURES: Features = {
-  bookmarks: false,
-  timings: false,
-  calendar: false,
-  infiniteScroll: false,
+  bookmarks: "off",
+  timings: "off",
+  calendar: "off",
+  infiniteScroll: "off",
   imagesOnly: false,
   sortOrder: "created",
   theme: { enabled: false, id: "paper" },
 };
+
+export function featureOn(mode: FeatureMode, isAdmin: boolean): boolean {
+  return mode === "on" || (mode === "adminOnly" && isAdmin);
+}

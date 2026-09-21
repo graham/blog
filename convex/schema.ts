@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import { storedFeatureModeValidator } from "./lib/featureMode";
 
 const schema = defineSchema({
   ...authTables,
@@ -14,11 +15,11 @@ const schema = defineSchema({
 
   siteSettings: defineTable({
     requireAuth: v.boolean(),
-    bookmarksEnabled: v.optional(v.boolean()),
-    timingsShowDelta: v.optional(v.boolean()),
+    bookmarksEnabled: v.optional(storedFeatureModeValidator),
+    timingsShowDelta: v.optional(storedFeatureModeValidator),
     timingsPage: v.optional(v.boolean()),
-    calendar: v.optional(v.boolean()),
-    infiniteScroll: v.optional(v.boolean()),
+    calendar: v.optional(storedFeatureModeValidator),
+    infiniteScroll: v.optional(storedFeatureModeValidator),
     imagesOnly: v.optional(v.boolean()),
     postSort: v.optional(v.union(v.literal("created"), v.literal("updated"))),
     themeEnabled: v.optional(v.boolean()),

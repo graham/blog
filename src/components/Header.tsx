@@ -4,6 +4,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import { isAdminUser } from "@/lib/format";
+import { featureOn } from "@/lib/features";
 
 export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const { isAuthenticated } = useConvexAuth();
@@ -14,8 +15,8 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const [q, setQ] = useState(params.get("q") ?? "");
   const admin = isAdminUser(currentUser);
   const features = useQuery(api.features.publicQueries.get);
-  const bookmarksEnabled = features?.bookmarks === true;
-  const calendar = features?.calendar === true;
+  const bookmarksEnabled = features !== undefined && features.bookmarks !== "off";
+  const calendar = features !== undefined && featureOn(features.calendar, admin);
 
   useEffect(() => {
     setQ(params.get("q") ?? "");

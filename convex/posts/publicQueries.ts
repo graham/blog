@@ -11,6 +11,7 @@ import {
 } from "../lib/validators";
 import { resolvePublicViewer } from "../lib/access";
 import { readSiteSettings } from "../siteSettings/internal";
+import { featureVisible } from "../lib/featureMode";
 
 type PostSummary = Infer<typeof postSummaryValidator>;
 type PostDetail = Infer<typeof postDetailValidator>;
@@ -83,11 +84,11 @@ export const listPublishedBetween = query({
   returns: v.array(calendarPostValidator),
   handler: async (ctx, args) => {
     const settings = await readSiteSettings(ctx);
-    if (!settings.features.calendar) {
-      return [];
-    }
     const viewer = await resolvePublicViewer(ctx);
     if (viewer.blocked) {
+      return [];
+    }
+    if (!featureVisible(settings.features.calendar, viewer.asAdmin)) {
       return [];
     }
     const result: CalendarPost[] = await ctx.runQuery(

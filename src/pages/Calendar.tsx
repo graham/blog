@@ -5,7 +5,8 @@ import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { calendarMonth, dayKey } from "@/lib/calendar";
-import { formatDate } from "@/lib/format";
+import { formatDate, isAdminUser } from "@/lib/format";
+import { featureOn } from "@/lib/features";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -62,6 +63,7 @@ function HourChart({ posts }: { posts: Array<{ publishedAt: number }> }) {
 
 export default function Calendar() {
   const features = useQuery(api.features.publicQueries.get);
+  const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -75,12 +77,17 @@ export default function Calendar() {
     [year, month],
   );
 
+  const allowed =
+    features !== undefined &&
+    currentUser !== undefined &&
+    featureOn(features.calendar, isAdminUser(currentUser));
+
   const posts = useQuery(
     api.posts.publicQueries.listPublishedBetween,
-    features?.calendar === true ? range : "skip",
+    allowed ? range : "skip",
   );
 
-  if (features === undefined) {
+  if (features === undefined || currentUser === undefined) {
     return (
       <Layout bookmarks>
         <p className="text-sm text-muted">Loading...</p>
@@ -88,7 +95,7 @@ export default function Calendar() {
     );
   }
 
-  if (!features.calendar) {
+  if (!featureOn(features.calendar, isAdminUser(currentUser))) {
     return <Navigate to="/" replace />;
   }
 

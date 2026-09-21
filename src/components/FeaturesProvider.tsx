@@ -1,12 +1,18 @@
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { DEFAULT_FEATURES, type Features } from "@/lib/features";
+import { DEFAULT_FEATURES, featureOn, type FeatureMode, type Features } from "@/lib/features";
+import { isAdminUser } from "@/lib/format";
 
 const FeaturesContext = createContext<Features>(DEFAULT_FEATURES);
 
 export function useFeatures(): Features {
   return useContext(FeaturesContext);
+}
+
+export function useFeatureOn(mode: FeatureMode): boolean {
+  const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
+  return featureOn(mode, isAdminUser(currentUser));
 }
 
 export function FeaturesProvider({ children }: { children: ReactNode }) {

@@ -5,7 +5,7 @@ import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
-import { useFeatures } from "@/components/FeaturesProvider";
+import { useFeatureOn, useFeatures } from "@/components/FeaturesProvider";
 import { formatTimeDelta, postTime } from "@/lib/format";
 import { useImagesOnly } from "@/lib/useImagesOnly";
 
@@ -16,6 +16,8 @@ export default function Home() {
   const q = (params.get("q") ?? "").trim();
   const searching = q.length > 0;
   const features = useFeatures();
+  const timingsOn = useFeatureOn(features.timings);
+  const infiniteScrollOn = useFeatureOn(features.infiniteScroll);
   const imagesOnly = useImagesOnly();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +32,7 @@ export default function Home() {
   const posts = searching ? (searchResults ?? []) : list.results;
   const loading = searching ? searchResults === undefined : list.status === "LoadingFirstPage";
   const canLoadMore = !searching && list.status === "CanLoadMore";
-  const infinite = features.infiniteScroll && !searching;
+  const infinite = infiniteScrollOn && !searching;
 
   useEffect(() => {
     if (!infinite || !canLoadMore) return;
@@ -63,7 +65,7 @@ export default function Home() {
             {posts.map((post, index) => {
               const previous = index > 0 ? posts[index - 1] : null;
               const delta =
-                !features.timings || imagesOnly
+                !timingsOn || imagesOnly
                   ? null
                   : previous
                     ? `${formatTimeDelta(postTime(previous), postTime(post))} earlier`

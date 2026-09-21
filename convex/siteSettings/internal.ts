@@ -8,6 +8,11 @@ import {
   siteSettingsValidator,
   themeIdValidator,
 } from "../lib/validators";
+import {
+  coerceFeatureMode,
+  featureModeValidator,
+  parseFeatureMode,
+} from "../lib/featureMode";
 import type { Infer } from "convex/values";
 
 type Ctx = QueryCtx | MutationCtx;
@@ -32,10 +37,10 @@ const THEME_IDS: ThemeId[] = [
 ];
 
 export const DEFAULT_FEATURES: Features = {
-  bookmarks: false,
-  timings: false,
-  calendar: false,
-  infiniteScroll: false,
+  bookmarks: "off",
+  timings: "off",
+  calendar: "off",
+  infiniteScroll: "off",
   imagesOnly: false,
   sortOrder: "created",
   theme: { enabled: false, id: "paper" },
@@ -62,10 +67,13 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
   const row = await ctx.db.query("siteSettings").first();
   if (!row) return { ...DEFAULT_SETTINGS, features: { ...DEFAULT_FEATURES } };
   const features: Features = {
-    bookmarks: row.bookmarksEnabled === true,
-    timings: row.timingsShowDelta === true,
-    calendar: row.calendar === true || row.timingsPage === true,
-    infiniteScroll: row.infiniteScroll === true,
+    bookmarks: parseFeatureMode(row.bookmarksEnabled),
+    timings: parseFeatureMode(row.timingsShowDelta),
+    calendar:
+      row.calendar === undefined && row.timingsPage === true
+        ? "on"
+        : parseFeatureMode(row.calendar),
+    infiniteScroll: parseFeatureMode(row.infiniteScroll),
     imagesOnly: row.imagesOnly === true,
     sortOrder: parseSortOrder(row.postSort),
     theme: {
@@ -75,7 +83,7 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
   };
   return {
     requireAuth: row.requireAuth,
-    bookmarksEnabled: features.bookmarks,
+    bookmarksEnabled: features.bookmarks !== "off",
     features,
   };
 }
@@ -85,7 +93,7 @@ function toRow(settings: Settings, updatedBy: Id<"users">) {
     requireAuth: settings.requireAuth,
     bookmarksEnabled: settings.features.bookmarks,
     timingsShowDelta: settings.features.timings,
-    timingsPage: settings.features.calendar,
+    timingsPage: settings.features.calendar === "on",
     calendar: settings.features.calendar,
     infiniteScroll: settings.features.infiniteScroll,
     imagesOnly: settings.features.imagesOnly,
@@ -111,7 +119,7 @@ async function writeSettings(
   }
   return {
     requireAuth: settings.requireAuth,
-    bookmarksEnabled: settings.features.bookmarks,
+    bookmarksEnabled: settings.features.bookmarks !== "off",
     features: settings.features,
   };
 }
@@ -140,7 +148,7 @@ export const setBookmarksEnabled = internalMutation({
     const current = await readSiteSettings(ctx);
     const features: Features = {
       ...current.features,
-      bookmarks: args.bookmarksEnabled,
+      bookmarks: args.bookmarksEnabled ? "on" : "off",
     };
     return await writeSettings(
       ctx,
@@ -153,10 +161,10 @@ export const setBookmarksEnabled = internalMutation({
 export const setFeatures = internalMutation({
   args: {
     updatedBy: v.id("users"),
-    bookmarks: v.optional(v.boolean()),
-    timings: v.optional(v.boolean()),
-    calendar: v.optional(v.boolean()),
-    infiniteScroll: v.optional(v.boolean()),
+    bookmarks: v.optional(v.union(v.boolean(), featureModeValidator)),
+    timings: v.optional(v.union(v.boolean(), featureModeValidator)),
+    calendar: v.optional(v.union(v.boolean(), featureModeValidator)),
+    infiniteScroll: v.optional(v.union(v.boolean(), featureModeValidator)),
     imagesOnly: v.optional(v.boolean()),
     sortOrder: v.optional(postSortValidator),
     themeEnabled: v.optional(v.boolean()),
@@ -166,10 +174,10 @@ export const setFeatures = internalMutation({
   handler: async (ctx, args) => {
     const current = await readSiteSettings(ctx);
     const features: Features = {
-      bookmarks: args.bookmarks ?? current.features.bookmarks,
-      timings: args.timings ?? current.features.timings,
-      calendar: args.calendar ?? current.features.calendar,
-      infiniteScroll: args.infiniteScroll ?? current.features.infiniteScroll,
+      bookmarks: coerceFeatureMode(args.bookmarks, current.features.bookmarks),
+      timings: coerceFeatureMode(args.timings, current.features.timings),
+      calendar: coerceFeatureMode(args.calendar, current.features.calendar),
+      infiniteScroll: coerceFeatureMode(args.infiniteScroll, current.features.infiniteScroll),
       imagesOnly: args.imagesOnly ?? current.features.imagesOnly,
       sortOrder: args.sortOrder ?? current.features.sortOrder,
       theme: {
@@ -179,7 +187,7 @@ export const setFeatures = internalMutation({
     };
     const saved = await writeSettings(
       ctx,
-      { ...current, bookmarksEnabled: features.bookmarks, features },
+      { ...current, features },
       args.updatedBy,
     );
     return saved.features;

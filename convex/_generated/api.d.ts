@@ -46,6 +46,7 @@ import type * as invites_token from "../invites/token.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_env from "../lib/env.js";
+import type * as lib_featureMode from "../lib/featureMode.js";
 import type * as lib_mediaOnly from "../lib/mediaOnly.js";
 import type * as lib_password from "../lib/password.js";
 import type * as lib_sha256 from "../lib/sha256.js";
@@ -115,6 +116,7 @@ declare const fullApi: ApiFromModules<{
   "lib/access": typeof lib_access;
   "lib/auth": typeof lib_auth;
   "lib/env": typeof lib_env;
+  "lib/featureMode": typeof lib_featureMode;
   "lib/mediaOnly": typeof lib_mediaOnly;
   "lib/password": typeof lib_password;
   "lib/sha256": typeof lib_sha256;

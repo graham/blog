@@ -3,7 +3,9 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { THEMES, type ThemeId } from "@/lib/themes";
+import { ThemeSelect } from "@/components/ThemeSelect";
+import type { ThemeId } from "@/lib/themes";
+import type { FeatureMode } from "@/lib/features";
 
 export default function AdminSettings() {
   const config = useQuery(api.config.getConfig);
@@ -31,170 +33,142 @@ export default function AdminSettings() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-[32rem] space-y-4">
         <div>
           <h1 className="font-sans text-2xl font-semibold tracking-tight">
             Settings
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            Site-wide switches. Every reader sees the same combination. While a
-            feature is off, its UI is hidden and its extra Convex queries are
-            not run.
+            Site-wide switches. Off features hide their UI and skip extra queries.
           </p>
         </div>
 
-        <section className="space-y-4 rounded-xl border border-border bg-card p-5">
-          <div>
-            <h2 className="font-medium">Require sign-in to read</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted">
-              Private-site mode. Signed-out visitors are sent to sign-in and
-              every public read (timeline, posts, tags, search, calendar) comes
-              back empty. API keys still work. Channel membership still applies
-              on top for signed-in readers.
-            </p>
-          </div>
-          {config === undefined ? (
-            <p className="text-sm text-muted">Loading...</p>
-          ) : (
-            <ToggleRow
-              on={requireAuth}
-              onLabel="Private: sign-in required"
-              offLabel="Public: anyone can read"
-              actionLabel={requireAuth ? "Make site public" : "Require sign-in"}
-              danger={requireAuth}
-              disabled={busy !== null}
-              onClick={() =>
-                void run("auth", () => setRequireAuth({ requireAuth: !requireAuth }))
-              }
-            />
-          )}
-        </section>
-
-        <div>
-          <h2 className="font-sans text-xl font-semibold tracking-tight">
-            Features
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            These flags are the public <code className="text-foreground">features</code>{" "}
-            JSON every page already reads. Turn one on only if you want that
-            surface live.
-          </p>
-        </div>
-
-        {features === undefined ? (
+        {config === undefined || features === undefined ? (
           <p className="text-sm text-muted">Loading...</p>
         ) : (
-          <div className="space-y-4">
-            <FeatureCard
-              title="Bookmarks"
-              on={features.bookmarks}
-              disabled={busy !== null}
-              onClick={() =>
-                void run("bookmarks", () =>
-                  setFeatures({ bookmarks: !features.bookmarks }),
-                )
-              }
+          <div className="rounded-xl border border-border bg-card">
+            <SettingRow
+              title="Theme"
+              description="One palette for every visitor. Off uses Paper. Pick a theme to preview its colors."
             >
-              <p>
-                Lets administrators group published posts into named lists
-                (for example Favorites). Those lists show as a sparse left rail
-                on home, post, and tag pages, and below the article on small
-                screens.
-              </p>
-              <p>
-                Only listed, published posts a given reader can already open
-                appear. Drafts, unlisted posts, and channel-private posts stay
-                hidden. Off: the rail, the Bookmarks admin pages, and the editor
-                checkboxes are hidden; bookmark queries are skipped.
-              </p>
-            </FeatureCard>
-
-            <FeatureCard
-              title="Timings"
-              on={features.timings}
-              disabled={busy !== null}
-              onClick={() =>
-                void run("timings", () =>
-                  setFeatures({ timings: !features.timings }),
-                )
-              }
-            >
-              <p>
-                On the home timeline (<code className="text-foreground">/</code>
-                ), a quiet line above the first post names how old it is (“3 days
-                ago”). Between later posts it names the gap (“2 hours earlier”).
-              </p>
-              <p>
-                Uses each post’s publish time. Search results are unchanged. Off:
-                the home list is only titles, dates, and excerpts, with no extra
-                query.
-              </p>
-            </FeatureCard>
-
-            <FeatureCard
-              title="Calendar"
-              on={features.calendar}
-              disabled={busy !== null}
-              onClick={() =>
-                void run("calendar", () =>
-                  setFeatures({ calendar: !features.calendar }),
-                )
-              }
-            >
-              <p>
-                Adds a <code className="text-foreground">/calendar</code> page
-                and a Calendar link in the header. The page is a month calendar:
-                each day shows how many listed published posts went up that day,
-                with a total for each week and for the month. Click a day for an
-                hourly bar chart and a table (time, title, slug), not the usual
-                card list on home.
-              </p>
-              <p>
-                Previous/next month buttons move the calendar. Channel rules
-                still apply. Off: the route redirects home and the month query
-                is skipped.
-              </p>
-            </FeatureCard>
-
-            <FeatureCard
-              title="Infinite scroll"
-              on={features.infiniteScroll}
-              disabled={busy !== null}
-              onClick={() =>
-                void run("scroll", () =>
-                  setFeatures({ infiniteScroll: !features.infiniteScroll }),
-                )
-              }
-            >
-              <p>
-                On home, reaching the bottom of the timeline loads the next page
-                of posts automatically. The Load more button is hidden while this
-                is on.
-              </p>
-              <p>
-                Search still returns one result set and does not keep loading.
-                Off: readers use Load more as before.
-              </p>
-            </FeatureCard>
-
-            <section className="space-y-4 rounded-xl border border-border bg-card p-5">
-              <div>
-                <h3 className="font-medium">Post sort order</h3>
-                <div className="mt-2 max-w-2xl space-y-2 text-sm text-muted">
-                  <p>
-                    Home, tags, previous/next, and the admin posts list use this
-                    order. Default is creation time (when the post was first
-                    created). Last updated puts recently edited posts at the top.
-                  </p>
-                  <p>
-                    Each order has its own database index so the lists stay
-                    cheap to query.
-                  </p>
-                </div>
+              <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+                <OnOff
+                  on={features.theme.enabled}
+                  disabled={busy !== null}
+                  onClick={() =>
+                    void run("theme", () =>
+                      setFeatures({ themeEnabled: !features.theme.enabled }),
+                    )
+                  }
+                />
+                <ThemeSelect
+                  value={features.theme.id}
+                  disabled={busy !== null || !features.theme.enabled}
+                  onChange={(themeId) =>
+                    void run(`theme-${themeId}`, () =>
+                      setFeatures({ themeId: themeId as ThemeId }),
+                    )
+                  }
+                />
               </div>
-              <div className="flex flex-wrap gap-2">
+            </SettingRow>
+
+            <SettingRow
+              title="Require sign-in"
+              description="Signed-out visitors go to sign-in; public reads come back empty. API keys still work."
+            >
+              <OnOff
+                on={requireAuth}
+                onLabel="Private"
+                offLabel="Public"
+                danger={requireAuth}
+                disabled={busy !== null}
+                onClick={() =>
+                  void run("auth", () =>
+                    setRequireAuth({ requireAuth: !requireAuth }),
+                  )
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Bookmarks"
+              description="Admin-curated groups as a left rail on reader pages. Hidden posts stay hidden. Admin only: rail is visible to admins."
+            >
+              <ModePicker
+                value={features.bookmarks}
+                disabled={busy !== null}
+                onChange={(bookmarks) =>
+                  void run(`bookmarks-${bookmarks}`, () => setFeatures({ bookmarks }))
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Timings"
+              description="Home list shows age of the first post (“N ago”) and gaps between later posts (“earlier”). Admin only: admins see it."
+            >
+              <ModePicker
+                value={features.timings}
+                disabled={busy !== null}
+                onChange={(timings) =>
+                  void run(`timings-${timings}`, () => setFeatures({ timings }))
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Calendar"
+              description="Adds /calendar and a header link. Month view with per-day counts, chart, and table. Admin only: hidden from readers."
+            >
+              <ModePicker
+                value={features.calendar}
+                disabled={busy !== null}
+                onChange={(calendar) =>
+                  void run(`calendar-${calendar}`, () => setFeatures({ calendar }))
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Infinite scroll"
+              description="Home loads the next page at the bottom. Search stays a single result set. Admin only: readers still use Load more."
+            >
+              <ModePicker
+                value={features.infiniteScroll}
+                disabled={busy !== null}
+                onChange={(infiniteScroll) =>
+                  void run(`scroll-${infiniteScroll}`, () =>
+                    setFeatures({ infiniteScroll }),
+                  )
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Images only"
+              description="Signed-out visitors see titles, descriptions, and media. Body text stays hidden until sign-in."
+            >
+              <OnOff
+                on={features.imagesOnly}
+                disabled={busy !== null}
+                onClick={() =>
+                  void run("images", () =>
+                    setFeatures({ imagesOnly: !features.imagesOnly }),
+                  )
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Post sort order"
+              description="Home, tags, previous/next, and admin posts. Default is creation time."
+              last
+            >
+              <div className="flex flex-wrap justify-end gap-1">
                 <Button
                   type="button"
+                  size="sm"
                   variant={features.sortOrder === "created" ? "default" : "outline"}
                   disabled={busy !== null}
                   onClick={() =>
@@ -207,6 +181,7 @@ export default function AdminSettings() {
                 </Button>
                 <Button
                   type="button"
+                  size="sm"
                   variant={features.sortOrder === "updated" ? "default" : "outline"}
                   disabled={busy !== null}
                   onClick={() =>
@@ -218,95 +193,7 @@ export default function AdminSettings() {
                   Last updated
                 </Button>
               </div>
-            </section>
-
-            <FeatureCard
-              title="Images only"
-              on={features.imagesOnly}
-              disabled={busy !== null}
-              onClick={() =>
-                void run("images", () =>
-                  setFeatures({ imagesOnly: !features.imagesOnly }),
-                )
-              }
-            >
-              <p>
-                Signed-out visitors still see titles and descriptions, plus
-                images and videos. Body text, tags, and captions are hidden on
-                the public pages. API keys, admin, and every other route keep
-                the full post.
-              </p>
-              <p>
-                Anyone who signs in still sees the full post. Off: everyone sees
-                the usual text.
-              </p>
-            </FeatureCard>
-
-            <section className="space-y-4 rounded-xl border border-border bg-card p-5">
-              <div>
-                <h3 className="font-medium">Theme</h3>
-                <div className="mt-2 max-w-2xl space-y-2 text-sm text-muted">
-                  <p>
-                    Recolors the whole site: page background, text, cards,
-                    borders, links, and markdown. One theme at a time, for every
-                    visitor. Paper is the built-in look when this is off.
-                  </p>
-                  <p>
-                    Turn the feature on, then pick a palette. Off: theme CSS is
-                    not applied and the picker is hidden.
-                  </p>
-                </div>
-              </div>
-              <ToggleRow
-                on={features.theme.enabled}
-                onLabel="On"
-                offLabel="Off"
-                actionLabel={features.theme.enabled ? "Turn off" : "Turn on"}
-                disabled={busy !== null}
-                onClick={() =>
-                  void run("theme", () =>
-                    setFeatures({ themeEnabled: !features.theme.enabled }),
-                  )
-                }
-              />
-              {features.theme.enabled ? (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {THEMES.map((theme) => {
-                    const selected = features.theme.id === theme.id;
-                    return (
-                      <button
-                        key={theme.id}
-                        type="button"
-                        disabled={busy !== null}
-                        onClick={() =>
-                          void run(`theme-${theme.id}`, () =>
-                            setFeatures({ themeId: theme.id as ThemeId }),
-                          )
-                        }
-                        className={`flex gap-3 rounded-xl border px-3 py-3 text-left ${
-                          selected
-                            ? "border-foreground"
-                            : "border-border hover:border-foreground/40"
-                        }`}
-                      >
-                        <span
-                          className="mt-0.5 h-10 w-10 shrink-0 rounded-md border border-border"
-                          style={{ background: theme.swatch }}
-                        />
-                        <span>
-                          <span className="block text-sm font-medium">
-                            {theme.name}
-                          </span>
-                          <span className="mt-0.5 block text-xs text-muted">
-                            {theme.description}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </section>
+            </SettingRow>
           </div>
         )}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -315,66 +202,89 @@ export default function AdminSettings() {
   );
 }
 
-function ToggleRow({
+function SettingRow({
+  title,
+  description,
+  children,
+  last = false,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${
+        last ? "" : "border-b border-border"
+      }`}
+    >
+      <div className="min-w-0">
+        <p className="font-medium">{title}</p>
+        <p className="mt-0.5 text-sm text-muted">{description}</p>
+      </div>
+      <div className="min-w-0 sm:justify-self-end">{children}</div>
+    </div>
+  );
+}
+
+function ModePicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: FeatureMode;
+  disabled: boolean;
+  onChange: (value: FeatureMode) => void;
+}) {
+  const options: Array<{ id: FeatureMode; label: string }> = [
+    { id: "off", label: "Off" },
+    { id: "on", label: "On" },
+    { id: "adminOnly", label: "Admin only" },
+  ];
+  return (
+    <div className="flex flex-wrap justify-end gap-1">
+      {options.map((option) => (
+        <Button
+          key={option.id}
+          type="button"
+          size="sm"
+          variant={value === option.id ? "default" : "outline"}
+          disabled={disabled}
+          onClick={() => onChange(option.id)}
+        >
+          {option.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function OnOff({
   on,
-  onLabel,
-  offLabel,
-  actionLabel,
-  danger,
+  onLabel = "On",
+  offLabel = "Off",
+  danger = false,
   disabled,
   onClick,
 }: {
   on: boolean;
-  onLabel: string;
-  offLabel: string;
-  actionLabel: string;
+  onLabel?: string;
+  offLabel?: string;
   danger?: boolean;
   disabled: boolean;
   onClick: () => void;
 }) {
   return (
-    <div className="flex items-center gap-4">
-      <span
-        className={`text-sm font-medium ${
-          danger ? "text-destructive" : on ? "text-foreground" : "text-muted"
-        }`}
-      >
-        {on ? onLabel : offLabel}
-      </span>
-      <Button type="button" variant={on ? "outline" : "default"} disabled={disabled} onClick={onClick}>
-        {actionLabel}
-      </Button>
-    </div>
-  );
-}
-
-function FeatureCard({
-  title,
-  on,
-  disabled,
-  onClick,
-  children,
-}: {
-  title: string;
-  on: boolean;
-  disabled: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-4 rounded-xl border border-border bg-card p-5">
-      <div>
-        <h3 className="font-medium">{title}</h3>
-        <div className="mt-2 max-w-2xl space-y-2 text-sm text-muted">{children}</div>
-      </div>
-      <ToggleRow
-        on={on}
-        onLabel="On"
-        offLabel="Off"
-        actionLabel={on ? "Turn off" : "Turn on"}
-        disabled={disabled}
-        onClick={onClick}
-      />
-    </section>
+    <Button
+      type="button"
+      size="sm"
+      variant={on ? "outline" : "default"}
+      disabled={disabled}
+      className={danger ? "text-destructive" : undefined}
+      onClick={onClick}
+    >
+      {on ? onLabel : offLabel}
+    </Button>
   );
 }

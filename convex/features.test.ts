@@ -22,10 +22,10 @@ async function seedUser(t: ReturnType<typeof createT>, email: string, userType: 
 }
 
 const DEFAULT_FEATURES = {
-  bookmarks: false,
-  timings: false,
-  calendar: false,
-  infiniteScroll: false,
+  bookmarks: "off",
+  timings: "off",
+  calendar: "off",
+  infiniteScroll: "off",
   imagesOnly: false,
   sortOrder: "created",
   theme: { enabled: false, id: "paper" },
@@ -66,16 +66,49 @@ describe("features", () => {
       themeId: "ink",
     });
     expect(features).toEqual({
-      bookmarks: true,
-      timings: true,
-      calendar: true,
-      infiniteScroll: true,
+      bookmarks: "on",
+      timings: "on",
+      calendar: "on",
+      infiniteScroll: "on",
       imagesOnly: true,
       sortOrder: "created",
       theme: { enabled: true, id: "ink" },
     });
     expect(await t.query(api.features.publicQueries.get, {})).toEqual(features);
     expect((await t.query(api.config.getConfig, {})).bookmarksEnabled).toBe(true);
+  });
+
+  test("admin-only calendar is empty for anonymous readers", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    await asAdmin.mutation(api.features.mutations.set, { calendar: "adminOnly" });
+    const postId = await asAdmin.mutation(api.posts.mutations.create, {});
+    await asAdmin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Dated",
+      excerpt: "",
+      body: "body",
+      visibility: "listed",
+      tags: [],
+    });
+    await asAdmin.mutation(api.posts.mutations.setPublished, {
+      postId,
+      published: true,
+    });
+    const publishedAt = Date.parse("2026-01-15T12:00:00.000Z");
+    await t.run(async (ctx) => {
+      await ctx.db.patch("posts", postId, { publishedAt });
+    });
+    const start = Date.parse("2026-01-01T00:00:00.000Z");
+    const end = Date.parse("2026-02-01T00:00:00.000Z");
+    expect(
+      await t.query(api.posts.publicQueries.listPublishedBetween, { start, end }),
+    ).toEqual([]);
+    const adminRows = await asAdmin.query(api.posts.publicQueries.listPublishedBetween, {
+      start,
+      end,
+    });
+    expect(adminRows).toEqual([{ title: "Dated", slug: "dated", publishedAt }]);
   });
 
   test("admin can set post sort order", async () => {
