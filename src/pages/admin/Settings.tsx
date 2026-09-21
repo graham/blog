@@ -144,9 +144,10 @@ export default function AdminSettings() {
               <p>
                 Adds a <code className="text-foreground">/calendar</code> page
                 and a Calendar link in the header. The page is a month calendar:
-                each day shows how many listed published posts went up that day.
-                Click a day for an hourly bar chart and a table (time, title,
-                slug), not the usual card list on home.
+                each day shows how many listed published posts went up that day,
+                with a total for each week and for the month. Click a day for an
+                hourly bar chart and a table (time, title, slug), not the usual
+                card list on home.
               </p>
               <p>
                 Previous/next month buttons move the calendar. Channel rules
