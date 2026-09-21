@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { formatDate } from "@/lib/format";
+import { NO_PUBLIC_TEXT_MESSAGE } from "@/lib/mediaOnly";
 import { useImagesOnly } from "@/lib/useImagesOnly";
 
 type PostCardPost = {
@@ -26,17 +27,17 @@ export function PostCard({ post }: { post: PostCardPost }) {
         {post.excerpt ? (
           <p className="mt-2 text-[0.95rem] leading-6 text-muted">{post.excerpt}</p>
         ) : null}
-        <Link to={`/posts/${post.slug}`} className="mt-4 block" aria-label={post.title || "Post"}>
-          {post.coverImageUrl ? (
+        {post.coverImageUrl ? (
+          <Link to={`/posts/${post.slug}`} className="mt-4 block" aria-label={post.title || "Post"}>
             <img
               src={post.coverImageUrl}
               alt=""
               className="h-auto w-full max-w-full rounded-xl object-cover"
             />
-          ) : (
-            <span className="block aspect-video w-full rounded-xl bg-secondary" />
-          )}
-        </Link>
+          </Link>
+        ) : (
+          <p className="mt-4 text-sm text-muted">{NO_PUBLIC_TEXT_MESSAGE}</p>
+        )}
       </article>
     );
   }

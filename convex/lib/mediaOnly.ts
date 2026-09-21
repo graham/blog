@@ -26,3 +26,9 @@ export function mediaOnlyMarkdown(content: string): string {
 
   return parts.join("\n\n");
 }
+
+export const NO_PUBLIC_TEXT_MESSAGE = "This post has no publicly visible text.";
+
+export function hasPublicMedia(body: string): boolean {
+  return mediaOnlyMarkdown(body).length > 0;
+}

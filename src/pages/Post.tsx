@@ -7,6 +7,7 @@ import { MarkdownBody } from "@/components/MarkdownBody";
 import { ZoomableImage } from "@/components/ImageOverlay";
 import { formatDate, isAdminUser } from "@/lib/format";
 import { markdownOverlayImages, postOverlayImages } from "@/lib/images";
+import { hasPublicMedia, NO_PUBLIC_TEXT_MESSAGE } from "@/lib/mediaOnly";
 import { useImagesOnly } from "@/lib/useImagesOnly";
 
 function PostNavigation({
@@ -84,6 +85,7 @@ export default function Post() {
 
   const prev = navigation?.previous ?? null;
   const next = navigation?.next ?? null;
+  const publicMedia = Boolean(post.coverImageUrl) || hasPublicMedia(post.body);
 
   return (
     <Layout
@@ -145,20 +147,28 @@ export default function Post() {
             </Link>
           ) : null}
         </div>
-        {post.coverImageUrl ? (
-          <ZoomableImage
-            src={post.coverImageUrl}
-            alt={post.title || "Cover image"}
-            className={`${imagesOnly ? "mb-6" : "mb-8"} h-auto w-full max-w-full rounded-xl object-cover`}
-            gallery={gallery}
-          />
-        ) : null}
-        <MarkdownBody
-          content={post.body}
-          assets={post.assets}
-          gallery={gallery}
-          mediaOnly={imagesOnly}
-        />
+        {imagesOnly && !publicMedia ? (
+          <p className="text-sm text-muted">{NO_PUBLIC_TEXT_MESSAGE}</p>
+        ) : (
+          <>
+            {post.coverImageUrl ? (
+              <ZoomableImage
+                src={post.coverImageUrl}
+                alt={post.title || "Cover image"}
+                className={`${imagesOnly ? "mb-6" : "mb-8"} h-auto w-full max-w-full rounded-xl object-cover`}
+                gallery={gallery}
+              />
+            ) : null}
+            {!imagesOnly || hasPublicMedia(post.body) ? (
+              <MarkdownBody
+                content={post.body}
+                assets={post.assets}
+                gallery={gallery}
+                mediaOnly={imagesOnly}
+              />
+            ) : null}
+          </>
+        )}
       </article>
     </Layout>
   );
