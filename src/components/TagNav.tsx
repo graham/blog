@@ -18,21 +18,22 @@ export function TagNav({ groups }: { groups: TagGroup[] }) {
         <div key={group.slug}>
           <Link
             to={`/tags/${group.name}`}
-            className="mb-2 block text-[11px] font-medium uppercase tracking-wider text-muted hover:text-foreground"
+            className="mb-2 block text-sm font-semibold text-foreground hover:text-foreground/80"
           >
             {group.name}
           </Link>
-          <ul className="space-y-1.5">
+          <ul className="space-y-1">
             {group.posts.map((post) => {
               const current = currentSlug === post.slug;
               return (
-                <li key={post.slug}>
+                <li key={post.slug} className="min-w-0">
                   <Link
                     to={`/posts/${post.slug}`}
+                    title={post.title || "Untitled"}
                     className={
                       current
-                        ? "text-sm font-medium text-foreground"
-                        : "text-sm text-muted hover:text-foreground"
+                        ? "block truncate text-xs font-medium text-foreground"
+                        : "block truncate text-xs text-muted hover:text-foreground"
                     }
                   >
                     {post.title || "Untitled"}
