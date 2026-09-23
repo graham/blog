@@ -25,7 +25,7 @@ async function seedMember(
       authGeneration: "v1",
     });
   });
-  const asUser = t.withIdentity({ subject: `${userId}|testsession` });
+  const asUser = t.withIdentity({ subject: `${userId}` });
   return { userId, asUser };
 }
 
@@ -41,7 +41,7 @@ describe("account", () => {
     const userId = await t.run(async (ctx) => {
       return await ctx.db.insert("users", { userType: "guest" });
     });
-    const asGuest = t.withIdentity({ subject: `${userId}|testsession` });
+    const asGuest = t.withIdentity({ subject: `${userId}` });
     expect(await asGuest.query(api.users.publicQueries.getAccount, {})).toBeNull();
   });
 

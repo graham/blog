@@ -1,18 +1,19 @@
 import { defineSchema, defineTable } from "convex/server";
-import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { storedFeatureModeValidator } from "./lib/featureMode";
+import { legacyAuthTables } from "./legacyAuthTables";
 
 const schema = defineSchema({
-  ...authTables,
+  ...legacyAuthTables,
   users: defineTable({
-    ...authTables.users.validator.fields,
+    email: v.optional(v.string()),
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
     userType: v.union(v.literal("guest"), v.literal("user"), v.literal("admin")),
     disabledAt: v.optional(v.number()),
     authGeneration: v.optional(v.union(v.literal("v1"), v.literal("v2"))),
   })
     .index("email", ["email"])
-    .index("phone", ["phone"])
     .index("by_userType", ["userType"]),
 
   siteSettings: defineTable({

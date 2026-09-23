@@ -16,7 +16,7 @@ async function seedUser(t: ReturnType<typeof createT>, email: string, userType: 
   });
   return {
     userId,
-    asUser: t.withIdentity({ subject: `${userId}|testsession`, name: email }),
+    asUser: t.withIdentity({ subject: `${userId}`, name: email }),
   };
 }
 

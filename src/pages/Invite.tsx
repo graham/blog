@@ -1,7 +1,8 @@
 import { FormEvent, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useSignInWithPassword } from "@convex-dev/auth/providers/password/react";
+import { useSignInWithGoogle } from "@convex-dev/auth/providers/oauth/react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +16,8 @@ const MESSAGES: Record<string, string> = {
 export default function Invite() {
   const { token = "" } = useParams();
   const navigate = useNavigate();
-  const { signIn } = useAuthActions();
+  const { signIn } = useSignInWithPassword(api.auth.password.signInWithPassword);
+  const { signInGoogle } = useSignInWithGoogle(api.auth);
   const preview = useQuery(api.invites.publicQueries.preview, { token });
   const config = useQuery(api.config.getConfig);
   const accept = useMutation(api.invites.publicMutations.acceptWithPassword);
@@ -36,7 +38,10 @@ export default function Invite() {
     setError(null);
     try {
       const { email } = await accept({ token, name, password });
-      await signIn("password", { email, password, flow: "signIn" });
+      const result = await signIn({ username: email, password });
+      if (result.status !== "complete") {
+        throw new Error("Could not sign in after accepting the invite");
+      }
       navigate("/");
     } catch (caught) {
       setError(
@@ -91,7 +96,7 @@ export default function Invite() {
                   type="button"
                   size="lg"
                   className="w-full"
-                  onClick={() => void signIn("google")}
+                  onClick={() => void signInGoogle()}
                 >
                   Continue with Google
                 </Button>
@@ -112,7 +117,7 @@ export default function Invite() {
                 type="button"
                 size="lg"
                 className="w-full"
-                onClick={() => void signIn("google")}
+                onClick={() => void signInGoogle()}
               >
                 Continue with Google
               </Button>

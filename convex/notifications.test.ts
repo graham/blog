@@ -18,7 +18,7 @@ async function seedAdmin(t: ReturnType<typeof createT>) {
       userType: "admin",
     });
   });
-  return t.withIdentity({ subject: `${userId}|testsession`, name: "admin@example.com" });
+  return t.withIdentity({ subject: `${userId}`, name: "admin@example.com" });
 }
 
 describe("pushover settings", () => {

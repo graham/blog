@@ -31,6 +31,12 @@ type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
   readonly API_KEY_ENCRYPTION_KEY: string | undefined;
+  readonly AUTH_GOOGLE_CLIENT_ID: string;
+  readonly AUTH_GOOGLE_CLIENT_SECRET: string;
+  readonly AUTH_JWKS: string;
+  readonly AUTH_PASSKEY_ORIGIN: string | undefined;
+  readonly AUTH_PASSKEY_RP_ID: string | undefined;
+  readonly AUTH_PRIVATE_KEY: string;
 };
 
 /**

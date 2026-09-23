@@ -1,108 +1,75 @@
-import { convexAuth } from "@convex-dev/auth/server";
-import Google from "@auth/core/providers/google";
-import { Password } from "@convex-dev/auth/providers/Password";
-import {
-  envGoogleAuthAvailable,
-  envPasswordAuthAvailable,
-  isAdminEmail,
-  parseList,
-} from "./lib/env";
-import { readSiteSettings } from "./siteSettings/internal";
-import { pbkdf2Hash, verifyPassword } from "./lib/password";
-import { consumeInvite, findPendingInviteByEmail, normalizeEmail } from "./invites/internal";
-import { findUserByEmail } from "./users/internal";
+import { setupCore } from "@convex-dev/auth/core/setup";
+import { setupAnonymous } from "@convex-dev/auth/providers/anonymous/setup";
+import { setupUsernamePassword } from "@convex-dev/auth/providers/password/setup";
+import { setupUsernamePasskey } from "@convex-dev/auth/providers/passkey/setup";
+import { setupGoogle } from "@convex-dev/auth/providers/oauth/google";
+import { components, internal } from "./_generated/api";
 
-const passwordCrypto = {
-  async hashSecret(password: string): Promise<string> {
-    return pbkdf2Hash(password);
-  },
-  async verifySecret(password: string, hash: string): Promise<boolean> {
-    return verifyPassword(password, hash);
-  },
-};
+const SESSION_SECONDS = 60 * 60 * 24 * 90;
 
-const rejectUsers: Array<string> = parseList(process.env.REJECT_USERS);
-
-const passwordAuthEnabled = envPasswordAuthAvailable();
-const googleAuthEnabled = envGoogleAuthAvailable();
-
-// Accounts still need a password secret (via `npm run create-user` or an
-// accepted invite); OAuth-only users cannot sign in with a password.
-const providers: any[] = [];
-if (googleAuthEnabled) {
-  providers.push(
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
-  );
-}
-if (passwordAuthEnabled) {
-  providers.push(Password({ crypto: passwordCrypto }));
+function redirectOrigins(): string[] {
+  const fromEnv = process.env.AUTH_REDIRECT_ORIGINS;
+  if (fromEnv) {
+    return fromEnv.split(",").map((origin) => origin.trim()).filter((origin) => origin.length > 0);
+  }
+  const origins = ["http://localhost:5173"];
+  const site = process.env.SITE_URL?.replace(/\/$/, "");
+  if (site) origins.push(site);
+  return origins;
 }
 
-if (providers.length === 0) {
-  throw new Error(
-    "Enable at least one sign-in provider with AUTH_PASSWORD_ENABLED=true or AUTH_GOOGLE_ENABLED=true",
-  );
-}
-
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 90;
-
-export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers,
-  session: {
-    totalDurationMs: SESSION_DURATION_MS,
-    inactiveDurationMs: SESSION_DURATION_MS,
-  },
-  callbacks: {
-    async createOrUpdateUser(ctx: any, args: any) {
-      if (!args.profile.email) {
-        throw new Error("No email, no access");
-      }
-
-      const settings = await readSiteSettings(ctx);
-      if (args.type === "oauth" && !settings.googleSignIn) {
-        throw new Error("Google sign-in is turned off");
-      }
-      if (args.type === "credentials" && !settings.passwordSignIn) {
-        throw new Error("Password sign-in is turned off");
-      }
-
-      if (rejectUsers.includes(args.profile.email)) {
-        throw new Error(`User ${args.profile.email} is banned.`);
-      }
-
-      const existingUser = await findUserByEmail(ctx, args.profile.email);
-
-      if (!existingUser) {
-        throw new Error(`User ${args.profile.email} does not exist`);
-      }
-
-      if (existingUser.disabledAt !== undefined) {
-        throw new Error(`User ${args.profile.email} is disabled.`);
-      }
-
-      if (args.type === "oauth") {
-        const invite = await findPendingInviteByEmail(
-          ctx,
-          normalizeEmail(args.profile.email),
-        );
-        if (invite) {
-          await consumeInvite(ctx, invite._id, existingUser._id);
-          console.log(`Invite accepted via Google by ${args.profile.email}`);
-        }
-      }
-
-      await ctx.db.patch(existingUser._id, {
-        email: args.profile.email,
-        ...(args.profile.name !== undefined && { name: args.profile.name }),
-        ...(args.profile.image !== undefined && { image: args.profile.image }),
-        ...(isAdminEmail(args.profile.email) && existingUser.userType !== "admin"
-          ? { userType: "admin" }
-          : {}),
-      });
-      return existingUser._id;
-    },
-  },
+export const core = setupCore({
+  component: components.auth,
+  usersTable: "users",
+  accessTokenTtlSeconds: 60,
+  refreshTokenTtlSeconds: SESSION_SECONDS,
 });
+
+export const { signOut, refreshSession, isAuthenticated } = core;
+
+export const { signInAnonymous } = setupAnonymous(core, {
+  component: components.authAnonymous,
+}).attachUserCallbacks({
+  createUser: internal.auth.users.createAnonymousUser,
+});
+
+export const {
+  signUpWithPassword,
+  signInWithPassword: signInWithPasswordV2,
+  changePassword,
+} = setupUsernamePassword(core, {
+  component: components.authPasswordProvider,
+  usernameComponent: components.authUsername,
+}).attachUserCallbacks({
+  createUser: internal.auth.users.createPasswordUser,
+});
+
+export const { startSignInGoogle, completeSignInGoogle } = setupGoogle(core, {
+  component: components.oauthGoogle,
+  allowedRedirectOrigins: redirectOrigins(),
+}).attachUserCallbacks({
+  createUser: internal.auth.users.createGoogleUser,
+  onSignIn: internal.auth.users.onGoogleSignIn,
+});
+
+const passkey = setupUsernamePasskey(core, {
+  component: components.authPasskey,
+  usernameComponent: components.authUsername,
+  rpId: process.env.AUTH_PASSKEY_RP_ID ?? "localhost",
+  origin: process.env.AUTH_PASSKEY_ORIGIN ?? "http://localhost:5173",
+}).attachUserCallbacks({
+  createUser: internal.auth.users.createPasskeyUser,
+});
+
+export const {
+  startSignIn: startPasskeySignIn,
+  startAutofillSignIn: startPasskeyAutofillSignIn,
+  finishSignIn: finishPasskeySignIn,
+  listPasskeys,
+  renamePasskey,
+  startAddPasskey,
+  verifyAddPasskey,
+  finishAddPasskey,
+  startRemovePasskey,
+  finishRemovePasskey,
+} = passkey;

@@ -17,6 +17,8 @@ import type * as apiKeys_queries from "../apiKeys/queries.js";
 import type * as apiKeys_token from "../apiKeys/token.js";
 import type * as apiKeys_validators from "../apiKeys/validators.js";
 import type * as auth from "../auth.js";
+import type * as auth_password from "../auth/password.js";
+import type * as auth_users from "../auth/users.js";
 import type * as bookmarkGroupPosts_internal from "../bookmarkGroupPosts/internal.js";
 import type * as bookmarkGroupPosts_mutations from "../bookmarkGroupPosts/mutations.js";
 import type * as bookmarkGroupPosts_queries from "../bookmarkGroupPosts/queries.js";
@@ -44,6 +46,7 @@ import type * as invites_publicMutations from "../invites/publicMutations.js";
 import type * as invites_publicQueries from "../invites/publicQueries.js";
 import type * as invites_queries from "../invites/queries.js";
 import type * as invites_token from "../invites/token.js";
+import type * as legacyAuthTables from "../legacyAuthTables.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_env from "../lib/env.js";
@@ -101,6 +104,8 @@ declare const fullApi: ApiFromModules<{
   "apiKeys/token": typeof apiKeys_token;
   "apiKeys/validators": typeof apiKeys_validators;
   auth: typeof auth;
+  "auth/password": typeof auth_password;
+  "auth/users": typeof auth_users;
   "bookmarkGroupPosts/internal": typeof bookmarkGroupPosts_internal;
   "bookmarkGroupPosts/mutations": typeof bookmarkGroupPosts_mutations;
   "bookmarkGroupPosts/queries": typeof bookmarkGroupPosts_queries;
@@ -128,6 +133,7 @@ declare const fullApi: ApiFromModules<{
   "invites/publicQueries": typeof invites_publicQueries;
   "invites/queries": typeof invites_queries;
   "invites/token": typeof invites_token;
+  legacyAuthTables: typeof legacyAuthTables;
   "lib/access": typeof lib_access;
   "lib/auth": typeof lib_auth;
   "lib/env": typeof lib_env;
@@ -198,5 +204,11 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   aiWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"aiWorkpool">;
+  auth: import("@convex-dev/auth/core/_generated/component.js").ComponentApi<"auth">;
+  authPasswordProvider: import("@convex-dev/auth/providers/password/_generated/component.js").ComponentApi<"authPasswordProvider">;
+  authUsername: import("@convex-dev/auth/username/_generated/component.js").ComponentApi<"authUsername">;
+  authPasskey: import("@convex-dev/auth/providers/passkey/_generated/component.js").ComponentApi<"authPasskey">;
+  authAnonymous: import("@convex-dev/auth/providers/anonymous/_generated/component.js").ComponentApi<"authAnonymous">;
+  oauthGoogle: import("@convex-dev/auth/providers/oauth/_generated/component.js").ComponentApi<"oauthGoogle">;
   staticHosting: import("@convex-dev/static-hosting/_generated/component.js").ComponentApi<"staticHosting">;
 };

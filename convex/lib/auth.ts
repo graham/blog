@@ -1,4 +1,4 @@
-import { auth } from "../auth";
+import { getAuthUserId } from "@convex-dev/auth/core";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 
@@ -18,11 +18,13 @@ export async function getAuthedUser(ctx: Ctx): Promise<Doc<"users"> | null> {
 export async function getAuthedUserIgnoringDisabled(
   ctx: Ctx,
 ): Promise<Doc<"users"> | null> {
-  const userId = await auth.getUserId(ctx);
+  const userId = await getAuthUserId(ctx);
   if (!userId) {
     return null;
   }
-  return await ctx.db.get("users", userId);
+  const id = ctx.db.normalizeId("users", userId);
+  if (!id) return null;
+  return await ctx.db.get("users", id);
 }
 
 export function isGuest(user: Doc<"users"> | null): boolean {

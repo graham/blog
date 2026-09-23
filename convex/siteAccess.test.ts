@@ -19,7 +19,7 @@ async function seedUser(
     return await ctx.db.insert("users", { email, name: email, userType });
   });
   const asUser = t.withIdentity({
-    subject: `${userId}|testsession`,
+    subject: `${userId}`,
     name: email,
   });
   return { userId, asUser };
@@ -134,7 +134,7 @@ describe("site-wide requireAuth", () => {
       requireAuth: true,
     });
     const guestId = await t.run(async (ctx) => ctx.db.insert("users", { userType: "guest" }));
-    const asGuest = t.withIdentity({ subject: `${guestId}|testsession` });
+    const asGuest = t.withIdentity({ subject: `${guestId}` });
     const list = await asGuest.query(api.posts.publicQueries.listPublished, {
       paginationOpts: pageOpts,
     });
@@ -147,7 +147,7 @@ describe("site-wide requireAuth", () => {
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
     const { slug } = await seedPublishedPost(t, asAdmin);
     const guestId = await t.run(async (ctx) => ctx.db.insert("users", { userType: "guest" }));
-    const asGuest = t.withIdentity({ subject: `${guestId}|testsession` });
+    const asGuest = t.withIdentity({ subject: `${guestId}` });
     const list = await asGuest.query(api.posts.publicQueries.listPublished, {
       paginationOpts: pageOpts,
     });

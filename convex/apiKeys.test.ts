@@ -20,7 +20,7 @@ async function seedUser(t: ReturnType<typeof createT>, userType: string) {
       userType,
     });
   });
-  return t.withIdentity({ subject: `${userId}|testsession` });
+  return t.withIdentity({ subject: `${userId}` });
 }
 
 describe("blog API keys", () => {

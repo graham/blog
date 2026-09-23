@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useSignInWithGoogle } from "@convex-dev/auth/providers/oauth/react";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,8 @@ export default function Account() {
   const account = useQuery(api.users.publicQueries.getAccount);
   const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
   const config = useQuery(api.config.getConfig);
-  const { signIn, signOut } = useAuthActions();
+  const { signOut } = useAuthActions();
+  const { signInGoogle } = useSignInWithGoogle(api.auth);
 
   if (isLoading || account === undefined || currentUser === undefined) {
     return (
@@ -91,7 +93,7 @@ export default function Account() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => void signIn("google")}
+                onClick={() => void signInGoogle()}
               >
                 Link Google
               </Button>
