@@ -34,6 +34,28 @@ import { isImageContentType } from "../postAssets/contentTypes";
 
 type Ctx = QueryCtx | MutationCtx;
 
+export function createdAtOf(post: { createdAt?: number; _creationTime: number }): number {
+  return post.createdAt ?? post._creationTime;
+}
+
+async function patchPostTagTimes(
+  ctx: MutationCtx,
+  postId: Id<"posts">,
+  createdAt: number,
+  updatedAt: number,
+) {
+  const rows = await ctx.db
+    .query("postTags")
+    .withIndex("by_postId", (q) => q.eq("postId", postId))
+    .take(32);
+  for (const row of rows) {
+    await ctx.db.patch("postTags", row._id, {
+      postCreatedAt: createdAt,
+      postUpdatedAt: updatedAt,
+    });
+  }
+}
+
 async function uniqueSlug(
   ctx: Ctx,
   desired: string,
@@ -77,6 +99,7 @@ async function toSummary(ctx: Ctx, post: Doc<"posts">) {
     status: post.status,
     visibility: post.visibility,
     publishedAt: post.publishedAt,
+    createdAt: createdAtOf(post),
     updatedAt: post.updatedAt,
     authorId: post.authorId,
     authorName: author?.name ?? null,
@@ -218,6 +241,7 @@ export async function createHandler(
     visibility: "listed",
     publishedAt: null,
     authorId: args.authorId,
+    createdAt: now,
     updatedAt: now,
     coverImageId: null,
     searchText: "",
@@ -266,7 +290,7 @@ export async function saveHandler(
     args.tags,
     post.status,
     args.visibility,
-    post._creationTime,
+    createdAtOf(post),
     updatedAt,
   );
   const excerpt = excerptFrom(args.excerpt, args.body);
@@ -344,7 +368,7 @@ export async function setPublishedHandler(
     await ctx.db.patch("postTags", row._id, {
       status,
       visibility: post.visibility,
-      postCreatedAt: post._creationTime,
+      postCreatedAt: createdAtOf(post),
       postUpdatedAt: updatedAt,
     });
   }
@@ -358,6 +382,37 @@ export const setPublished = internalMutation({
   },
   returns: v.null(),
   handler: setPublishedHandler,
+});
+
+function assertTimestamp(value: number, label: string) {
+  if (!Number.isFinite(value)) throw new Error(`${label} is not a valid time`);
+  if (value < 0 || value > 32503680000000) throw new Error(`${label} is out of range`);
+}
+
+export async function setTimesHandler(
+  ctx: MutationCtx,
+  args: { postId: Id<"posts">; createdAt: number; updatedAt: number },
+): Promise<null> {
+  const post = await ctx.db.get("posts", args.postId);
+  if (!post) throw new Error("Post not found");
+  assertTimestamp(args.createdAt, "Created");
+  assertTimestamp(args.updatedAt, "Updated");
+  await ctx.db.patch("posts", post._id, {
+    createdAt: args.createdAt,
+    updatedAt: args.updatedAt,
+  });
+  await patchPostTagTimes(ctx, post._id, args.createdAt, args.updatedAt);
+  return null;
+}
+
+export const setTimes = internalMutation({
+  args: {
+    postId: v.id("posts"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  },
+  returns: v.null(),
+  handler: setTimesHandler,
 });
 
 export const remove = internalMutation({
@@ -410,10 +465,17 @@ export const listPublished = internalQuery({
     const listed = ctx.db
       .query("posts")
       .withIndex(
-        sort === "updated" ? "by_status_and_visibility_and_updatedAt" : "by_status_and_visibility",
+        sort === "updated"
+          ? "by_status_and_visibility_and_updatedAt"
+          : "by_status_and_visibility_and_createdAt",
         (q) => q.eq("status", "published").eq("visibility", "listed"),
       );
-    const result = await listed.order("desc").paginate(args.paginationOpts);
+    const wanted = args.paginationOpts.numItems;
+    const sourceSize = args.unreadOnly ? Math.min(Math.max(wanted * 10, 50), 100) : wanted;
+    const result = await listed.order("desc").paginate({
+      numItems: sourceSize,
+      cursor: args.paginationOpts.cursor,
+    });
     const viewer = viewerFrom(args);
     const memberships =
       args.viewerUserId && !args.asAdmin
@@ -429,7 +491,8 @@ export const listPublished = internalQuery({
     const filtered = args.unreadOnly
       ? withRead.filter((post) => isUnreadSummary(post.read))
       : withRead;
-    return { ...result, page: filtered };
+    const isDone = result.isDone || filtered.length === 0;
+    return { ...result, page: filtered, isDone };
   },
 });
 
@@ -441,7 +504,7 @@ export const listAll = internalQuery({
     const result =
       sort === "updated"
         ? await ctx.db.query("posts").withIndex("by_updatedAt").order("desc").paginate(args.paginationOpts)
-        : await ctx.db.query("posts").order("desc").paginate(args.paginationOpts);
+        : await ctx.db.query("posts").withIndex("by_createdAt").order("desc").paginate(args.paginationOpts);
     return {
       ...result,
       page: await Promise.all(result.page.map((post) => toAdminSummary(ctx, post))),
@@ -510,11 +573,12 @@ export const getAdjacentBySlug = internalQuery({
               .take(MAX_NAVIGATION_SCAN)
           : await ctx.db
               .query("posts")
-              .withIndex("by_status_and_visibility", (q) => {
+              .withIndex("by_status_and_visibility_and_createdAt", (q) => {
                 const published = q.eq("status", "published").eq("visibility", "listed");
+                const createdAt = createdAtOf(current);
                 return direction === "older"
-                  ? published.lt("_creationTime", current._creationTime)
-                  : published.gt("_creationTime", current._creationTime);
+                  ? published.lt("createdAt", createdAt)
+                  : published.gt("createdAt", createdAt);
               })
               .order(order)
               .take(MAX_NAVIGATION_SCAN);

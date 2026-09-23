@@ -55,6 +55,8 @@ describe("site-wide requireAuth", () => {
       googleAuthEnabled: false,
       passwordAuthAvailable: true,
       passwordAuthEnabled: true,
+      pushoverAvailable: false,
+      pushoverEnabled: false,
       requireAuth: false,
       bookmarksEnabled: false,
       features: {

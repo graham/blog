@@ -11,6 +11,8 @@ export default function AdminSettings() {
   const config = useQuery(api.config.getConfig);
   const setRequireAuth = useMutation(api.siteSettings.mutations.setRequireAuth);
   const setSignInMethods = useMutation(api.siteSettings.mutations.setSignInMethods);
+  const setPushoverEnabled = useMutation(api.siteSettings.mutations.setPushoverEnabled);
+  const testPushover = useMutation(api.notifications.mutations.testPushover);
   const setFeatures = useMutation(api.features.mutations.set);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,8 @@ export default function AdminSettings() {
   const passwordOn = config?.passwordAuthEnabled === true;
   const onlyGoogle = googleOn && !passwordOn;
   const onlyPassword = passwordOn && !googleOn;
+  const pushoverAvailable = config?.pushoverAvailable === true;
+  const pushoverOn = config?.pushoverEnabled === true;
 
   return (
     <Layout>
@@ -116,6 +120,36 @@ export default function AdminSettings() {
                   )
                 }
               />
+            </SettingRow>
+
+            <SettingRow
+              title="Pushover"
+              description={
+                pushoverAvailable
+                  ? "Notify this device when a post is created or saved. Test sends one message now."
+                  : "Unavailable until PUSHOVER_TOKEN and PUSHOVER_USER are set on the deployment."
+              }
+            >
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <OnOff
+                  on={pushoverOn}
+                  disabled={busy !== null || !pushoverAvailable}
+                  onClick={() =>
+                    void run("pushover", () =>
+                      setPushoverEnabled({ pushoverEnabled: !pushoverOn }),
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy !== null || !pushoverOn}
+                  onClick={() => void run("pushover-test", () => testPushover({}))}
+                >
+                  Test Pushover
+                </Button>
+              </div>
             </SettingRow>
 
             <SettingRow

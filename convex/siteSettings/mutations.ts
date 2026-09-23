@@ -46,6 +46,22 @@ export const setSignInMethods = mutation({
   },
 });
 
+export const setPushoverEnabled = mutation({
+  args: { pushoverEnabled: v.boolean() },
+  returns: siteSettingsValidator,
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    const settings: SiteSettings = await ctx.runMutation(
+      internal.siteSettings.internal.setPushoverEnabled,
+      { pushoverEnabled: args.pushoverEnabled, updatedBy: admin._id },
+    );
+    console.log(
+      `Site pushoverEnabled set to ${args.pushoverEnabled} by ${admin.email ?? admin._id}`,
+    );
+    return settings;
+  },
+});
+
 export const setBookmarksEnabled = mutation({
   args: { bookmarksEnabled: v.boolean() },
   returns: siteSettingsValidator,

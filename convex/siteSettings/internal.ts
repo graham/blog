@@ -54,6 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   bookmarksEnabled: false,
   googleSignIn: true,
   passwordSignIn: true,
+  pushoverEnabled: false,
   features: DEFAULT_FEATURES,
 };
 
@@ -93,6 +94,7 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
     bookmarksEnabled: features.bookmarks !== "off",
     googleSignIn: row.googleSignIn !== false,
     passwordSignIn: row.passwordSignIn !== false,
+    pushoverEnabled: row.pushoverEnabled === true,
     features,
   };
 }
@@ -113,6 +115,7 @@ function toRow(settings: Settings, updatedBy: Id<"users">) {
     themeId: settings.features.theme.id,
     googleSignIn: settings.googleSignIn,
     passwordSignIn: settings.passwordSignIn,
+    pushoverEnabled: settings.pushoverEnabled,
     updatedAt: Date.now(),
     updatedBy,
   };
@@ -135,6 +138,7 @@ async function writeSettings(
     bookmarksEnabled: settings.features.bookmarks !== "off",
     googleSignIn: settings.googleSignIn,
     passwordSignIn: settings.passwordSignIn,
+    pushoverEnabled: settings.pushoverEnabled,
     features: settings.features,
   };
 }
@@ -168,6 +172,19 @@ export const setBookmarksEnabled = internalMutation({
     return await writeSettings(
       ctx,
       { ...current, bookmarksEnabled: args.bookmarksEnabled, features },
+      args.updatedBy,
+    );
+  },
+});
+
+export const setPushoverEnabled = internalMutation({
+  args: { pushoverEnabled: v.boolean(), updatedBy: v.id("users") },
+  returns: siteSettingsValidator,
+  handler: async (ctx, args) => {
+    const current = await readSiteSettings(ctx);
+    return await writeSettings(
+      ctx,
+      { ...current, pushoverEnabled: args.pushoverEnabled },
       args.updatedBy,
     );
   },

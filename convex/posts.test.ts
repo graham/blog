@@ -602,4 +602,65 @@ describe("posts", () => {
       "Newer created",
     ]);
   });
+
+  test("setTimes updates created and updated timestamps", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    const postId = await admin.mutation(api.posts.mutations.create, {});
+    await admin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Dated",
+      excerpt: "",
+      body: "body",
+      visibility: "listed",
+      tags: [],
+    });
+    await admin.mutation(api.posts.mutations.setPublished, { postId, published: true });
+    const createdAt = Date.parse("2020-01-02T03:04:00Z");
+    const updatedAt = Date.parse("2021-05-06T07:08:00Z");
+    await admin.mutation(api.posts.mutations.setTimes, { postId, createdAt, updatedAt });
+    const post = await t.query(api.posts.publicQueries.getBySlug, { slug: "dated" });
+    expect(post?.createdAt).toBe(createdAt);
+    expect(post?.updatedAt).toBe(updatedAt);
+  });
+
+  test("createdAt backfill copies _creationTime and then no-ops", async () => {
+    const t = createT();
+    const ids = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", {
+        email: "admin@example.com",
+        name: "admin",
+        userType: "admin",
+      });
+      const postId = await ctx.db.insert("posts", {
+        title: "Old",
+        slug: "old",
+        excerpt: "",
+        body: "b",
+        status: "published",
+        visibility: "listed",
+        publishedAt: Date.now(),
+        authorId: userId,
+        updatedAt: Date.now(),
+        coverImageId: null,
+        searchText: "old",
+      });
+      return { postId, creationTime: (await ctx.db.get("posts", postId))!._creationTime };
+    });
+    await t.mutation(internal.migrations.backfillPostsCreatedAt, {
+      cursor: null,
+    });
+    const post = await t.run(async (ctx) => ctx.db.get("posts", ids.postId));
+    expect(post?.createdAt).toBe(ids.creationTime);
+    const state = await t.run(async (ctx) =>
+      ctx.db
+        .query("migrationState")
+        .withIndex("by_name", (q) => q.eq("name", "posts.createdAt"))
+        .unique(),
+    );
+    expect(state?.done).toBe(true);
+    await t.mutation(internal.migrations.backfillPostsCreatedAt, { cursor: null });
+    const again = await t.run(async (ctx) => ctx.db.get("posts", ids.postId));
+    expect(again?.createdAt).toBe(ids.creationTime);
+  });
 });

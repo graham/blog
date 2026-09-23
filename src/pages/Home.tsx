@@ -38,6 +38,9 @@ export default function Home() {
   const loading = searching ? searchResults === undefined : list.status === "LoadingFirstPage";
   const canLoadMore = !searching && list.status === "CanLoadMore";
   const infinite = infiniteScrollOn && !searching;
+  const exhausted = !searching && list.status === "Exhausted";
+  const loadMoreRef = useRef(list.loadMore);
+  loadMoreRef.current = list.loadMore;
 
   useEffect(() => {
     if (!infinite || !canLoadMore) return;
@@ -46,14 +49,14 @@ export default function Home() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          list.loadMore(PAGE_SIZE);
+          loadMoreRef.current(PAGE_SIZE);
         }
       },
       { rootMargin: "240px" },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [infinite, canLoadMore, list]);
+  }, [infinite, canLoadMore]);
 
   return (
     <Layout bookmarks>
@@ -89,7 +92,13 @@ export default function Home() {
         {loading ? (
           <p className="text-sm text-muted">Loading...</p>
         ) : posts.length === 0 ? (
-          <p className="text-sm text-muted">{searching ? "No matching posts." : "No posts yet."}</p>
+          <p className="text-sm text-muted">
+            {searching
+              ? "No matching posts."
+              : unreadOnly
+                ? "Nothing more to read."
+                : "No posts yet."}
+          </p>
         ) : (
           <div>
             {posts.map((post, index) => {
@@ -125,6 +134,9 @@ export default function Home() {
         ) : null}
         {infinite && list.status === "LoadingMore" ? (
           <p className="pt-2 text-center text-sm text-muted">Loading...</p>
+        ) : null}
+        {infinite && exhausted && posts.length > 0 ? (
+          <p className="pt-6 text-center text-sm text-muted">Nothing more to read.</p>
         ) : null}
       </div>
     </Layout>
