@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { adminPostSummaryValidator } from "../lib/validators";
 import { MAX_BOOKMARK_GROUPS, MAX_CHANNELS, syncPostBookmarkGroups } from "../lib/access";
+import { countPostImages } from "../postAssets/internal";
 
 export const setForPost = internalMutation({
   args: {
@@ -133,6 +134,8 @@ export const listByGroup = internalQuery({
         coverImageUrl,
         tags: tags.map((tag) => tag.tag),
         channels,
+        imageCount: await countPostImages(ctx, post._id, post.coverImageId),
+        characterCount: post.body.length,
         linkId: row._id,
       });
     }

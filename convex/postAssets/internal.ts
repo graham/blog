@@ -8,9 +8,33 @@ import {
 import type { Id } from "../_generated/dataModel";
 import { assetValidator } from "../lib/validators";
 import { normalizeContentHash, tryContentHash } from "../lib/sha256";
-import { ALLOWED_ASSET_TYPES } from "./contentTypes";
+import { ALLOWED_ASSET_TYPES, isImageContentType } from "./contentTypes";
 
 type Ctx = QueryCtx | MutationCtx;
+
+export async function countPostImages(
+  ctx: Ctx,
+  postId: Id<"posts">,
+  coverImageId: Id<"_storage"> | null,
+): Promise<number> {
+  const rows = await ctx.db
+    .query("postAssets")
+    .withIndex("by_postId", (q) => q.eq("postId", postId))
+    .take(50);
+  let imageCount = 0;
+  let coverCounted = false;
+  for (const row of rows) {
+    if (!isImageContentType(row.contentType)) continue;
+    imageCount += 1;
+    if (coverImageId && row.storageId === coverImageId) {
+      coverCounted = true;
+    }
+  }
+  if (coverImageId && !coverCounted) {
+    imageCount += 1;
+  }
+  return imageCount;
+}
 
 export async function loadPostAssets(ctx: Ctx, postId: Id<"posts">) {
   const rows = await ctx.db

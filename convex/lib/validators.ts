@@ -88,6 +88,8 @@ export const bookmarkGroupNavValidator = v.object({
 export const adminPostSummaryValidator = v.object({
   ...postSummaryValidator.fields,
   channels: v.array(channelRefValidator),
+  imageCount: v.number(),
+  characterCount: v.number(),
 });
 
 export const aiJobValidator = v.object({
@@ -103,6 +105,8 @@ export const adminPostDetailValidator = v.object({
   coverImageId: v.union(v.id("_storage"), v.null()),
   channels: v.array(channelRefValidator),
   bookmarkGroups: v.array(bookmarkGroupRefValidator),
+  imageCount: v.number(),
+  characterCount: v.number(),
   aiSummary: v.union(v.string(), v.null()),
   ai: v.union(aiJobValidator, v.null()),
 });

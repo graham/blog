@@ -24,7 +24,7 @@ import {
   syncPostChannels,
 } from "../lib/access";
 import { readSiteSettings } from "../siteSettings/internal";
-import { loadPostAssets } from "../postAssets/internal";
+import { countPostImages, loadPostAssets } from "../postAssets/internal";
 import { isImageContentType } from "../postAssets/contentTypes";
 
 type Ctx = QueryCtx | MutationCtx;
@@ -94,6 +94,8 @@ async function toAdminSummary(ctx: Ctx, post: Doc<"posts">) {
   return {
     ...(await toSummary(ctx, post)),
     channels: await listPostChannels(ctx, post._id),
+    imageCount: await countPostImages(ctx, post._id, post.coverImageId),
+    characterCount: post.body.length,
   };
 }
 

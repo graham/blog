@@ -69,9 +69,8 @@ export default function AdminPosts() {
                   {post.status} · {post.visibility} · {formatDate(post.updatedAt)}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  {post.channels.length === 0
-                    ? "Everyone"
-                    : post.channels.map((channel) => channel.name).join(", ")}
+                  {post.imageCount} {post.imageCount === 1 ? "image" : "images"} ·{" "}
+                  {post.characterCount.toLocaleString()} chars
                 </p>
                 <div
                   className="mt-3"
@@ -91,7 +90,7 @@ export default function AdminPosts() {
                   <th className="px-4 py-2 font-medium">Title</th>
                   <th className="px-4 py-2 font-medium">Status</th>
                   <th className="px-4 py-2 font-medium">Visibility</th>
-                  <th className="px-4 py-2 font-medium">Access</th>
+                  <th className="px-4 py-2 font-medium">Size</th>
                   <th className="px-4 py-2 font-medium">Updated</th>
                   <th className="px-4 py-2 font-medium" />
                 </tr>
@@ -107,9 +106,12 @@ export default function AdminPosts() {
                     <td className="px-4 py-3 capitalize">{post.status}</td>
                     <td className="px-4 py-3 capitalize">{post.visibility}</td>
                     <td className="px-4 py-3 text-muted">
-                      {post.channels.length === 0
-                        ? "Everyone"
-                        : post.channels.map((channel) => channel.name).join(", ")}
+                      <span className="block">
+                        {post.imageCount} {post.imageCount === 1 ? "image" : "images"}
+                      </span>
+                      <span className="block">
+                        {post.characterCount.toLocaleString()} chars
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-muted">
                       {formatDate(post.updatedAt)}
