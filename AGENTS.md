@@ -15,7 +15,7 @@ Convex agent skills for common tasks can be installed by running
 ## Deployments
 
 - Deployment selection is local to each checkout in the ignored `.env.local`; never hard-code deployment or team names.
-- Ship: `npm run ship:dev`. For prod, `npx convex deploy --yes` then `npx @convex-dev/static-hosting upload --build --prod --spa` (do not use a `convex deploy` that can prompt). `npm run build` has no `prebuild`; do not add `convex dev --once` to it.
+- Ship: `npm run ship:dev`. For prod, `npm run ship:prod:yolo` (`scripts/ship_prod.mjs`: `npx convex deploy --yes --message …` then `npx @convex-dev/static-hosting upload --build --prod --spa`). Do not use a `convex deploy` that can prompt. `npm run build` has no `prebuild`; do not add `convex dev --once` to it. The upload `--build --prod` step sets production `VITE_CONVEX_URL`; do not `vite build` from `.env.local` for prod.
 - Do not start Vite / `npm run dev` unless asked.
 
 ## Image overlay
