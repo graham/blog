@@ -228,16 +228,18 @@ export const listForViewer = internalQuery({
         ? await listUserChannelIdSet(ctx, args.viewerUserId)
         : undefined;
     const groups = [];
+    const navLimit = 5;
     for (const tag of tags) {
       const links = await ctx.db
         .query("postTags")
-        .withIndex("by_tag_and_status_and_visibility", (q) =>
+        .withIndex("by_tag_status_visibility_createdAt", (q) =>
           q.eq("tag", tag.name).eq("status", "published").eq("visibility", "listed"),
         )
         .order("desc")
-        .take(MAX_TAGS);
+        .take(16);
       const posts = [];
       for (const link of links) {
+        if (posts.length >= navLimit) break;
         const post = await ctx.db.get("posts", link.postId);
         if (!post) continue;
         if (!(await canViewPost(ctx, post, viewer, memberships))) continue;
