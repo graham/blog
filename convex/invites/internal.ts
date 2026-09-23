@@ -245,7 +245,7 @@ export const acceptWithPassword = internalMutation({
       const userId = await ctx.db.insert("users", {
         email: invite.email,
         name,
-        userType: invite.userType,
+        userType: invite.userType === "admin" ? "admin" : "user",
       });
       user = await ctx.db.get("users", userId);
       if (!user) throw new Error("User creation failed");

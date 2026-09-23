@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
-import { isAdminUser } from "@/lib/format";
+import { isAdminUser, memberViewer } from "@/lib/format";
 import { featureOn } from "@/lib/features";
 
 export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
@@ -16,7 +16,8 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const admin = isAdminUser(currentUser);
   const features = useQuery(api.features.publicQueries.get);
   const bookmarksEnabled = features !== undefined && features.bookmarks !== "off";
-  const calendar = features !== undefined && featureOn(features.calendar, admin);
+  const calendar =
+    features !== undefined && featureOn(features.calendar, memberViewer(currentUser));
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -28,14 +29,26 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
     navigate(next ? `/?q=${encodeURIComponent(next)}` : "/");
   }
 
+  const member =
+    currentUser != null &&
+    currentUser.disabled !== true &&
+    (currentUser.userType === "user" || currentUser.userType === "admin");
+
   const authLink = isAuthenticated ? (
-    <button
-      type="button"
-      onClick={() => void signOut().then(() => navigate("/"))}
-      className="text-left text-muted hover:text-foreground"
-    >
-      Sign out
-    </button>
+    <span className="flex flex-col gap-2">
+      {member ? (
+        <Link to="/account" className="text-muted hover:text-foreground">
+          Account
+        </Link>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => void signOut().then(() => navigate("/"))}
+        className="text-left text-muted hover:text-foreground"
+      >
+        Sign out
+      </button>
+    </span>
   ) : (
     <Link to="/signin" className="text-muted hover:text-foreground">
       Sign in

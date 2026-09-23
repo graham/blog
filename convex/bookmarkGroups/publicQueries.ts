@@ -18,7 +18,7 @@ export const listForViewer = query({
     if (viewer.blocked) {
       return [];
     }
-    if (!featureVisible(settings.features.bookmarks, viewer.asAdmin)) {
+    if (!featureVisible(settings.features.bookmarks, { isMember: viewer.isMember, isAdmin: viewer.asAdmin })) {
       return [];
     }
     const result: GroupNav[] = await ctx.runQuery(

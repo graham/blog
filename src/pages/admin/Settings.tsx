@@ -320,6 +320,7 @@ function ModePicker({
   const options: Array<{ id: FeatureMode; label: string }> = [
     { id: "off", label: "Off" },
     { id: "on", label: "On" },
+    { id: "members", label: "Members" },
     { id: "adminOnly", label: "Admin only" },
   ];
   return (

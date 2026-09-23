@@ -7,11 +7,13 @@ const schema = defineSchema({
   ...authTables,
   users: defineTable({
     ...authTables.users.validator.fields,
-    userType: v.string(),
+    userType: v.union(v.literal("guest"), v.literal("user"), v.literal("admin")),
     disabledAt: v.optional(v.number()),
+    authGeneration: v.optional(v.union(v.literal("v1"), v.literal("v2"))),
   })
     .index("email", ["email"])
-    .index("phone", ["phone"]),
+    .index("phone", ["phone"])
+    .index("by_userType", ["userType"]),
 
   siteSettings: defineTable({
     requireAuth: v.boolean(),

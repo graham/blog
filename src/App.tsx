@@ -10,6 +10,7 @@ import Tag from "./pages/Tag";
 import SignIn from "./pages/SignIn";
 import SignOut from "./pages/SignOut";
 import WhoAmI from "./pages/WhoAmI";
+import Account from "./pages/Account";
 import Limbo from "./pages/Limbo";
 import Invite from "./pages/Invite";
 import AdminPosts from "./pages/admin/Posts";
@@ -67,6 +68,11 @@ export default function App() {
           <Route path="/invite/:token" element={<Invite />} />
           <Route path="/signout" element={<SignOut />} />
           <Route path="/whoami" element={<WhoAmI />} />
+          <Route path="/account" element={<Account />} />
+          <Route
+            path="/.well-known/change-password"
+            element={<Navigate to="/account#password" replace />}
+          />
           <Route path="/limbo" element={<Limbo />} />
           <Route
             path="/admin"

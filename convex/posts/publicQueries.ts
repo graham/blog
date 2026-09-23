@@ -92,7 +92,7 @@ export const listPublishedBetween = query({
     if (viewer.blocked) {
       return [];
     }
-    if (!featureVisible(settings.features.calendar, viewer.asAdmin)) {
+    if (!featureVisible(settings.features.calendar, { isMember: viewer.isMember, isAdmin: viewer.asAdmin })) {
       return [];
     }
     const result: CalendarPost[] = await ctx.runQuery(

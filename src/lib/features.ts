@@ -1,6 +1,6 @@
 import type { ThemeId } from "./themes";
 
-export type FeatureMode = "off" | "on" | "adminOnly";
+export type FeatureMode = "off" | "on" | "members" | "adminOnly";
 
 export type Features = {
   bookmarks: FeatureMode;
@@ -29,6 +29,12 @@ export const DEFAULT_FEATURES: Features = {
   theme: { enabled: false, id: "paper" },
 };
 
-export function featureOn(mode: FeatureMode, isAdmin: boolean): boolean {
-  return mode === "on" || (mode === "adminOnly" && isAdmin);
+export function featureOn(
+  mode: FeatureMode,
+  viewer: { isMember: boolean; isAdmin: boolean },
+): boolean {
+  if (mode === "off") return false;
+  if (mode === "on") return true;
+  if (mode === "members") return viewer.isMember;
+  return viewer.isAdmin;
 }

@@ -11,7 +11,7 @@ export function SiteGate({ children }: { children: ReactNode }) {
   const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
   const location = useLocation();
 
-  if (isLoading || config === undefined) {
+  if (isLoading || config === undefined || (isAuthenticated && currentUser === undefined)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted">
         Loading...
@@ -23,7 +23,12 @@ export function SiteGate({ children }: { children: ReactNode }) {
     return <Navigate to="/limbo" replace />;
   }
 
-  if (config.requireAuth && !isAuthenticated) {
+  const member =
+    currentUser != null &&
+    currentUser.disabled !== true &&
+    (currentUser.userType === "user" || currentUser.userType === "admin");
+
+  if (config.requireAuth && !member) {
     return <Navigate to="/signin" replace state={{ from: location.pathname }} />;
   }
 

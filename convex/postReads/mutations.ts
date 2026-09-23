@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { requireUser } from "../lib/auth";
+import { requireMember } from "../lib/auth";
+import { viewerFromUserType } from "../lib/featureMode";
 import { canViewPost, listUserChannelIdSet } from "../lib/access";
 import { readSiteSettings } from "../siteSettings/internal";
 import { featureVisible } from "../lib/featureMode";
@@ -10,9 +11,9 @@ export const markRead = mutation({
   args: { postId: v.id("posts") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
+    const user = await requireMember(ctx);
     const settings = await readSiteSettings(ctx);
-    if (!featureVisible(settings.features.readReceipts, user.userType === "admin")) {
+    if (!featureVisible(settings.features.readReceipts, viewerFromUserType(user.userType))) {
       return null;
     }
     const post = await ctx.db.get("posts", args.postId);
@@ -34,9 +35,9 @@ export const markAllRead = mutation({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
-    const user = await requireUser(ctx);
+    const user = await requireMember(ctx);
     const settings = await readSiteSettings(ctx);
-    if (!featureVisible(settings.features.readReceipts, user.userType === "admin")) {
+    if (!featureVisible(settings.features.readReceipts, viewerFromUserType(user.userType))) {
       return 0;
     }
     const deleted: number = await ctx.runMutation(internal.postReads.internal.markAllRead, {

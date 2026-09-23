@@ -25,8 +25,22 @@ export async function getAuthedUserIgnoringDisabled(
   return await ctx.db.get("users", userId);
 }
 
-export async function requireUser(ctx: Ctx): Promise<Doc<"users">> {
+export function isGuest(user: Doc<"users"> | null): boolean {
+  return user?.userType === "guest";
+}
+
+export function isMember(user: Doc<"users"> | null): boolean {
+  return user !== null && (user.userType === "user" || user.userType === "admin");
+}
+
+export async function getMember(ctx: Ctx): Promise<Doc<"users"> | null> {
   const user = await getAuthedUser(ctx);
+  if (!isMember(user)) return null;
+  return user;
+}
+
+export async function requireMember(ctx: Ctx): Promise<Doc<"users">> {
+  const user = await getMember(ctx);
   if (!user) {
     throw new Error("Not authenticated");
   }
@@ -34,7 +48,7 @@ export async function requireUser(ctx: Ctx): Promise<Doc<"users">> {
 }
 
 export async function requireAdmin(ctx: Ctx): Promise<Doc<"users">> {
-  const user = await requireUser(ctx);
+  const user = await requireMember(ctx);
   if (user.userType !== "admin") {
     throw new Error("Forbidden");
   }

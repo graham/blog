@@ -142,8 +142,23 @@ export const userSummaryValidator = v.object({
   _creationTime: v.number(),
   name: v.union(v.string(), v.null()),
   email: v.union(v.string(), v.null()),
-  userType: v.string(),
+  userType: v.union(v.literal("guest"), v.literal("user"), v.literal("admin")),
   disabledAt: v.union(v.number(), v.null()),
+  authGeneration: v.union(v.literal("v1"), v.literal("v2"), v.null()),
+});
+
+export const accountValidator = v.object({
+  _id: v.id("users"),
+  name: v.union(v.string(), v.null()),
+  email: v.union(v.string(), v.null()),
+  image: v.union(v.string(), v.null()),
+  userType: v.union(v.literal("user"), v.literal("admin")),
+  authGeneration: v.union(v.literal("v1"), v.literal("v2"), v.null()),
+  methods: v.object({
+    password: v.boolean(),
+    google: v.boolean(),
+    passkeyCount: v.number(),
+  }),
 });
 
 export const themeIdValidator = v.union(

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { DEFAULT_FEATURES, featureOn, type FeatureMode, type Features } from "@/lib/features";
-import { isAdminUser } from "@/lib/format";
+import { memberViewer } from "@/lib/format";
 
 const FeaturesContext = createContext<Features>(DEFAULT_FEATURES);
 
@@ -12,7 +12,7 @@ export function useFeatures(): Features {
 
 export function useFeatureOn(mode: FeatureMode): boolean {
   const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
-  return featureOn(mode, isAdminUser(currentUser));
+  return featureOn(mode, memberViewer(currentUser));
 }
 
 export function FeaturesProvider({ children }: { children: ReactNode }) {

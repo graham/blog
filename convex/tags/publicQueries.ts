@@ -16,7 +16,7 @@ export const listForViewer = query({
     const settings = await readSiteSettings(ctx);
     const viewer = await resolvePublicViewer(ctx);
     if (viewer.blocked) return [];
-    if (!featureVisible(settings.features.tagNav, viewer.asAdmin)) return [];
+    if (!featureVisible(settings.features.tagNav, { isMember: viewer.isMember, isAdmin: viewer.asAdmin })) return [];
     return await ctx.runQuery(internal.tags.internal.listForViewer, {
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,

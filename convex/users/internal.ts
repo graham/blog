@@ -18,6 +18,7 @@ export function toUserSummary(user: Doc<"users">) {
     email: user.email ?? null,
     userType: user.userType,
     disabledAt: user.disabledAt ?? null,
+    authGeneration: user.authGeneration ?? null,
   };
 }
 
@@ -100,6 +101,7 @@ export const insertUser = internalMutation({
       email,
       name,
       userType: args.userType,
+      authGeneration: "v1",
     });
     const user = await ctx.db.get("users", userId);
     if (!user) throw new Error("User creation failed");
@@ -176,6 +178,7 @@ export const insertAdminUser = internalMutation({
         email: normalizedEmail,
         name,
         userType: "admin",
+        authGeneration: "v1",
       });
     }
 

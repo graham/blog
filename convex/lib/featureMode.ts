@@ -3,10 +3,20 @@ import { v } from "convex/values";
 export const featureModeValidator = v.union(
   v.literal("off"),
   v.literal("on"),
+  v.literal("members"),
   v.literal("adminOnly"),
 );
 
-export type FeatureMode = "off" | "on" | "adminOnly";
+export type FeatureMode = "off" | "on" | "members" | "adminOnly";
+
+export type FeatureViewer = { isMember: boolean; isAdmin: boolean };
+
+export function viewerFromUserType(userType: string | undefined): FeatureViewer {
+  return {
+    isMember: userType === "user" || userType === "admin",
+    isAdmin: userType === "admin",
+  };
+}
 
 export const storedFeatureModeValidator = v.union(
   v.boolean(),
@@ -14,7 +24,12 @@ export const storedFeatureModeValidator = v.union(
 );
 
 export function parseFeatureMode(value: unknown): FeatureMode {
-  if (value === "on" || value === "adminOnly" || value === "off") {
+  if (
+    value === "on" ||
+    value === "adminOnly" ||
+    value === "off" ||
+    value === "members"
+  ) {
     return value;
   }
   if (value === true) return "on";
@@ -31,6 +46,19 @@ export function coerceFeatureMode(
   return value;
 }
 
-export function featureVisible(mode: FeatureMode, asAdmin: boolean): boolean {
-  return mode === "on" || (mode === "adminOnly" && asAdmin);
+export function featureVisible(mode: FeatureMode, viewer: FeatureViewer): boolean {
+  switch (mode) {
+    case "off":
+      return false;
+    case "on":
+      return true;
+    case "members":
+      return viewer.isMember;
+    case "adminOnly":
+      return viewer.isAdmin;
+    default: {
+      const _exhaustive: never = mode;
+      return _exhaustive;
+    }
+  }
 }

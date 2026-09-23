@@ -147,7 +147,7 @@ async function attachReadStates<
   summaries: T[],
 ): Promise<T[]> {
   const settings = await readSiteSettings(ctx);
-  if (!viewerUserId || !featureVisible(settings.features.readReceipts, asAdmin)) {
+  if (!viewerUserId || !featureVisible(settings.features.readReceipts, { isMember: true, isAdmin: asAdmin })) {
     return summaries;
   }
   const readBefore = await getReadBefore(ctx, viewerUserId);

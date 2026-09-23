@@ -10,7 +10,11 @@ function createT() {
   return convexTest(schema, modules);
 }
 
-async function seedUser(t: ReturnType<typeof createT>, email: string, userType: string) {
+async function seedUser(
+  t: ReturnType<typeof createT>,
+  email: string,
+  userType: "user" | "admin",
+) {
   const userId = await t.run(async (ctx) => {
     return await ctx.db.insert("users", { email, name: email, userType });
   });
@@ -118,6 +122,35 @@ describe("site-wide requireAuth", () => {
     });
     expect(list.page).toHaveLength(1);
     expect(await asUser.query(api.posts.publicQueries.getBySlug, { slug })).not.toBeNull();
+  });
+
+  test("when requireAuth is on, a guest session does not see published posts", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    const { slug } = await seedPublishedPost(t, asAdmin);
+    await asAdmin.mutation(api.siteSettings.mutations.setRequireAuth, {
+      requireAuth: true,
+    });
+    const guestId = await t.run(async (ctx) => ctx.db.insert("users", { userType: "guest" }));
+    const asGuest = t.withIdentity({ subject: `${guestId}|testsession` });
+    const list = await asGuest.query(api.posts.publicQueries.listPublished, {
+      paginationOpts: pageOpts,
+    });
+    expect(list.page).toEqual([]);
+    expect(await asGuest.query(api.posts.publicQueries.getBySlug, { slug })).toBeNull();
+  });
+
+  test("when requireAuth is off, a guest session still sees published posts", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    const { slug } = await seedPublishedPost(t, asAdmin);
+    const guestId = await t.run(async (ctx) => ctx.db.insert("users", { userType: "guest" }));
+    const asGuest = t.withIdentity({ subject: `${guestId}|testsession` });
+    const list = await asGuest.query(api.posts.publicQueries.listPublished, {
+      paginationOpts: pageOpts,
+    });
+    expect(list.page).toHaveLength(1);
+    expect(await asGuest.query(api.posts.publicQueries.getBySlug, { slug })).not.toBeNull();
   });
 
   test("only an admin can flip the switch", async () => {

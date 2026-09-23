@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { getAuthedUserIgnoringDisabled } from "../lib/auth";
+import { internal } from "../_generated/api";
+import { getAuthedUserIgnoringDisabled, getMember } from "../lib/auth";
+import { accountValidator } from "../lib/validators";
+import type { Infer } from "convex/values";
+
+type Account = Infer<typeof accountValidator>;
 
 // Anonymous by design: the client calls this before it knows whether anyone is
 // signed in. A disabled user still gets an answer so the UI can say why.
@@ -27,5 +32,15 @@ export const getCurrentUser = query({
       disabled,
       isAdmin: !disabled && user.userType === "admin",
     };
+  },
+});
+
+export const getAccount = query({
+  args: {},
+  returns: v.union(accountValidator, v.null()),
+  handler: async (ctx): Promise<Account | null> => {
+    const user = await getMember(ctx);
+    if (!user) return null;
+    return await ctx.runQuery(internal.users.account.get, { userId: user._id });
   },
 });

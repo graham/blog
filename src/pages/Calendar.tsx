@@ -5,7 +5,7 @@ import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { calendarMonth, dayKey } from "@/lib/calendar";
-import { formatDate, isAdminUser } from "@/lib/format";
+import { formatDate, memberViewer } from "@/lib/format";
 import { featureOn } from "@/lib/features";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -80,7 +80,7 @@ export default function Calendar() {
   const allowed =
     features !== undefined &&
     currentUser !== undefined &&
-    featureOn(features.calendar, isAdminUser(currentUser));
+    featureOn(features.calendar, memberViewer(currentUser));
 
   const posts = useQuery(
     api.posts.publicQueries.listPublishedBetween,
@@ -95,7 +95,7 @@ export default function Calendar() {
     );
   }
 
-  if (!featureOn(features.calendar, isAdminUser(currentUser))) {
+  if (!featureOn(features.calendar, memberViewer(currentUser))) {
     return <Navigate to="/" replace />;
   }
 

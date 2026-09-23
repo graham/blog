@@ -1,6 +1,6 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { getAuthedUser } from "./auth";
+import { getAuthedUser, isMember } from "./auth";
 import { readSiteSettings } from "../siteSettings/internal";
 
 type Ctx = QueryCtx | MutationCtx;
@@ -12,19 +12,21 @@ export const MAX_TAGS = 32;
 export type PublicViewer = {
   viewerUserId: Id<"users"> | null;
   asAdmin: boolean;
+  isMember: boolean;
   blocked: boolean;
 };
 
 // Single entry point for every anonymous-callable read. `blocked` means the
-// site-wide requireAuth switch is on and nobody is signed in, so the caller
-// returns an empty result instead of reaching the data layer.
+// site-wide requireAuth switch is on and the caller is not a member.
 export async function resolvePublicViewer(ctx: Ctx): Promise<PublicViewer> {
   const user = await getAuthedUser(ctx);
+  const member = user !== null && isMember(user);
   const { requireAuth } = await readSiteSettings(ctx);
   return {
     viewerUserId: user?._id ?? null,
     asAdmin: user?.userType === "admin",
-    blocked: requireAuth && user === null,
+    isMember: member,
+    blocked: requireAuth && !member,
   };
 }
 

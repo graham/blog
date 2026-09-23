@@ -51,3 +51,17 @@ export function isAdminUser(
   if (user?.disabled === true) return false;
   return user?.isAdmin === true || user?.userType === "admin";
 }
+
+export function memberViewer(
+  user:
+    | { isAdmin?: boolean; userType?: string; disabled?: boolean }
+    | null
+    | undefined,
+): { isMember: boolean; isAdmin: boolean } {
+  const isAdmin = isAdminUser(user);
+  const isMember =
+    user != null &&
+    user.disabled !== true &&
+    (isAdmin || user.userType === "user" || user.userType === "admin");
+  return { isMember, isAdmin };
+}
