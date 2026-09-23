@@ -13,7 +13,7 @@
     "test": "vitest",
     "ship:dev": "npx convex dev --once && npx @convex-dev/static-hosting upload --build --spa",
     "ship:prod": "npx @convex-dev/static-hosting deploy --spa",
-    "ship:prod:yolo": "npx convex deploy --yes && npx @convex-dev/static-hosting upload --build --prod --spa"
+    "ship:prod:yolo": "node scripts/ship_prod.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",

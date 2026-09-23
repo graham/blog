@@ -168,22 +168,22 @@ npm run setup:prod
 
 Production has its own environment variables, JWT keys, encryption key, users, and data. The production wizard configures those independently and publishes the static site.
 
-For an already-configured production deployment, the explicit release commands are:
-
-```bash
-npx convex deploy --yes
-npx @convex-dev/static-hosting upload --build --prod --spa
-```
-
-Never use an interactive production deploy in automation.
-
-The same non-interactive release is available as:
+For an already-configured production deployment, the non-interactive release is:
 
 ```bash
 npm run ship:prod:yolo
 ```
 
-`ship:prod` uses the static-hosting one-shot flow and may ask for confirmation. `ship:prod:yolo` explicitly confirms the backend deployment and then builds and uploads the production frontend without prompting.
+That script, in order:
+
+1. Refuses to run if `CONVEX_DEPLOY_KEY` is set (that key would steal the target).
+2. Prints `target: production`.
+3. `npx convex deploy --yes --message …` to the project's default production. `CONVEX_DEPLOYMENT` in `.env.local` does not select the target.
+4. `npx @convex-dev/static-hosting upload --build --prod --spa`, which builds the SPA with production `VITE_CONVEX_URL` (not the dev URL in `.env.local`) and uploads it.
+
+Override the audit message with `npm run ship:prod:yolo -- --message "Auth v2"`. The default message is the current git subject.
+
+`ship:prod` is the static-hosting one-shot (`deploy --spa`) and may prompt on the backend step. Do not use it in automation.
 
 ## Environment variables
 
