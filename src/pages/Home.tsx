@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { PostCard } from "@/components/PostCard";
@@ -12,22 +12,27 @@ import { useImagesOnly } from "@/lib/useImagesOnly";
 const PAGE_SIZE = 10;
 
 export default function Home() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const q = (params.get("q") ?? "").trim();
+  const unreadOnly = params.get("unread") === "1";
   const searching = q.length > 0;
   const features = useFeatures();
   const timingsOn = useFeatureOn(features.timings);
   const infiniteScrollOn = useFeatureOn(features.infiniteScroll);
+  const receiptsOn = useFeatureOn(features.readReceipts);
   const imagesOnly = useImagesOnly();
+  const markAllRead = useMutation(api.postReads.mutations.markAllRead);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const searchResults = useQuery(
     api.posts.publicQueries.searchPublished,
     searching ? { query: q, tag: null } : "skip",
   );
-  const list = usePaginatedQuery(api.posts.publicQueries.listPublished, searching ? "skip" : {}, {
-    initialNumItems: PAGE_SIZE,
-  });
+  const list = usePaginatedQuery(
+    api.posts.publicQueries.listPublished,
+    searching ? "skip" : { unreadOnly: unreadOnly && receiptsOn ? true : undefined },
+    { initialNumItems: PAGE_SIZE },
+  );
 
   const posts = searching ? (searchResults ?? []) : list.results;
   const loading = searching ? searchResults === undefined : list.status === "LoadingFirstPage";
@@ -53,9 +58,34 @@ export default function Home() {
   return (
     <Layout bookmarks>
       <div className="mx-auto w-full min-w-0 max-w-2xl">
-        <h1 className="mb-8 font-sans text-3xl font-semibold tracking-tight">
-          {searching ? `Search: ${q}` : "Posts"}
-        </h1>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+          <h1 className="font-sans text-3xl font-semibold tracking-tight">
+            {searching ? `Search: ${q}` : unreadOnly ? "Unread" : "Posts"}
+          </h1>
+          {receiptsOn && !searching ? (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={unreadOnly ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const next = new URLSearchParams(params);
+                  if (unreadOnly) next.delete("unread");
+                  else next.set("unread", "1");
+                  setParams(next, { replace: true });
+                }}
+              >
+                {unreadOnly ? "All posts" : "Unread"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void markAllRead({})}
+              >
+                Mark all read
+              </Button>
+            </div>
+          ) : null}
+        </div>
         {loading ? (
           <p className="text-sm text-muted">Loading...</p>
         ) : posts.length === 0 ? (

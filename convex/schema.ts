@@ -20,6 +20,8 @@ const schema = defineSchema({
     timingsPage: v.optional(v.boolean()),
     calendar: v.optional(storedFeatureModeValidator),
     infiniteScroll: v.optional(storedFeatureModeValidator),
+    tagNav: v.optional(storedFeatureModeValidator),
+    readReceipts: v.optional(storedFeatureModeValidator),
     imagesOnly: v.optional(v.boolean()),
     postSort: v.optional(v.union(v.literal("created"), v.literal("updated"))),
     themeEnabled: v.optional(v.boolean()),
@@ -86,6 +88,13 @@ const schema = defineSchema({
       searchField: "searchText",
       filterFields: ["status", "visibility"],
     }),
+
+  tags: defineTable({
+    name: v.string(),
+    slug: v.string(),
+  })
+    .index("by_name", ["name"])
+    .index("by_slug", ["slug"]),
 
   postTags: defineTable({
     postId: v.id("posts"),
@@ -155,6 +164,20 @@ const schema = defineSchema({
     .index("by_groupId", ["groupId"])
     .index("by_postId", ["postId"])
     .index("by_groupId_and_postId", ["groupId", "postId"]),
+
+  readCursors: defineTable({
+    userId: v.id("users"),
+    readBefore: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  postReads: defineTable({
+    userId: v.id("users"),
+    postId: v.id("posts"),
+    lastReadAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_and_postId", ["userId", "postId"]),
 
   postAssets: defineTable({
     postId: v.id("posts"),

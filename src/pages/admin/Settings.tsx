@@ -176,6 +176,32 @@ export default function AdminSettings() {
             </SettingRow>
 
             <SettingRow
+              title="Tag navigation"
+              description="Left rail of tags and posts. Tags never hide a post; they only organize it. Admin only: rail is visible to admins."
+            >
+              <ModePicker
+                value={features.tagNav}
+                disabled={busy !== null}
+                onChange={(tagNav) =>
+                  void run(`tagNav-${tagNav}`, () => setFeatures({ tagNav }))
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
+              title="Read receipts"
+              description="Signed-in readers get unread and updated markers. Mark-all-read stores a cutoff so old posts do not need a receipt row."
+            >
+              <ModePicker
+                value={features.readReceipts}
+                disabled={busy !== null}
+                onChange={(readReceipts) =>
+                  void run(`read-${readReceipts}`, () => setFeatures({ readReceipts }))
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
               title="Infinite scroll"
               description="Home loads the next page at the bottom. Search stays a single result set. Admin only: readers still use Load more."
             >

@@ -136,6 +136,7 @@ export const listByGroup = internalQuery({
         channels,
         imageCount: await countPostImages(ctx, post._id, post.coverImageId),
         characterCount: post.body.length,
+        read: null,
         linkId: row._id,
       });
     }

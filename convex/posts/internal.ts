@@ -10,8 +10,10 @@ import {
   postNavigationValidator,
   postSummaryValidator,
   calendarPostValidator,
+  postReadStateValidator,
   visibilityValidator,
 } from "../lib/validators";
+import type { Infer } from "convex/values";
 import { buildSearchText, excerptFrom, normalizeTags, slugify } from "../lib/text";
 import {
   canViewPost,
@@ -25,6 +27,9 @@ import {
 } from "../lib/access";
 import { readSiteSettings } from "../siteSettings/internal";
 import { countPostImages, loadPostAssets } from "../postAssets/internal";
+import { ensureTag } from "../tags/internal";
+import { getReadBefore, readStateForPost } from "../postReads/internal";
+import { featureVisible } from "../lib/featureMode";
 import { isImageContentType } from "../postAssets/contentTypes";
 
 type Ctx = QueryCtx | MutationCtx;
@@ -77,6 +82,7 @@ async function toSummary(ctx: Ctx, post: Doc<"posts">) {
     authorName: author?.name ?? null,
     coverImageUrl,
     tags: await loadTags(ctx, post._id),
+    read: null,
   };
 }
 
@@ -128,6 +134,33 @@ function viewerFrom(args: { viewerUserId: Id<"users"> | null; asAdmin: boolean }
   return { userId: args.viewerUserId, isAdmin: args.asAdmin };
 }
 
+function isUnreadSummary(read: Infer<typeof postReadStateValidator> | null): boolean {
+  return read !== null && (read.unread || read.updatedSinceRead);
+}
+
+async function attachReadStates<
+  T extends { _id: Id<"posts">; updatedAt: number; read: Infer<typeof postReadStateValidator> | null },
+>(
+  ctx: Ctx,
+  viewerUserId: Id<"users"> | null,
+  asAdmin: boolean,
+  summaries: T[],
+): Promise<T[]> {
+  const settings = await readSiteSettings(ctx);
+  if (!viewerUserId || !featureVisible(settings.features.readReceipts, asAdmin)) {
+    return summaries;
+  }
+  const readBefore = await getReadBefore(ctx, viewerUserId);
+  const next: T[] = [];
+  for (const summary of summaries) {
+    next.push({
+      ...summary,
+      read: await readStateForPost(ctx, viewerUserId, summary._id, summary.updatedAt, readBefore),
+    });
+  }
+  return next;
+}
+
 async function syncTags(
   ctx: MutationCtx,
   postId: Id<"posts">,
@@ -157,6 +190,7 @@ async function syncTags(
     }
   }
   for (const tag of wanted) {
+    await ensureTag(ctx, tag);
     await ctx.db.insert("postTags", {
       postId,
       tag,
@@ -368,6 +402,7 @@ export const listPublished = internalQuery({
     paginationOpts: paginationOptsValidator,
     viewerUserId: v.union(v.id("users"), v.null()),
     asAdmin: v.boolean(),
+    unreadOnly: v.optional(v.boolean()),
   },
   returns: paginationResultValidator(postSummaryValidator),
   handler: async (ctx, args) => {
@@ -390,7 +425,11 @@ export const listPublished = internalQuery({
         page.push(await toSummary(ctx, post));
       }
     }
-    return { ...result, page };
+    const withRead = await attachReadStates(ctx, args.viewerUserId, args.asAdmin, page);
+    const filtered = args.unreadOnly
+      ? withRead.filter((post) => isUnreadSummary(post.read))
+      : withRead;
+    return { ...result, page: filtered };
   },
 });
 
@@ -425,7 +464,9 @@ export const getBySlug = internalQuery({
     if (!post) return null;
     if (!args.asAdmin && post.status !== "published") return null;
     if (!(await canViewPost(ctx, post, viewerFrom(args)))) return null;
-    return await toDetail(ctx, post);
+    const detail = await toDetail(ctx, post);
+    const [withRead] = await attachReadStates(ctx, args.viewerUserId, args.asAdmin, [detail]);
+    return withRead ?? detail;
   },
 });
 
@@ -594,9 +635,10 @@ export const searchPublished = internalQuery({
         visible.push(await toSummary(ctx, post));
       }
     }
-    if (!args.tag) return visible;
-    const tag = args.tag.trim().toLowerCase();
-    return visible.filter((post) => post.tags.includes(tag));
+    const tagged = args.tag
+      ? visible.filter((post) => post.tags.includes(args.tag!.trim().toLowerCase()))
+      : visible;
+    return await attachReadStates(ctx, args.viewerUserId, args.asAdmin, tagged);
   },
 });
 
@@ -640,7 +682,10 @@ export const listByTag = internalQuery({
         page.push(await toSummary(ctx, post));
       }
     }
-    return { ...result, page };
+    return {
+      ...result,
+      page: await attachReadStates(ctx, args.viewerUserId, args.asAdmin, page),
+    };
   },
 });
 

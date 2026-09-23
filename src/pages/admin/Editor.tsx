@@ -53,6 +53,7 @@ export default function Editor() {
   const [excerpt, setExcerpt] = useState("");
   const [body, setBody] = useState("");
   const [tagInput, setTagInput] = useState("");
+  const [tagDraft, setTagDraft] = useState("");
   const [visibility, setVisibility] = useState<"listed" | "unlisted">("listed");
   const [published, setPublishedLocal] = useState(false);
   const [channelIds, setChannelIds] = useState<Id<"channels">[]>([]);
@@ -425,18 +426,45 @@ export default function Editor() {
                   className="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
                 />
               </label>
-              <label className="block text-xs text-muted">
+              <div className="block text-xs text-muted">
                 Tags
-                <input
-                  value={tagInput}
-                  onChange={(event) => {
-                    setTagInput(event.target.value);
-                    markDirty();
-                  }}
-                  placeholder="design, notes"
-                  className="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-                />
-              </label>
+                <div className="mt-1 flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-input bg-card px-2 py-1">
+                  {tags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground hover:bg-border"
+                      onClick={() => {
+                        setTagInput(tags.filter((item) => item !== tag).join(", "));
+                        markDirty();
+                      }}
+                    >
+                      {tag} ×
+                    </button>
+                  ))}
+                  <input
+                    value={tagDraft}
+                    onChange={(event) => setTagDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === ",") {
+                        event.preventDefault();
+                        const piece = tagDraft.trim();
+                        if (piece && !tags.includes(piece)) {
+                          setTagInput([...tags, piece].join(", "));
+                          markDirty();
+                        }
+                        setTagDraft("");
+                      }
+                      if (event.key === "Backspace" && tagDraft === "" && tags.length > 0) {
+                        setTagInput(tags.slice(0, -1).join(", "));
+                        markDirty();
+                      }
+                    }}
+                    placeholder={tags.length === 0 ? "Add tag" : ""}
+                    className="h-7 min-w-24 flex-1 bg-transparent text-sm text-foreground outline-none"
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <p className="text-xs text-muted">Channels</p>

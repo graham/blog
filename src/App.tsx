@@ -21,6 +21,8 @@ import AdminUsers from "./pages/admin/Users";
 import AdminSettings from "./pages/admin/Settings";
 import AdminBookmarkGroups from "./pages/admin/BookmarkGroups";
 import BookmarkGroupDetail from "./pages/admin/BookmarkGroupDetail";
+import AdminTags from "./pages/admin/Tags";
+import TagDetail from "./pages/admin/TagDetail";
 
 export default function App() {
   return (
@@ -135,6 +137,22 @@ export default function App() {
             element={
               <AdminRoute>
                 <BookmarkGroupDetail />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/tags"
+            element={
+              <AdminRoute>
+                <AdminTags />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/tags/:id"
+            element={
+              <AdminRoute>
+                <TagDetail />
               </AdminRoute>
             }
           />

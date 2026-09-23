@@ -62,6 +62,9 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
               Bookmarks
             </Link>
           ) : null}
+          <Link to="/admin/tags" className="text-muted hover:text-foreground">
+            Tags
+          </Link>
           <Link to="/admin/api-keys" className="text-muted hover:text-foreground">
             API keys
           </Link>

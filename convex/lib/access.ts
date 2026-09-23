@@ -7,6 +7,7 @@ type Ctx = QueryCtx | MutationCtx;
 
 export const MAX_CHANNELS = 32;
 export const MAX_BOOKMARK_GROUPS = 32;
+export const MAX_TAGS = 32;
 
 export type PublicViewer = {
   viewerUserId: Id<"users"> | null;

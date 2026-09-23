@@ -30,7 +30,10 @@ function emptyPage<T>(cursor: string | null): Page<T> {
 }
 
 export const listPublished = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: {
+    paginationOpts: paginationOptsValidator,
+    unreadOnly: v.optional(v.boolean()),
+  },
   returns: paginationResultValidator(postSummaryValidator),
   handler: async (ctx, args): Promise<Page<PostSummary>> => {
     const viewer = await resolvePublicViewer(ctx);
@@ -38,7 +41,8 @@ export const listPublished = query({
       return emptyPage<PostSummary>(args.paginationOpts.cursor);
     }
     const result: Page<PostSummary> = await ctx.runQuery(internal.posts.internal.listPublished, {
-      ...args,
+      paginationOpts: args.paginationOpts,
+      unreadOnly: args.unreadOnly,
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });

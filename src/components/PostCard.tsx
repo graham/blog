@@ -12,6 +12,11 @@ type PostCardPost = {
   updatedAt: number;
   coverImageUrl: string | null;
   tags: string[];
+  read?: {
+    unread: boolean;
+    updatedSinceRead: boolean;
+    lastReadAt: number | null;
+  } | null;
 };
 
 export function PostCard({ post }: { post: PostCardPost }) {
@@ -54,6 +59,13 @@ export function PostCard({ post }: { post: PostCardPost }) {
               {post.title || "Untitled"}
             </Link>
           </h2>
+          {post.read?.unread ? (
+            <p className="mt-1 text-[11px] uppercase tracking-wide text-accent">Unread</p>
+          ) : post.read?.updatedSinceRead ? (
+            <p className="mt-1 text-[11px] uppercase tracking-wide text-accent">
+              Updated since you last read
+            </p>
+          ) : null}
           {post.excerpt ? (
             <p className="mt-2 text-[0.95rem] leading-6 text-muted">{post.excerpt}</p>
           ) : null}

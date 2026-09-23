@@ -14,6 +14,8 @@ export const set = mutation({
     timings: v.optional(v.union(v.boolean(), featureModeValidator)),
     calendar: v.optional(v.union(v.boolean(), featureModeValidator)),
     infiniteScroll: v.optional(v.union(v.boolean(), featureModeValidator)),
+    tagNav: v.optional(v.union(v.boolean(), featureModeValidator)),
+    readReceipts: v.optional(v.union(v.boolean(), featureModeValidator)),
     imagesOnly: v.optional(v.boolean()),
     sortOrder: v.optional(postSortValidator),
     themeEnabled: v.optional(v.boolean()),

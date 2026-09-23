@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { MarkdownBody } from "@/components/MarkdownBody";
@@ -11,6 +11,7 @@ import { markdownOverlayImages, postOverlayImages } from "@/lib/images";
 import { hasPublicMedia, NO_PUBLIC_TEXT_MESSAGE } from "@/lib/mediaOnly";
 import { useImagesOnly } from "@/lib/useImagesOnly";
 import { usePostWide } from "@/lib/usePostWide";
+import { useFeatureOn, useFeatures } from "@/components/FeaturesProvider";
 
 function PostNavigation({
   previous,
@@ -57,10 +58,18 @@ export default function Post() {
   const navigation = useQuery(api.posts.publicQueries.getAdjacentBySlug, slug ? { slug } : "skip");
   const imagesOnly = useImagesOnly();
   const [wide, toggleWide] = usePostWide();
+  const features = useFeatures();
+  const receiptsOn = useFeatureOn(features.readReceipts);
+  const markRead = useMutation(api.postReads.mutations.markRead);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [slug]);
+
+  useEffect(() => {
+    if (!post || !receiptsOn) return;
+    void markRead({ postId: post._id });
+  }, [post?._id, receiptsOn, markRead]);
 
   if (post === undefined) {
     return (
@@ -112,6 +121,20 @@ export default function Post() {
       <article className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
+            {post.read?.updatedSinceRead ? (
+              <p className="mb-2 text-xs uppercase tracking-wide text-accent">
+                New updates since you last read this
+                {post.read.lastReadAt
+                  ? ` (${formatDate(post.read.lastReadAt)})`
+                  : ""}
+              </p>
+            ) : post.read?.unread ? (
+              <p className="mb-2 text-xs uppercase tracking-wide text-accent">Unread</p>
+            ) : post.read?.lastReadAt ? (
+              <p className="mb-2 text-xs uppercase tracking-wide text-muted">
+                Last read {formatDate(post.read.lastReadAt)}
+              </p>
+            ) : null}
             {imagesOnly ? null : post.status === "draft" ? (
               <p className="mb-2 text-xs uppercase tracking-wide text-muted">Draft preview</p>
             ) : null}

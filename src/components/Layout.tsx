@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Header } from "./Header";
 import { BookmarkNav } from "./BookmarkNav";
+import { TagNav } from "./TagNav";
 import { useFeatureOn, useFeatures } from "./FeaturesProvider";
 
 export function Layout({
@@ -22,9 +23,14 @@ export function Layout({
 }) {
   const features = useFeatures();
   const bookmarksOn = useFeatureOn(features.bookmarks);
+  const tagsOn = useFeatureOn(features.tagNav);
   const groups = useQuery(
     api.bookmarkGroups.publicQueries.listForViewer,
     bookmarks && bookmarksOn ? {} : "skip",
+  );
+  const tagGroups = useQuery(
+    api.tags.publicQueries.listForViewer,
+    bookmarks && tagsOn ? {} : "skip",
   );
 
   if (variant === "workspace") {
@@ -36,7 +42,9 @@ export function Layout({
     );
   }
 
-  const showNav = groups !== undefined && groups.length > 0;
+  const showBookmarks = groups !== undefined && groups.length > 0;
+  const showTags = tagGroups !== undefined && tagGroups.length > 0;
+  const showNav = showBookmarks || showTags;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -49,8 +57,9 @@ export function Layout({
           {showNav ? (
             <div className="grid min-w-0 gap-10 md:grid-cols-[11rem_minmax(0,1fr)] md:items-start">
               <div className="min-w-0 md:col-start-2 md:row-start-1">{children}</div>
-              <aside className="min-w-0 md:col-start-1 md:row-start-1">
-                <BookmarkNav groups={groups} />
+              <aside className="min-w-0 space-y-10 md:col-start-1 md:row-start-1">
+                {showBookmarks ? <BookmarkNav groups={groups ?? []} /> : null}
+                {showTags ? <TagNav groups={tagGroups ?? []} /> : null}
               </aside>
             </div>
           ) : (

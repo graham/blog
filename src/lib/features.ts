@@ -7,6 +7,8 @@ export type Features = {
   timings: FeatureMode;
   calendar: FeatureMode;
   infiniteScroll: FeatureMode;
+  tagNav: FeatureMode;
+  readReceipts: FeatureMode;
   imagesOnly: boolean;
   sortOrder: "created" | "updated";
   theme: {
@@ -20,6 +22,8 @@ export const DEFAULT_FEATURES: Features = {
   timings: "off",
   calendar: "off",
   infiniteScroll: "off",
+  tagNav: "off",
+  readReceipts: "off",
   imagesOnly: false,
   sortOrder: "created",
   theme: { enabled: false, id: "paper" },

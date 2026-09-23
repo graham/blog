@@ -15,6 +15,31 @@ export const assetValidator = v.object({
   url: v.union(v.string(), v.null()),
 });
 
+export const postReadStateValidator = v.object({
+  unread: v.boolean(),
+  updatedSinceRead: v.boolean(),
+  lastReadAt: v.union(v.number(), v.null()),
+});
+
+export const tagValidator = v.object({
+  _id: v.id("tags"),
+  _creationTime: v.number(),
+  name: v.string(),
+  slug: v.string(),
+  postCount: v.number(),
+});
+
+export const tagNavPostValidator = v.object({
+  title: v.string(),
+  slug: v.string(),
+});
+
+export const tagNavGroupValidator = v.object({
+  name: v.string(),
+  slug: v.string(),
+  posts: v.array(tagNavPostValidator),
+});
+
 export const postSummaryValidator = v.object({
   _id: v.id("posts"),
   _creationTime: v.number(),
@@ -29,6 +54,7 @@ export const postSummaryValidator = v.object({
   authorName: v.union(v.string(), v.null()),
   coverImageUrl: v.union(v.string(), v.null()),
   tags: v.array(v.string()),
+  read: v.union(postReadStateValidator, v.null()),
 });
 
 export const postDetailValidator = v.object({
@@ -142,6 +168,8 @@ export const featuresValidator = v.object({
   timings: featureModeValidator,
   calendar: featureModeValidator,
   infiniteScroll: featureModeValidator,
+  tagNav: featureModeValidator,
+  readReceipts: featureModeValidator,
   imagesOnly: v.boolean(),
   sortOrder: postSortValidator,
   theme: v.object({
