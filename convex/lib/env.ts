@@ -22,3 +22,7 @@ export function envGoogleAuthAvailable(): boolean {
 export function envPasswordAuthAvailable(): boolean {
   return process.env.AUTH_PASSWORD_ENABLED !== "false";
 }
+
+export function envPushoverAvailable(): boolean {
+  return Boolean(process.env.PUSHOVER_TOKEN && process.env.PUSHOVER_USER);
+}

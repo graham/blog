@@ -30,6 +30,7 @@ const schema = defineSchema({
     themeId: v.optional(v.string()),
     googleSignIn: v.optional(v.boolean()),
     passwordSignIn: v.optional(v.boolean()),
+    pushoverEnabled: v.optional(v.boolean()),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
   }),
@@ -47,6 +48,11 @@ const schema = defineSchema({
   })
     .index("by_tokenHash", ["tokenHash"])
     .index("by_email", ["email"]),
+
+  migrationState: defineTable({
+    name: v.string(),
+    done: v.boolean(),
+  }).index("by_name", ["name"]),
 
   apiKeys: defineTable({
     name: v.string(),
@@ -66,6 +72,7 @@ const schema = defineSchema({
     visibility: v.union(v.literal("listed"), v.literal("unlisted")),
     publishedAt: v.union(v.number(), v.null()),
     authorId: v.id("users"),
+    createdAt: v.optional(v.number()),
     updatedAt: v.number(),
     coverImageId: v.union(v.id("_storage"), v.null()),
     searchText: v.string(),
@@ -74,6 +81,11 @@ const schema = defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_status_and_visibility", ["status", "visibility"])
+    .index("by_status_and_visibility_and_createdAt", [
+      "status",
+      "visibility",
+      "createdAt",
+    ])
     .index("by_status_and_visibility_and_updatedAt", [
       "status",
       "visibility",
@@ -85,6 +97,7 @@ const schema = defineSchema({
       "publishedAt",
     ])
     .index("by_updatedAt", ["updatedAt"])
+    .index("by_createdAt", ["createdAt"])
     .index("by_authorId", ["authorId"])
     .searchIndex("search_text", {
       searchField: "searchText",

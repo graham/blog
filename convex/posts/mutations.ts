@@ -14,6 +14,10 @@ export const create = mutation({
       internal.posts.internal.create,
       { authorId: admin._id },
     );
+    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
+      kind: "created",
+      postId,
+    });
     return postId;
   },
 });
@@ -38,6 +42,10 @@ export const save = mutation({
       internal.posts.internal.save,
       args,
     );
+    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
+      kind: "updated",
+      postId: args.postId,
+    });
     return result;
   },
 });
@@ -51,6 +59,20 @@ export const setPublished = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     await ctx.runMutation(internal.posts.internal.setPublished, args);
+    return null;
+  },
+});
+
+export const setTimes = mutation({
+  args: {
+    postId: v.id("posts"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.runMutation(internal.posts.internal.setTimes, args);
     return null;
   },
 });

@@ -64,4 +64,44 @@ describe("read receipts", () => {
     });
     expect(afterAll.page[0]?.read).toMatchObject({ unread: false, updatedSinceRead: false });
   });
+
+  test("unreadOnly skips read posts and is done when nothing unread remains", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    const { asUser: reader } = await seedUser(t, "reader@example.com", "user");
+    await admin.mutation(api.features.mutations.set, { readReceipts: true });
+
+    const ids = [];
+    for (const title of ["One", "Two", "Three"]) {
+      const postId = await admin.mutation(api.posts.mutations.create, {});
+      await admin.mutation(api.posts.mutations.save, {
+        postId,
+        title,
+        excerpt: "",
+        body: title,
+        visibility: "listed",
+        tags: [],
+      });
+      await admin.mutation(api.posts.mutations.setPublished, { postId, published: true });
+      ids.push(postId);
+    }
+
+    await reader.mutation(api.postReads.mutations.markRead, { postId: ids[1] });
+    await reader.mutation(api.postReads.mutations.markRead, { postId: ids[2] });
+
+    const unread = await reader.query(api.posts.publicQueries.listPublished, {
+      paginationOpts: { numItems: 2, cursor: null },
+      unreadOnly: true,
+    });
+    expect(unread.page.map((post) => post.title)).toEqual(["One"]);
+    expect(unread.isDone).toBe(true);
+
+    await reader.mutation(api.postReads.mutations.markRead, { postId: ids[0] });
+    const empty = await reader.query(api.posts.publicQueries.listPublished, {
+      paginationOpts: { numItems: 2, cursor: null },
+      unreadOnly: true,
+    });
+    expect(empty.page).toEqual([]);
+    expect(empty.isDone).toBe(true);
+  });
 });

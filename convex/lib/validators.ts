@@ -49,6 +49,7 @@ export const postSummaryValidator = v.object({
   status: statusValidator,
   visibility: visibilityValidator,
   publishedAt: v.union(v.number(), v.null()),
+  createdAt: v.number(),
   updatedAt: v.number(),
   authorId: v.id("users"),
   authorName: v.union(v.string(), v.null()),
@@ -198,6 +199,7 @@ export const siteSettingsValidator = v.object({
   bookmarksEnabled: v.boolean(),
   googleSignIn: v.boolean(),
   passwordSignIn: v.boolean(),
+  pushoverEnabled: v.boolean(),
   features: featuresValidator,
 });
 

@@ -128,6 +128,7 @@ export const listByGroup = internalQuery({
         status: post.status,
         visibility: post.visibility,
         publishedAt: post.publishedAt,
+        createdAt: post.createdAt ?? post._creationTime,
         updatedAt: post.updatedAt,
         authorId: post.authorId,
         authorName: author?.name ?? null,
