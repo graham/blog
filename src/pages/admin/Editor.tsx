@@ -7,6 +7,7 @@ import { Layout } from "@/components/Layout";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { ZoomableImage } from "@/components/ImageOverlay";
 import { AssetCaptionDialog } from "@/components/AssetCaptionDialog";
+import { PostTimesEditor } from "@/components/PostTimesEditor";
 import { Button } from "@/components/ui/button";
 import { assetSnippet, markdownHasStorageId, type OverlayImage } from "@/lib/images";
 import { sha256Hex } from "@/lib/hash";
@@ -58,9 +59,7 @@ export default function Editor() {
   const [visibility, setVisibility] = useState<"listed" | "unlisted">("listed");
   const [published, setPublishedLocal] = useState(false);
   const [channelIds, setChannelIds] = useState<Id<"channels">[]>([]);
-  const [bookmarkGroupIds, setBookmarkGroupIds] = useState<
-    Id<"bookmarkGroups">[]
-  >([]);
+  const [bookmarkGroupIds, setBookmarkGroupIds] = useState<Id<"bookmarkGroups">[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("saved");
@@ -434,7 +433,65 @@ export default function Editor() {
                 </p>
               )}
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs text-muted">
+              Excerpt
+              <textarea
+                value={excerpt}
+                onChange={(event) => {
+                  setExcerpt(event.target.value);
+                  markDirty();
+                }}
+                rows={2}
+                className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+            <div className="flex gap-2 text-sm">
+              <button
+                type="button"
+                onClick={() => setMode("write")}
+                className={mode === "write" ? "font-medium" : "text-muted"}
+              >
+                Write
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("preview")}
+                className={mode === "preview" ? "font-medium" : "text-muted"}
+              >
+                Preview
+              </button>
+            </div>
+            {mode === "write" ? (
+              <textarea
+                ref={textareaRef}
+                value={body}
+                onChange={(event) => {
+                  setBody(event.target.value);
+                  markDirty();
+                }}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={onDropEditor}
+                placeholder="Write markdown. Drag media from Content, or paste a YouTube URL on its own line."
+                className="min-h-[70vh] w-full rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm leading-6 outline-none focus:ring-2 focus:ring-ring"
+              />
+            ) : (
+              <div className="min-h-[70vh] rounded-xl border border-border bg-card px-6 py-5">
+                <MarkdownBody content={body} assets={assets} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <aside className="col-span-1 flex min-h-0 flex-col border-l border-border bg-card">
+          <div className="max-h-[50%] shrink-0 space-y-4 overflow-y-auto border-b border-border p-3">
+            <PostTimesEditor
+              postId={postId}
+              createdAt={post.createdAt}
+              updatedAt={post.updatedAt}
+              publishedAt={post.publishedAt}
+              draft={post.status === "draft"}
+            />
+            <div className="space-y-3">
               <label className="block text-xs text-muted">
                 Slug
                 <input
@@ -527,8 +584,7 @@ export default function Editor() {
               <div>
                 <p className="text-xs text-muted">Bookmark groups</p>
                 <p className="mt-1 text-xs text-muted">
-                  Listed published posts in these groups appear in the reader
-                  sidebar.
+                  Listed published posts in these groups appear in the reader sidebar.
                 </p>
                 {allBookmarkGroups === undefined ? (
                   <p className="mt-2 text-xs text-muted">Loading groups...</p>
@@ -562,56 +618,7 @@ export default function Editor() {
                 )}
               </div>
             ) : null}
-            <label className="block text-xs text-muted">
-              Excerpt
-              <textarea
-                value={excerpt}
-                onChange={(event) => {
-                  setExcerpt(event.target.value);
-                  markDirty();
-                }}
-                rows={2}
-                className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-              />
-            </label>
-            <div className="flex gap-2 text-sm">
-              <button
-                type="button"
-                onClick={() => setMode("write")}
-                className={mode === "write" ? "font-medium" : "text-muted"}
-              >
-                Write
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("preview")}
-                className={mode === "preview" ? "font-medium" : "text-muted"}
-              >
-                Preview
-              </button>
-            </div>
-            {mode === "write" ? (
-              <textarea
-                ref={textareaRef}
-                value={body}
-                onChange={(event) => {
-                  setBody(event.target.value);
-                  markDirty();
-                }}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={onDropEditor}
-                placeholder="Write markdown. Drag media from Content, or paste a YouTube URL on its own line."
-                className="min-h-[70vh] w-full rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm leading-6 outline-none focus:ring-2 focus:ring-ring"
-              />
-            ) : (
-              <div className="min-h-[70vh] rounded-xl border border-border bg-card px-6 py-5">
-                <MarkdownBody content={body} assets={assets} />
-              </div>
-            )}
           </div>
-        </div>
-
-        <aside className="col-span-1 flex min-h-0 flex-col border-l border-border bg-card">
           <div className="shrink-0 border-b border-border p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <h2 className="text-sm font-medium">Content</h2>
