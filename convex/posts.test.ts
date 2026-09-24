@@ -857,6 +857,74 @@ describe("posts", () => {
     expect(state?.done).toBe(true);
   });
 
+  test("publishedAt backfill copies createdAt onto published posts and moves calendar days", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    await admin.mutation(api.features.mutations.set, { calendar: true });
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const createdAt = now - 10 * day;
+    const ids = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", {
+        email: "author@example.com",
+        name: "author",
+        userType: "admin",
+      });
+      const base = {
+        excerpt: "",
+        body: "b",
+        visibility: "listed" as const,
+        authorId: userId,
+        updatedAt: now,
+        coverImageId: null,
+        searchText: "b",
+      };
+      const published = await ctx.db.insert("posts", {
+        ...base,
+        title: "Published",
+        slug: "published",
+        status: "published",
+        publishedAt: now,
+        createdAt,
+      });
+      const future = await ctx.db.insert("posts", {
+        ...base,
+        title: "Future created",
+        slug: "future-created",
+        status: "published",
+        publishedAt: now,
+        createdAt: now + 10 * day,
+      });
+      const draft = await ctx.db.insert("posts", {
+        ...base,
+        title: "Draft",
+        slug: "draft",
+        status: "draft",
+        publishedAt: null,
+        createdAt,
+      });
+      return { published, future, draft };
+    });
+    await t.mutation(internal.migrations.backfillPublishedByDay, { cursor: null });
+
+    await t.mutation(internal.migrations.backfillPublishedAtFromCreatedAt, { cursor: null });
+    const [published, future, draft] = await t.run(async (ctx) =>
+      Promise.all([
+        ctx.db.get("posts", ids.published),
+        ctx.db.get("posts", ids.future),
+        ctx.db.get("posts", ids.draft),
+      ]),
+    );
+    expect(published).toMatchObject({ status: "published", publishedAt: createdAt });
+    expect(future).toMatchObject({ status: "published", publishedAt: now });
+    expect(draft?.publishedAt).toBeNull();
+    const oldDay = { start: createdAt - 60_000, end: createdAt + 60_000 };
+    const today = { start: now - 60_000, end: now + 60_000 };
+    expect(
+      await t.query(api.posts.publicQueries.countPublishedDays, { days: [oldDay, today] }),
+    ).toEqual([1, 1]);
+  });
+
   test("admin can delete a draft and its files; published posts stay", async () => {
     const t = createT();
     const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
