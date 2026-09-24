@@ -14,16 +14,33 @@ export type CalendarWeek = {
   total: number;
 };
 
-export function calendarMonth(
-  year: number,
-  month: number,
-  posts: Array<{ publishedAt: number }>,
-): { weeks: CalendarWeek[]; monthTotal: number } {
+export function monthDayRanges(year: number, month: number) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    return {
+      start: new Date(year, month, day).getTime(),
+      end: new Date(year, month, day + 1).getTime(),
+    };
+  });
+}
+
+function countsFromPosts(posts: Array<{ publishedAt: number }>) {
   const counts = new Map<string, number>();
   for (const post of posts) {
     const key = dayKey(post.publishedAt);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
+  return counts;
+}
+
+export function calendarMonth(
+  year: number,
+  month: number,
+  postsOrCounts: Array<{ publishedAt: number }> | Map<string, number>,
+): { weeks: CalendarWeek[]; monthTotal: number } {
+  const counts =
+    postsOrCounts instanceof Map ? postsOrCounts : countsFromPosts(postsOrCounts);
 
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -50,6 +67,6 @@ export function calendarMonth(
 
   return {
     weeks,
-    monthTotal: posts.length,
+    monthTotal: [...counts.values()].reduce((sum, count) => sum + count, 0),
   };
 }

@@ -108,6 +108,25 @@ export const listPublishedBetween = query({
   },
 });
 
+export const countPublishedDays = query({
+  args: {
+    days: v.array(v.object({ start: v.number(), end: v.number() })),
+  },
+  returns: v.array(v.number()),
+  handler: async (ctx, args): Promise<number[]> => {
+    const settings = await readSiteSettings(ctx);
+    const viewer = await resolvePublicViewer(ctx);
+    if (viewer.blocked) return [];
+    if (!featureVisible(settings.features.calendar, viewer.asAdmin)) {
+      return [];
+    }
+    const result: number[] = await ctx.runQuery(internal.posts.internal.countPublishedDays, {
+      days: args.days,
+    });
+    return result;
+  },
+});
+
 export const searchPublished = query({
   args: {
     query: v.string(),

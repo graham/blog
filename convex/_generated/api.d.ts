@@ -68,6 +68,7 @@ import type * as postReads_internal from "../postReads/internal.js";
 import type * as postReads_mutations from "../postReads/mutations.js";
 import type * as postReads_publicQueries from "../postReads/publicQueries.js";
 import type * as posts_actions from "../posts/actions.js";
+import type * as posts_aggregate from "../posts/aggregate.js";
 import type * as posts_internal from "../posts/internal.js";
 import type * as posts_mutations from "../posts/mutations.js";
 import type * as posts_publicQueries from "../posts/publicQueries.js";
@@ -150,6 +151,7 @@ declare const fullApi: ApiFromModules<{
   "postReads/mutations": typeof postReads_mutations;
   "postReads/publicQueries": typeof postReads_publicQueries;
   "posts/actions": typeof posts_actions;
+  "posts/aggregate": typeof posts_aggregate;
   "posts/internal": typeof posts_internal;
   "posts/mutations": typeof posts_mutations;
   "posts/publicQueries": typeof posts_publicQueries;
@@ -194,5 +196,6 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   aiWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"aiWorkpool">;
+  publishedByDay: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"publishedByDay">;
   staticHosting: import("@convex-dev/static-hosting/_generated/component.js").ComponentApi<"staticHosting">;
 };

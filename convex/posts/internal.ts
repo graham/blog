@@ -31,6 +31,7 @@ import { ensureTag } from "../tags/internal";
 import { getReadBefore, readStateForPost } from "../postReads/internal";
 import { featureVisible } from "../lib/featureMode";
 import { isImageContentType } from "../postAssets/contentTypes";
+import { dayCountQueries, publishedByDay, syncPublishedByDay } from "./aggregate";
 
 type Ctx = QueryCtx | MutationCtx;
 
@@ -318,6 +319,10 @@ export async function saveHandler(
     coverImageId,
     searchText: buildSearchText(args.title, excerpt, args.body, tags),
   });
+  const saved = await ctx.db.get("posts", post._id);
+  if (saved) {
+    await syncPublishedByDay(ctx, post, saved);
+  }
   if (args.channelIds !== undefined) {
     await syncPostChannels(ctx, post._id, args.channelIds);
   }
@@ -360,6 +365,10 @@ export async function setPublishedHandler(
     publishedAt,
     updatedAt,
   });
+  const saved = await ctx.db.get("posts", post._id);
+  if (saved) {
+    await syncPublishedByDay(ctx, post, saved);
+  }
   const tags = await ctx.db
     .query("postTags")
     .withIndex("by_postId", (q) => q.eq("postId", post._id))
@@ -447,6 +456,7 @@ export const remove = internalMutation({
       await ctx.storage.delete(row.storageId);
       await ctx.db.delete("postAssets", row._id);
     }
+    await syncPublishedByDay(ctx, post, null);
     await ctx.db.delete("posts", post._id);
     return null;
   },
@@ -597,7 +607,8 @@ export const getAdjacentBySlug = internalQuery({
   },
 });
 
-const MAX_CALENDAR_POSTS = 200;
+const MAX_CALENDAR_POSTS = 500;
+const MAX_CALENDAR_DAYS = 32;
 
 export const listPublishedBetween = internalQuery({
   args: {
@@ -637,6 +648,20 @@ export const listPublishedBetween = internalQuery({
       });
     }
     return posts;
+  },
+});
+
+export const countPublishedDays = internalQuery({
+  args: {
+    days: v.array(v.object({ start: v.number(), end: v.number() })),
+  },
+  returns: v.array(v.number()),
+  handler: async (ctx, args) => {
+    if (args.days.length === 0) return [];
+    if (args.days.length > MAX_CALENDAR_DAYS) {
+      throw new Error("Too many days");
+    }
+    return await publishedByDay.countBatch(ctx, dayCountQueries(args.days));
   },
 });
 

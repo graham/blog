@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { calendarMonth, dayKey } from "../src/lib/calendar";
+import { calendarMonth, dayKey, monthDayRanges } from "../src/lib/calendar";
 
 function at(year: number, month: number, day: number, hour = 12) {
   return new Date(year, month, day, hour).getTime();
@@ -58,5 +58,14 @@ describe("dayKey", () => {
   test("keys a timestamp in local year-month-day", () => {
     expect(dayKey(at(2026, 0, 15, 0))).toBe("2026-0-15");
     expect(dayKey(at(2026, 0, 15, 23))).toBe("2026-0-15");
+  });
+});
+
+describe("monthDayRanges", () => {
+  test("covers each local day in the month", () => {
+    const days = monthDayRanges(2026, 1);
+    expect(days).toHaveLength(28);
+    expect(days[0]?.start).toBe(new Date(2026, 1, 1).getTime());
+    expect(days[27]?.end).toBe(new Date(2026, 2, 1).getTime());
   });
 });

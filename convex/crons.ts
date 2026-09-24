@@ -10,4 +10,11 @@ crons.interval(
   { cursor: null },
 );
 
+crons.interval(
+  "backfill posts.publishedByDay",
+  { minutes: 1 },
+  internal.migrations.backfillPublishedByDay,
+  { cursor: null },
+);
+
 export default crons;

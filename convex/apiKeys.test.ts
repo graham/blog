@@ -3,13 +3,16 @@ import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { sha256Hex } from "./apiKeys/token";
+import { registerAggregate } from "../tests/registerAggregate";
 
 const modules = import.meta.glob("./**/*.ts");
 
 process.env.API_KEY_ENCRYPTION_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 
 function createT() {
-  return convexTest(schema, modules);
+  const t = convexTest(schema, modules);
+  registerAggregate(t);
+  return t;
 }
 
 async function seedUser(t: ReturnType<typeof createT>, userType: string) {

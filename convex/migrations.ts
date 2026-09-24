@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { createdAtOf } from "./posts/internal";
+import { isListedPublished, publishedByDay } from "./posts/aggregate";
 
 const MIGRATION = "posts.createdAt";
 const PAGE_SIZE = 50;
@@ -49,6 +50,46 @@ export const backfillPostsCreatedAt = internalMutation({
     }
 
     await ctx.scheduler.runAfter(0, internal.migrations.backfillPostsCreatedAt, {
+      cursor: page.continueCursor,
+    });
+    return null;
+  },
+});
+
+const PUBLISHED_BY_DAY = "posts.publishedByDay";
+
+export const backfillPublishedByDay = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const state = await ctx.db
+      .query("migrationState")
+      .withIndex("by_name", (q) => q.eq("name", PUBLISHED_BY_DAY))
+      .unique();
+    if (state?.done) return null;
+
+    const page = await ctx.db.query("posts").paginate({
+      numItems: PAGE_SIZE,
+      cursor: args.cursor,
+    });
+    for (const post of page.page) {
+      if (isListedPublished(post)) {
+        await publishedByDay.insertIfDoesNotExist(ctx, post);
+      } else {
+        await publishedByDay.deleteIfExists(ctx, post);
+      }
+    }
+
+    if (page.isDone) {
+      if (state) {
+        await ctx.db.patch("migrationState", state._id, { done: true });
+      } else {
+        await ctx.db.insert("migrationState", { name: PUBLISHED_BY_DAY, done: true });
+      }
+      return null;
+    }
+
+    await ctx.scheduler.runAfter(0, internal.migrations.backfillPublishedByDay, {
       cursor: page.continueCursor,
     });
     return null;

@@ -3,11 +3,14 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
+import { registerAggregate } from "../tests/registerAggregate";
 
 const modules = import.meta.glob("./**/*.ts");
 
 function createT() {
-  return convexTest(schema, modules);
+  const t = convexTest(schema, modules);
+  registerAggregate(t);
+  return t;
 }
 
 async function seedUser(t: ReturnType<typeof createT>, email: string, userType: string) {
@@ -238,5 +241,73 @@ describe("calendar page query", () => {
         end: Date.parse("2026-03-01T00:00:00.000Z"),
       }),
     ).toEqual([]);
+  });
+
+  test("countPublishedDays returns nothing while the calendar is off", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    const postId = await asAdmin.mutation(api.posts.mutations.create, {});
+    await asAdmin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Dated",
+      excerpt: "",
+      body: "body",
+      visibility: "listed",
+      tags: [],
+    });
+    await asAdmin.mutation(api.posts.mutations.setPublished, { postId, published: true });
+    const now = Date.now();
+    expect(
+      await t.query(api.posts.publicQueries.countPublishedDays, {
+        days: [{ start: now - 60_000, end: now + 60_000 }],
+      }),
+    ).toEqual([]);
+  });
+
+  test("countPublishedDays counts listed published posts per window", async () => {
+    const t = createT();
+    const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
+    await asAdmin.mutation(api.features.mutations.set, { calendar: true });
+    const postId = await asAdmin.mutation(api.posts.mutations.create, {});
+    await asAdmin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Dated",
+      excerpt: "",
+      body: "body",
+      visibility: "listed",
+      tags: [],
+    });
+    await asAdmin.mutation(api.posts.mutations.setPublished, { postId, published: true });
+    const now = Date.now();
+    const window = { start: now - 60_000, end: now + 60_000 };
+    expect(await t.query(api.posts.publicQueries.countPublishedDays, { days: [window] })).toEqual([
+      1,
+    ]);
+    await asAdmin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Dated",
+      excerpt: "",
+      body: "body",
+      visibility: "unlisted",
+      tags: [],
+    });
+    expect(await t.query(api.posts.publicQueries.countPublishedDays, { days: [window] })).toEqual([
+      0,
+    ]);
+    await asAdmin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Dated",
+      excerpt: "",
+      body: "body",
+      visibility: "listed",
+      tags: [],
+    });
+    expect(await t.query(api.posts.publicQueries.countPublishedDays, { days: [window] })).toEqual([
+      1,
+    ]);
+    await asAdmin.mutation(api.posts.mutations.setPublished, { postId, published: false });
+    expect(await t.query(api.posts.publicQueries.countPublishedDays, { days: [window] })).toEqual([
+      0,
+    ]);
   });
 });

@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { calendarMonth, dayKey } from "@/lib/calendar";
+import { calendarMonth, monthDayRanges } from "@/lib/calendar";
 import { formatDate, isAdminUser } from "@/lib/format";
 import { featureOn } from "@/lib/features";
 
@@ -69,22 +69,28 @@ export default function Calendar() {
   const [month, setMonth] = useState(now.getMonth());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  const range = useMemo(
-    () => ({
-      start: new Date(year, month, 1).getTime(),
-      end: new Date(year, month + 1, 1).getTime(),
-    }),
-    [year, month],
-  );
+  const days = useMemo(() => monthDayRanges(year, month), [year, month]);
+  const selectedDay = selectedKey ? Number(selectedKey.split("-")[2]) : null;
+  const selectedRange = useMemo(() => {
+    if (selectedDay === null || Number.isNaN(selectedDay)) return null;
+    return {
+      start: new Date(year, month, selectedDay).getTime(),
+      end: new Date(year, month, selectedDay + 1).getTime(),
+    };
+  }, [year, month, selectedDay]);
 
   const allowed =
     features !== undefined &&
     currentUser !== undefined &&
     featureOn(features.calendar, isAdminUser(currentUser));
 
+  const dayCounts = useQuery(
+    api.posts.publicQueries.countPublishedDays,
+    allowed ? { days } : "skip",
+  );
   const posts = useQuery(
     api.posts.publicQueries.listPublishedBetween,
-    allowed ? range : "skip",
+    allowed && selectedRange ? selectedRange : "skip",
   );
 
   if (features === undefined || currentUser === undefined) {
@@ -99,17 +105,15 @@ export default function Calendar() {
     return <Navigate to="/" replace />;
   }
 
-  const byDay = new Map<string, NonNullable<typeof posts>>();
-  for (const post of posts ?? []) {
-    const key = dayKey(post.publishedAt);
-    const bucket = byDay.get(key);
-    if (bucket) bucket.push(post);
-    else byDay.set(key, [post]);
+  const counts = new Map<string, number>();
+  if (dayCounts) {
+    days.forEach((_, index) => {
+      counts.set(`${year}-${month}-${index + 1}`, dayCounts[index] ?? 0);
+    });
   }
 
-  const { weeks, monthTotal } = calendarMonth(year, month, posts ?? []);
-
-  const selected = selectedKey ? (byDay.get(selectedKey) ?? []) : [];
+  const { weeks, monthTotal } = calendarMonth(year, month, counts);
+  const selected = posts ?? [];
   const selectedLabel = selectedKey
     ? formatDate(new Date(year, month, Number(selectedKey.split("-")[2])).getTime())
     : null;
@@ -212,10 +216,10 @@ export default function Calendar() {
           <h2 className="mb-3 font-sans text-lg font-semibold">
             {selectedLabel ? selectedLabel : "Select a day"}
           </h2>
-          {posts === undefined ? (
-            <p className="text-sm text-muted">Loading...</p>
-          ) : selectedKey === null ? (
+          {selectedKey === null ? (
             <p className="text-sm text-muted">Pick a day on the calendar.</p>
+          ) : posts === undefined ? (
+            <p className="text-sm text-muted">Loading...</p>
           ) : (
             <div className="space-y-4">
               <HourChart posts={selected} />

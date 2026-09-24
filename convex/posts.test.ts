@@ -3,10 +3,13 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import { registerAggregate } from "../tests/registerAggregate";
 const modules = import.meta.glob("./**/*.ts");
 
 function createT() {
-  return convexTest(schema, modules);
+  const t = convexTest(schema, modules);
+  registerAggregate(t);
+  return t;
 }
 
 async function seedUser(t: ReturnType<typeof createT>, email: string, userType: string) {
@@ -697,5 +700,47 @@ describe("posts", () => {
     await t.mutation(internal.migrations.backfillPostsCreatedAt, { cursor: null });
     const again = await t.run(async (ctx) => ctx.db.get("posts", ids.postId));
     expect(again?.createdAt).toBe(ids.creationTime);
+  });
+
+  test("publishedByDay backfill inserts existing listed published posts", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    await admin.mutation(api.features.mutations.set, { calendar: true });
+    const publishedAt = Date.now();
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", {
+        email: "author@example.com",
+        name: "author",
+        userType: "admin",
+      });
+      await ctx.db.insert("posts", {
+        title: "Old",
+        slug: "old-listed",
+        excerpt: "",
+        body: "b",
+        status: "published",
+        visibility: "listed",
+        publishedAt,
+        authorId: userId,
+        updatedAt: publishedAt,
+        coverImageId: null,
+        searchText: "old",
+      });
+    });
+    const window = { start: publishedAt - 60_000, end: publishedAt + 60_000 };
+    expect(
+      await t.query(api.posts.publicQueries.countPublishedDays, { days: [window] }),
+    ).toEqual([0]);
+    await t.mutation(internal.migrations.backfillPublishedByDay, { cursor: null });
+    expect(
+      await t.query(api.posts.publicQueries.countPublishedDays, { days: [window] }),
+    ).toEqual([1]);
+    const state = await t.run(async (ctx) =>
+      ctx.db
+        .query("migrationState")
+        .withIndex("by_name", (q) => q.eq("name", "posts.publishedByDay"))
+        .unique(),
+    );
+    expect(state?.done).toBe(true);
   });
 });
