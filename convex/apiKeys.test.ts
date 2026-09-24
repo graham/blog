@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { sha256Hex } from "./apiKeys/token";
@@ -275,5 +275,96 @@ describe("blog API keys", () => {
     };
     expect(attached.asset.contentType).toBe("application/zip");
     expect(attached.asset.markdown).toMatch(/^\[Download download\.zip\]\(convex:\/\//);
+  });
+
+  describe("agent status", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function seedKey(t: ReturnType<typeof createT>) {
+      const token = `blg_${"b".repeat(64)}`;
+      await t.run(async (ctx) => {
+        const userId = await ctx.db.insert("users", {
+          email: "admin@example.com",
+          name: "admin",
+          userType: "admin",
+        });
+        await ctx.db.insert("apiKeys", {
+          name: "agent",
+          tokenPrefix: token.slice(0, 12),
+          tokenHash: await sha256Hex(token),
+          createdBy: userId,
+        });
+      });
+      return token;
+    }
+
+    function postStatus(t: ReturnType<typeof createT>, token: string, body: unknown) {
+      return t.fetch("/api/agent/status", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    }
+
+    test("throttles same-state updates but lets state and question changes through", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-24T12:00:00Z"));
+      const t = createT();
+      const token = await seedKey(t);
+
+      const first = await postStatus(t, token, { state: "working", status: "drafting-post" });
+      expect(first.status).toBe(200);
+
+      const tooSoon = await postStatus(t, token, { state: "working", status: "uploading-images" });
+      expect(tooSoon.status).toBe(429);
+      expect(tooSoon.headers.get("Retry-After")).toBe("30");
+
+      const question = await postStatus(t, token, {
+        state: "waiting_for_input",
+        status: "choosing-cover",
+        question: "Chart or screenshot?",
+      });
+      expect(question.status).toBe(200);
+
+      vi.setSystemTime(new Date("2026-09-24T12:00:31Z"));
+      const later = await postStatus(t, token, {
+        state: "waiting_for_input",
+        status: "still-choosing-cover",
+        question: "Chart or screenshot?",
+      });
+      expect(later.status).toBe(200);
+
+      const admin = t.withIdentity({
+        subject: `${await t.run(async (ctx) => (await ctx.db.query("users").first())!._id)}|s`,
+      });
+      const [listed] = await admin.query(api.apiKeys.queries.list, {});
+      expect(listed.agentStatus).toMatchObject({
+        state: "waiting_for_input",
+        status: "still-choosing-cover",
+        question: "Chart or screenshot?",
+      });
+    });
+
+    test("rejects invalid input and revoked keys", async () => {
+      const t = createT();
+      const token = await seedKey(t);
+      expect((await postStatus(t, token, { state: "sleeping", status: "x" })).status).toBe(400);
+      expect((await postStatus(t, token, { state: "working", status: "Not A Slug" })).status).toBe(
+        400,
+      );
+      expect(
+        (await postStatus(t, token, { state: "working", status: "drafting", question: "?" }))
+          .status,
+      ).toBe(400);
+      await t.run(async (ctx) => {
+        const key = await ctx.db.query("apiKeys").first();
+        await ctx.db.patch("apiKeys", key!._id, { revokedAt: Date.now() });
+      });
+      expect((await postStatus(t, token, { state: "working", status: "drafting" })).status).toBe(
+        401,
+      );
+    });
   });
 });

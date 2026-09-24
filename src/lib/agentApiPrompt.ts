@@ -57,6 +57,19 @@ ${curl} -sS -X POST "${variable("BLOG_API_URL")}/api/posts/${postId}/assets/atta
   --data-raw "$(jq -nc --arg storageId "$STORAGE_ID" --arg filename "$(basename "${zipPath}")" '{storageId:$storageId,filename:$filename}')"`;
   return `${setup}
 
+# Report agent state and status. state is one of waiting_for_work, working,
+# waiting_for_input, blocked. status is a short lowercase slug.
+${curl} -sS -X POST "${variable("BLOG_API_URL")}/api/agent/status" ${continuation}
+  -H "Authorization: Bearer ${variable("BLOG_API_KEY")}" ${continuation}
+  -H "Content-Type: application/json" ${continuation}
+  --data-raw '{"state":"working","status":"drafting-post"}'
+
+# Ask the operator a question (bypasses the 30 second limit):
+${curl} -sS -X POST "${variable("BLOG_API_URL")}/api/agent/status" ${continuation}
+  -H "Authorization: Bearer ${variable("BLOG_API_KEY")}" ${continuation}
+  -H "Content-Type: application/json" ${continuation}
+  --data-raw '{"state":"waiting_for_input","status":"choosing-cover-image","question":"Use the latency chart or the screenshot as the cover?"}'
+
 # List recent posts, including drafts:
 ${curl} -sS "${variable("BLOG_API_URL")}/api/posts?limit=20" ${continuation}
   -H "Authorization: Bearer ${variable("BLOG_API_KEY")}"
@@ -137,6 +150,24 @@ async function api(path, options = {}) {
   return result;
 }
 
+// Best effort: a failed status report never stops the real work.
+// 429 means the last update was under 30 seconds ago; skip it, do not retry in a loop.
+async function reportStatus(state, status, question = null) {
+  try {
+    const response = await fetch(base + "/api/agent/status", {
+      method: "POST",
+      headers: { Authorization: \`Bearer \${key}\`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state, status, question }),
+    });
+    if (!response.ok && response.status !== 429) {
+      console.warn("Status report failed:", response.status, await response.text());
+    }
+  } catch (error) {
+    console.warn("Status report failed:", error);
+  }
+}
+
+await reportStatus("working", "reviewing-recent-posts");
 const recent = await api("/api/posts?limit=20");
 console.log("Recent posts:", recent.posts);
 
@@ -206,6 +237,7 @@ await api(\`/api/posts/\${postId}\`, {
     published: true,
   }),
 });
+await reportStatus("waiting_for_work", "published-post");
 \`\`\`
 
 Run it:
@@ -237,6 +269,16 @@ Workflow:
 3. Keep the returned post.id. GET the post before later edits, then PATCH only the fields you intend to change.
 4. Upload images or videos through the /assets route. For a large ZIP, request an /assets/upload-url, upload directly to it, then call /assets/attach. Insert the returned asset.markdown where the media or download link belongs.
 5. Keep published:false while working. Set published:true only when the result is ready. Further PATCH requests update the published post in place.
+
+Agent status:
+Report what you are doing with POST /api/agent/status so the operator can see it on the API keys page.
+- Status updates are private to the operator. They are not part of any post. Never write your state, status, or questions to the operator into a post's title, excerpt, body, tags, or asset text.
+- state: waiting_for_work (idle, nothing assigned), working (actively making progress), waiting_for_input (you need an answer from the operator), blocked (a failure you cannot resolve on your own).
+- status: a short lowercase slug of the current activity, e.g. drafting-post, uploading-images, resizing-video. Letters, digits, and single hyphens; at most 64 characters.
+- question: set it with waiting_for_input or blocked to ask the operator something specific. Omit or send null otherwise.
+- Report working when you start, waiting_for_input or blocked as soon as you need the operator, and waiting_for_work when the task is finished.
+- Do not send more than one update per 30 seconds. Status-only changes inside that window return 429 with retryAfterSeconds; skip them rather than retrying. A change of state or question is always accepted immediately, so reserve those for things the operator should see right away.
+- Status reporting is best effort. Never stop or fail the actual work because a status update failed.
 
 Video rules:
 - Never use cover=true for a video; only images can be post covers.

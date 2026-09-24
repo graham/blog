@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -10,7 +10,7 @@ import {
   type AgentClient,
   type AgentPlatform,
 } from "@/lib/agentApiPrompt";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatTimeDelta } from "@/lib/format";
 
 type Revealed = {
   key: {
@@ -20,7 +20,45 @@ type Revealed = {
   token: string;
 };
 
+type AgentStatus = {
+  state: "waiting_for_work" | "working" | "waiting_for_input" | "blocked";
+  status: string;
+  question: string | null;
+  updatedAt: number;
+};
+
 const siteUrl = convexSiteUrl(import.meta.env.VITE_CONVEX_URL);
+
+const STATE_LABELS: Record<AgentStatus["state"], string> = {
+  waiting_for_work: "Waiting for work",
+  working: "Working",
+  waiting_for_input: "Waiting for input",
+  blocked: "Blocked",
+};
+
+const STATE_CLASSES: Record<AgentStatus["state"], string> = {
+  waiting_for_work: "text-muted",
+  working: "text-foreground",
+  waiting_for_input: "text-accent",
+  blocked: "text-destructive",
+};
+
+function AgentStatusCell({ agentStatus, now }: { agentStatus: AgentStatus | null; now: number }) {
+  if (!agentStatus) return <span className="text-muted">No reports</span>;
+  return (
+    <div className="max-w-xs space-y-1">
+      <p className={`font-medium ${STATE_CLASSES[agentStatus.state]}`}>
+        {STATE_LABELS[agentStatus.state]}
+      </p>
+      <p className="font-mono text-xs text-muted">
+        {agentStatus.status} · {formatTimeDelta(now, agentStatus.updatedAt)} ago
+      </p>
+      {agentStatus.question ? (
+        <p className="whitespace-pre-wrap text-xs">{agentStatus.question}</p>
+      ) : null}
+    </div>
+  );
+}
 
 export default function ApiKeys() {
   const keys = useQuery(api.apiKeys.queries.list);
@@ -35,6 +73,12 @@ export default function ApiKeys() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const prompt = useMemo(
     () =>
@@ -104,20 +148,21 @@ export default function ApiKeys() {
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[620px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-border bg-secondary/60 text-muted">
               <tr>
                 <th className="px-4 py-2 font-medium">Name</th>
                 <th className="px-4 py-2 font-medium">Prefix</th>
                 <th className="px-4 py-2 font-medium">Created</th>
                 <th className="px-4 py-2 font-medium">Status</th>
+                <th className="px-4 py-2 font-medium">Agent</th>
                 <th className="px-4 py-2 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {(keys ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-muted">
+                  <td colSpan={6} className="px-4 py-6 text-muted">
                     No API keys yet.
                   </td>
                 </tr>
@@ -128,6 +173,9 @@ export default function ApiKeys() {
                     <td className="px-4 py-3 font-mono text-xs text-muted">{key.tokenPrefix}…</td>
                     <td className="px-4 py-3 text-muted">{formatDate(key._creationTime)}</td>
                     <td className="px-4 py-3">{key.revokedAt === null ? "Active" : "Revoked"}</td>
+                    <td className="px-4 py-3 align-top">
+                      <AgentStatusCell agentStatus={key.agentStatus} now={now} />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <Button

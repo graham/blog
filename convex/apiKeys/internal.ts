@@ -14,6 +14,8 @@ import {
   setPublishedHandler,
 } from "../posts/internal";
 import { apiKeyFromToken } from "./auth";
+import { writeAgentStatus } from "../apiKeyAgentStatuses/internal";
+import { agentStateValidator, agentStatusValidator } from "../apiKeyAgentStatuses/validators";
 import { readSiteSettings } from "../siteSettings/internal";
 import { apiPostInputValidator } from "./validators";
 import {
@@ -102,6 +104,31 @@ export const authenticate = internalQuery({
     } catch {
       return false;
     }
+  },
+});
+
+export const setAgentStatus = internalMutation({
+  args: {
+    token: v.string(),
+    state: agentStateValidator,
+    status: v.string(),
+    question: v.union(v.string(), v.null()),
+  },
+  returns: v.union(
+    v.object({ ok: v.literal(true), agentStatus: agentStatusValidator }),
+    v.object({ ok: v.literal(false), retryAfterMs: v.number() }),
+  ),
+  handler: async (ctx, args) => {
+    const key = await requireApiKey(ctx, args.token);
+    const result = await writeAgentStatus(ctx, {
+      apiKeyId: key._id,
+      state: args.state,
+      status: args.status,
+      question: args.question,
+    });
+    if (!result.ok) return result;
+    const { ok, ...agentStatus } = result;
+    return { ok, agentStatus };
   },
 });
 

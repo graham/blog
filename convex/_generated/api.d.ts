@@ -9,6 +9,8 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as apiKeyAgentStatuses_internal from "../apiKeyAgentStatuses/internal.js";
+import type * as apiKeyAgentStatuses_validators from "../apiKeyAgentStatuses/validators.js";
 import type * as apiKeys_auth from "../apiKeys/auth.js";
 import type * as apiKeys_httpActions from "../apiKeys/httpActions.js";
 import type * as apiKeys_internal from "../apiKeys/internal.js";
@@ -92,6 +94,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  "apiKeyAgentStatuses/internal": typeof apiKeyAgentStatuses_internal;
+  "apiKeyAgentStatuses/validators": typeof apiKeyAgentStatuses_validators;
   "apiKeys/auth": typeof apiKeys_auth;
   "apiKeys/httpActions": typeof apiKeys_httpActions;
   "apiKeys/internal": typeof apiKeys_internal;

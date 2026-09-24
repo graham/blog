@@ -6,6 +6,13 @@ import {
   contentTypeFromFilename,
   isImageContentType,
 } from "../postAssets/contentTypes";
+import {
+  AGENT_QUESTION_MAX_LENGTH,
+  AGENT_STATUS_MAX_LENGTH,
+  AGENT_STATUS_SLUG,
+  isAgentState,
+  questionAllowed,
+} from "../apiKeyAgentStatuses/validators";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -300,6 +307,68 @@ export const uploadAsset = httpAction(async (ctx, req) => {
     } catch {
       // The deduplication path may already have removed this upload.
     }
+    return errorResponse(error);
+  }
+});
+
+export const setAgentStatus = httpAction(async (ctx, req) => {
+  const token = tokenFromRequest(req);
+  if (!token) return json({ error: "Missing Bearer API key" }, 401);
+  try {
+    const record = objectFrom(await requestJson(req));
+    if (!record) return json({ error: "Expected a JSON object" }, 400);
+    if (!isAgentState(record.state)) {
+      return json(
+        { error: "state must be waiting_for_work, working, waiting_for_input, or blocked" },
+        400,
+      );
+    }
+    if (
+      typeof record.status !== "string" ||
+      record.status.length > AGENT_STATUS_MAX_LENGTH ||
+      !AGENT_STATUS_SLUG.test(record.status)
+    ) {
+      return json(
+        {
+          error: `status must be a lowercase slug like drafting-post, at most ${AGENT_STATUS_MAX_LENGTH} characters`,
+        },
+        400,
+      );
+    }
+    let question: string | null = null;
+    if (record.question !== undefined && record.question !== null) {
+      if (typeof record.question !== "string") {
+        return json({ error: "question must be a string or null" }, 400);
+      }
+      question = record.question.trim().slice(0, AGENT_QUESTION_MAX_LENGTH) || null;
+    }
+    if (question !== null && !questionAllowed(record.state)) {
+      return json({ error: "question is only allowed with waiting_for_input or blocked" }, 400);
+    }
+    const result = await ctx.runMutation(internal.apiKeys.internal.setAgentStatus, {
+      token,
+      state: record.state,
+      status: record.status,
+      question,
+    });
+    if (!result.ok) {
+      const retryAfterSeconds = Math.ceil(result.retryAfterMs / 1000);
+      return new Response(
+        JSON.stringify({
+          error: "Status updated too recently. Change state or question to update immediately.",
+          retryAfterSeconds,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Retry-After": String(retryAfterSeconds),
+          },
+        },
+      );
+    }
+    return json({ agentStatus: result.agentStatus });
+  } catch (error) {
     return errorResponse(error);
   }
 });

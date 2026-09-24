@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { agentStatusValidator } from "../apiKeyAgentStatuses/validators";
 
 export const apiKeyPublicValidator = v.object({
   _id: v.id("apiKeys"),
@@ -7,6 +8,10 @@ export const apiKeyPublicValidator = v.object({
   tokenPrefix: v.string(),
   promptAvailable: v.boolean(),
   revokedAt: v.union(v.number(), v.null()),
+});
+
+export const apiKeyListItemValidator = apiKeyPublicValidator.extend({
+  agentStatus: v.union(agentStatusValidator, v.null()),
 });
 
 export const revealedApiKeyValidator = v.object({

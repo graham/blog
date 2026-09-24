@@ -6,6 +6,7 @@ import {
   createPost,
   getPost,
   listPosts,
+  setAgentStatus,
   updatePost,
   uploadAsset,
 } from "./apiKeys/httpActions";
@@ -13,6 +14,7 @@ import {
 const http = httpRouter();
 
 auth.addHttpRoutes(http);
+http.route({ path: "/api/agent/status", method: "POST", handler: setAgentStatus });
 http.route({ path: "/api/posts", method: "GET", handler: listPosts });
 http.route({ path: "/api/posts", method: "POST", handler: createPost });
 http.route({ pathPrefix: "/api/posts/", method: "GET", handler: getPost });

@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { storedFeatureModeValidator } from "./lib/featureMode";
+import { agentStateValidator } from "./apiKeyAgentStatuses/validators";
 
 const schema = defineSchema({
   ...authTables,
@@ -61,6 +62,14 @@ const schema = defineSchema({
     createdBy: v.id("users"),
     revokedAt: v.optional(v.number()),
   }).index("by_tokenHash", ["tokenHash"]),
+
+  apiKeyAgentStatuses: defineTable({
+    apiKeyId: v.id("apiKeys"),
+    state: agentStateValidator,
+    status: v.string(),
+    question: v.union(v.string(), v.null()),
+    updatedAt: v.number(),
+  }).index("by_apiKeyId", ["apiKeyId"]),
 
   posts: defineTable({
     title: v.string(),
