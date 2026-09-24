@@ -186,22 +186,22 @@ export default function Post({ preview = false }: { preview?: boolean }) {
               {wide ? "Default width" : "Full width"}
             </Button>
             {isAdminUser(currentUser) ? (
-              <>
-                <PostTimesEditor
-                  postId={post._id}
-                  createdAt={post.createdAt}
-                  updatedAt={post.updatedAt}
-                />
-                <Link
-                  to={`/admin/posts/${post._id}`}
-                  className="text-sm text-muted hover:text-foreground"
-                >
-                  Edit
-                </Link>
-              </>
+              <Link
+                to={`/admin/posts/${post._id}`}
+                className="text-sm text-muted hover:text-foreground"
+              >
+                Edit
+              </Link>
             ) : null}
           </div>
         </div>
+        {isAdminUser(currentUser) ? (
+          <PostTimesEditor
+            postId={post._id}
+            createdAt={post.createdAt}
+            updatedAt={post.updatedAt}
+          />
+        ) : null}
         {imagesOnly && !publicMedia ? (
           <p className="text-sm text-muted">{NO_PUBLIC_TEXT_MESSAGE}</p>
         ) : (
@@ -239,11 +239,11 @@ function PostTimesEditor({
   updatedAt: number;
 }) {
   const setTimes = useMutation(api.posts.mutations.setTimes);
-  const [open, setOpen] = useState(false);
   const [created, setCreated] = useState(toDateTimeLocal(createdAt));
   const [updated, setUpdated] = useState(toDateTimeLocal(updatedAt));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setCreated(toDateTimeLocal(createdAt));
@@ -260,9 +260,10 @@ function PostTimesEditor({
     }
     setBusy(true);
     setError(null);
+    setSaved(false);
     try {
       await setTimes({ postId, createdAt: nextCreated, updatedAt: nextUpdated });
-      setOpen(false);
+      setSaved(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save times");
     } finally {
@@ -271,44 +272,58 @@ function PostTimesEditor({
   }
 
   return (
-    <div className="relative">
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen((value) => !value)}>
-        Dates
-      </Button>
-      {open ? (
-        <form
-          onSubmit={(event) => void onSubmit(event)}
-          className="absolute right-0 z-20 mt-2 w-72 space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg"
-        >
-          <label className="block text-sm">
-            <span className="mb-1 block text-muted">Created</span>
+    <form
+      onSubmit={(event) => void onSubmit(event)}
+      className="mb-8 rounded-xl border border-border bg-card p-4"
+    >
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">Dates</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="mb-1 block text-muted">Created</span>
+          <div className="flex gap-2">
             <input
               type="datetime-local"
               value={created}
               onChange={(event) => setCreated(event.target.value)}
-              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+              className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
             />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-muted">Updated</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCreated(toDateTimeLocal(Date.now()))}
+            >
+              Now
+            </Button>
+          </div>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-muted">Updated</span>
+          <div className="flex gap-2">
             <input
               type="datetime-local"
               value={updated}
               onChange={(event) => setUpdated(event.target.value)}
-              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+              className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
             />
-          </label>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" disabled={busy}>
-              Save
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setUpdated(toDateTimeLocal(Date.now()))}
+            >
+              Now
             </Button>
           </div>
-        </form>
-      ) : null}
-    </div>
+        </label>
+      </div>
+      {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
+      {saved ? <p className="mt-3 text-sm text-muted">Saved.</p> : null}
+      <div className="mt-3">
+        <Button type="submit" size="sm" disabled={busy}>
+          Save dates
+        </Button>
+      </div>
+    </form>
   );
 }
