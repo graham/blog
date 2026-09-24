@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import {
   internalMutation,
   internalQuery,
@@ -176,6 +177,10 @@ export const createPost = internalMutation({
     if (input.published === true) {
       await setPublishedHandler(ctx, { postId, published: true });
     }
+    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
+      kind: "created",
+      postId,
+    });
     return {
       id: postId,
       slug: saved.slug,
@@ -212,6 +217,10 @@ export const updatePost = internalMutation({
         published: input.published,
       });
     }
+    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
+      kind: "updated",
+      postId: post._id,
+    });
     const status =
       input.published === undefined ? post.status : input.published ? "published" : "draft";
     return { id: post._id, slug: saved.slug, status };
