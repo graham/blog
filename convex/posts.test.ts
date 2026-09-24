@@ -64,11 +64,37 @@ describe("posts", () => {
     });
     expect(bySlug).toBeNull();
 
-    const adminView = await asUser.query(api.posts.publicQueries.getBySlug, {
+    const adminPublic = await asUser.query(api.posts.publicQueries.getBySlug, {
       slug: "secret-draft",
     });
-    expect(adminView?.title).toBe("Secret draft");
-    expect(adminView?.status).toBe("draft");
+    expect(adminPublic).toBeNull();
+
+    const editorView = await asUser.query(api.posts.queries.getById, { postId });
+    expect(editorView?.title).toBe("Secret draft");
+    expect(editorView?.status).toBe("draft");
+  });
+
+  test("unpublishing hides a post from public getBySlug", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    const postId = await admin.mutation(api.posts.mutations.create, {});
+    await admin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Live then gone",
+      excerpt: "",
+      body: "visible then not",
+      visibility: "listed",
+      tags: [],
+    });
+    await admin.mutation(api.posts.mutations.setPublished, { postId, published: true });
+    expect(
+      (await t.query(api.posts.publicQueries.getBySlug, { slug: "live-then-gone" }))?.title,
+    ).toBe("Live then gone");
+    await admin.mutation(api.posts.mutations.setPublished, { postId, published: false });
+    expect(await t.query(api.posts.publicQueries.getBySlug, { slug: "live-then-gone" })).toBeNull();
+    expect(
+      await admin.query(api.posts.publicQueries.getBySlug, { slug: "live-then-gone" }),
+    ).toBeNull();
   });
 
   test("published listed posts appear publicly; unlisted published do not", async () => {

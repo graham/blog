@@ -525,7 +525,6 @@ export const getBySlug = internalQuery({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     if (!post) return null;
-    if (!args.asAdmin && post.status !== "published") return null;
     if (!(await canViewPost(ctx, post, viewerFrom(args)))) return null;
     const detail = await toDetail(ctx, post);
     const [withRead] = await attachReadStates(ctx, args.viewerUserId, args.asAdmin, [detail]);

@@ -68,8 +68,8 @@ export async function canViewPost(
   viewer: { userId: Id<"users"> | null; isAdmin: boolean } | null,
   userChannelIds?: Set<Id<"channels">>,
 ): Promise<boolean> {
-  if (viewer?.isAdmin) return true;
   if (post.status !== "published") return false;
+  if (viewer?.isAdmin) return true;
   if (!viewer?.userId) {
     const { requireAuth } = await readSiteSettings(ctx);
     if (requireAuth) return false;
