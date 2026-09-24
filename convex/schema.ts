@@ -9,6 +9,7 @@ const schema = defineSchema({
     ...authTables.users.validator.fields,
     userType: v.string(),
     disabledAt: v.optional(v.number()),
+    authGeneration: v.optional(v.union(v.literal("v1"), v.literal("v2"))),
   })
     .index("email", ["email"])
     .index("phone", ["phone"]),
