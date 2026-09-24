@@ -79,13 +79,15 @@ export default function Home() {
               >
                 {unreadOnly ? "All posts" : "Unread"}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void markAllRead({})}
-              >
-                Mark all read
-              </Button>
+              {unreadOnly ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void markAllRead({})}
+                >
+                  Mark all read
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </div>
