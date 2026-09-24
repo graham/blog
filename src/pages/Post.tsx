@@ -7,7 +7,7 @@ import { Layout } from "@/components/Layout";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { ZoomableImage } from "@/components/ImageOverlay";
 import { Button } from "@/components/ui/button";
-import { formatDate, isAdminUser, toDateTimeLocal } from "@/lib/format";
+import { formatDate, formatDateTime, isAdminUser, toDateTimeLocal } from "@/lib/format";
 import { markdownOverlayImages, postOverlayImages } from "@/lib/images";
 import { hasPublicMedia, NO_PUBLIC_TEXT_MESSAGE } from "@/lib/mediaOnly";
 import { useImagesOnly } from "@/lib/useImagesOnly";
@@ -156,6 +156,10 @@ export default function Post({ preview = false }: { preview?: boolean }) {
             ) : null}
             {imagesOnly ? null : post.status === "draft" ? (
               <p className="mb-2 text-xs uppercase tracking-wide text-muted">Draft preview</p>
+            ) : post.status === "scheduled" && post.publishedAt !== null ? (
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-destructive">
+                Scheduled for {formatDateTime(post.publishedAt)}
+              </p>
             ) : null}
             {imagesOnly ? null : (
               <time className="text-xs uppercase tracking-wide text-muted">
@@ -220,6 +224,8 @@ export default function Post({ preview = false }: { preview?: boolean }) {
             postId={post._id}
             createdAt={post.createdAt}
             updatedAt={post.updatedAt}
+            publishedAt={post.publishedAt}
+            draft={post.status === "draft"}
           />
         ) : null}
         {imagesOnly && !publicMedia ? (
@@ -253,14 +259,21 @@ function PostTimesEditor({
   postId,
   createdAt,
   updatedAt,
+  publishedAt,
+  draft,
 }: {
   postId: Id<"posts">;
   createdAt: number;
   updatedAt: number;
+  publishedAt: number | null;
+  draft: boolean;
 }) {
   const setTimes = useMutation(api.posts.mutations.setTimes);
   const [created, setCreated] = useState(toDateTimeLocal(createdAt));
   const [updated, setUpdated] = useState(toDateTimeLocal(updatedAt));
+  const [published, setPublished] = useState(
+    publishedAt === null ? "" : toDateTimeLocal(publishedAt),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -268,13 +281,22 @@ function PostTimesEditor({
   useEffect(() => {
     setCreated(toDateTimeLocal(createdAt));
     setUpdated(toDateTimeLocal(updatedAt));
-  }, [createdAt, updatedAt]);
+    setPublished(publishedAt === null ? "" : toDateTimeLocal(publishedAt));
+  }, [createdAt, updatedAt, publishedAt]);
+
+  const publishedValue = published ? new Date(published).getTime() : null;
+  const publishedInFuture =
+    publishedValue !== null && Number.isFinite(publishedValue) && publishedValue > Date.now();
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const nextCreated = new Date(created).getTime();
     const nextUpdated = new Date(updated).getTime();
-    if (!Number.isFinite(nextCreated) || !Number.isFinite(nextUpdated)) {
+    if (
+      !Number.isFinite(nextCreated) ||
+      !Number.isFinite(nextUpdated) ||
+      (publishedValue !== null && !Number.isFinite(publishedValue))
+    ) {
       setError("Enter valid dates");
       return;
     }
@@ -282,7 +304,12 @@ function PostTimesEditor({
     setError(null);
     setSaved(false);
     try {
-      await setTimes({ postId, createdAt: nextCreated, updatedAt: nextUpdated });
+      await setTimes({
+        postId,
+        createdAt: nextCreated,
+        updatedAt: nextUpdated,
+        publishedAt: publishedValue,
+      });
       setSaved(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save times");
@@ -336,7 +363,35 @@ function PostTimesEditor({
             </Button>
           </div>
         </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-muted">Published</span>
+          <div className="flex gap-2">
+            <input
+              type="datetime-local"
+              value={published}
+              onChange={(event) => setPublished(event.target.value)}
+              className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPublished(toDateTimeLocal(Date.now()))}
+            >
+              Now
+            </Button>
+          </div>
+        </label>
       </div>
+      {publishedInFuture && publishedValue !== null ? (
+        <p className="mt-3 rounded-md border border-accent bg-secondary p-3 text-sm">
+          The published date is in the future.{" "}
+          {draft
+            ? `When this post is published it will stay hidden until ${formatDateTime(publishedValue)}.`
+            : `This post will be hidden from readers until ${formatDateTime(publishedValue)}.`}{" "}
+          You can still see it through the admin preview link.
+        </p>
+      ) : null}
       {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
       {saved ? <p className="mt-3 text-sm text-muted">Saved.</p> : null}
       <div className="mt-3">

@@ -1,5 +1,6 @@
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -35,6 +36,7 @@ import { isImageContentType } from "../postAssets/contentTypes";
 import { dayCountQueries, publishedByDay, syncPublishedByDay } from "./aggregate";
 
 type Ctx = QueryCtx | MutationCtx;
+type PostStatus = Doc<"posts">["status"];
 
 export function createdAtOf(post: { createdAt?: number; _creationTime: number }): number {
   return post.createdAt ?? post._creationTime;
@@ -190,7 +192,7 @@ async function syncTags(
   ctx: MutationCtx,
   postId: Id<"posts">,
   tags: string[],
-  status: "draft" | "published",
+  status: PostStatus,
   visibility: "listed" | "unlisted",
   postCreatedAt: number,
   postUpdatedAt: number,
@@ -350,21 +352,25 @@ export const save = internalMutation({
   handler: saveHandler,
 });
 
-export async function setPublishedHandler(
+// A published post whose publishedAt is still in the future is "scheduled":
+// every public read filters on status "published", so it stays hidden until
+// publishScheduled flips it at publishedAt. Queries cannot read the clock,
+// which is why the transition is materialized by a scheduled mutation.
+async function applyPublication(
   ctx: MutationCtx,
-  args: { postId: Id<"posts">; published: boolean },
-): Promise<null> {
-  const post = await ctx.db.get("posts", args.postId);
-  if (!post) {
-    throw new Error("Post not found");
-  }
-  const status = args.published ? "published" : "draft";
-  const publishedAt = args.published ? (post.publishedAt ?? Date.now()) : post.publishedAt;
-  const updatedAt = Date.now();
+  post: Doc<"posts">,
+  args: { published: boolean; publishedAt: number | null; updatedAt: number },
+): Promise<void> {
+  const status: PostStatus = !args.published
+    ? "draft"
+    : args.publishedAt !== null && args.publishedAt > Date.now()
+      ? "scheduled"
+      : "published";
+  const publishedAt = status === "published" ? (args.publishedAt ?? Date.now()) : args.publishedAt;
   await ctx.db.patch("posts", post._id, {
     status,
     publishedAt,
-    updatedAt,
+    updatedAt: args.updatedAt,
   });
   const saved = await ctx.db.get("posts", post._id);
   if (saved) {
@@ -379,11 +385,61 @@ export async function setPublishedHandler(
       status,
       visibility: post.visibility,
       postCreatedAt: createdAtOf(post),
-      postUpdatedAt: updatedAt,
+      postUpdatedAt: args.updatedAt,
     });
   }
+  if (status === "scheduled" && publishedAt !== null) {
+    // Earlier jobs for a moved or cancelled schedule no-op in publishScheduled.
+    await ctx.scheduler.runAt(publishedAt, internal.posts.internal.publishScheduled, {
+      postId: post._id,
+      publishedAt,
+    });
+  }
+}
+
+export async function setPublishedHandler(
+  ctx: MutationCtx,
+  args: { postId: Id<"posts">; published: boolean },
+): Promise<null> {
+  const post = await ctx.db.get("posts", args.postId);
+  if (!post) {
+    throw new Error("Post not found");
+  }
+  await applyPublication(ctx, post, {
+    published: args.published,
+    publishedAt: post.publishedAt,
+    updatedAt: Date.now(),
+  });
   return null;
 }
+
+export const publishScheduled = internalMutation({
+  args: { postId: v.id("posts"), publishedAt: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const post = await ctx.db.get("posts", args.postId);
+    if (!post || post.status !== "scheduled" || post.publishedAt !== args.publishedAt) {
+      return null;
+    }
+    await ctx.db.patch("posts", post._id, { status: "published" });
+    const saved = await ctx.db.get("posts", post._id);
+    if (saved) {
+      await syncPublishedByDay(ctx, post, saved);
+    }
+    const tags = await ctx.db
+      .query("postTags")
+      .withIndex("by_postId", (q) => q.eq("postId", post._id))
+      .take(16);
+    for (const row of tags) {
+      await ctx.db.patch("postTags", row._id, { status: "published" });
+    }
+    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
+      kind: "updated",
+      postId: post._id,
+    });
+    return null;
+  },
+});
 
 export const setPublished = internalMutation({
   args: {
@@ -401,7 +457,12 @@ function assertTimestamp(value: number, label: string) {
 
 export async function setTimesHandler(
   ctx: MutationCtx,
-  args: { postId: Id<"posts">; createdAt: number; updatedAt: number },
+  args: {
+    postId: Id<"posts">;
+    createdAt: number;
+    updatedAt: number;
+    publishedAt?: number | null;
+  },
 ): Promise<null> {
   const post = await ctx.db.get("posts", args.postId);
   if (!post) throw new Error("Post not found");
@@ -412,6 +473,16 @@ export async function setTimesHandler(
     updatedAt: args.updatedAt,
   });
   await patchPostTagTimes(ctx, post._id, args.createdAt, args.updatedAt);
+  if (args.publishedAt !== undefined && args.publishedAt !== post.publishedAt) {
+    if (args.publishedAt !== null) assertTimestamp(args.publishedAt, "Published");
+    const current = await ctx.db.get("posts", post._id);
+    if (!current) throw new Error("Post not found");
+    await applyPublication(ctx, current, {
+      published: current.status !== "draft",
+      publishedAt: args.publishedAt,
+      updatedAt: args.updatedAt,
+    });
+  }
   return null;
 }
 
@@ -420,6 +491,7 @@ export const setTimes = internalMutation({
     postId: v.id("posts"),
     createdAt: v.number(),
     updatedAt: v.number(),
+    publishedAt: v.optional(v.union(v.number(), v.null())),
   },
   returns: v.null(),
   handler: setTimesHandler,

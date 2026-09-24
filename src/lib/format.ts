@@ -7,6 +7,16 @@ export function formatDate(ts: number | null | undefined): string {
   });
 }
 
+export function formatDateTime(ts: number): string {
+  return new Date(ts).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function toDateTimeLocal(ts: number): string {
   const date = new Date(ts);
   const pad = (value: number) => String(value).padStart(2, "0");

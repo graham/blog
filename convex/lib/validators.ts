@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 import { featureModeValidator } from "./featureMode";
 
-export const statusValidator = v.union(v.literal("draft"), v.literal("published"));
+export const statusValidator = v.union(
+  v.literal("draft"),
+  v.literal("scheduled"),
+  v.literal("published"),
+);
 
 export const visibilityValidator = v.union(v.literal("listed"), v.literal("unlisted"));
 

@@ -68,6 +68,7 @@ export const setTimes = mutation({
     postId: v.id("posts"),
     createdAt: v.number(),
     updatedAt: v.number(),
+    publishedAt: v.optional(v.union(v.number(), v.null())),
   },
   returns: v.null(),
   handler: async (ctx, args) => {

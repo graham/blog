@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { storedFeatureModeValidator } from "./lib/featureMode";
+import { statusValidator } from "./lib/validators";
 import { agentStateValidator } from "./apiKeyAgentStatuses/validators";
 
 const schema = defineSchema({
@@ -76,7 +77,7 @@ const schema = defineSchema({
     slug: v.string(),
     excerpt: v.string(),
     body: v.string(),
-    status: v.union(v.literal("draft"), v.literal("published")),
+    status: statusValidator,
     visibility: v.union(v.literal("listed"), v.literal("unlisted")),
     publishedAt: v.union(v.number(), v.null()),
     authorId: v.id("users"),
@@ -122,7 +123,7 @@ const schema = defineSchema({
   postTags: defineTable({
     postId: v.id("posts"),
     tag: v.string(),
-    status: v.union(v.literal("draft"), v.literal("published")),
+    status: statusValidator,
     visibility: v.union(v.literal("listed"), v.literal("unlisted")),
     postCreatedAt: v.optional(v.number()),
     postUpdatedAt: v.optional(v.number()),

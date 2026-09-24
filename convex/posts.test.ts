@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { registerAggregate } from "../tests/registerAggregate";
@@ -660,6 +660,119 @@ describe("posts", () => {
     const post = await t.query(api.posts.publicQueries.getBySlug, { slug: "dated" });
     expect(post?.createdAt).toBe(createdAt);
     expect(post?.updatedAt).toBe(updatedAt);
+  });
+
+  describe("scheduled publishing", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function seedPublished(t: ReturnType<typeof createT>) {
+      const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+      const postId = await admin.mutation(api.posts.mutations.create, {});
+      await admin.mutation(api.posts.mutations.save, {
+        postId,
+        title: "Later",
+        excerpt: "",
+        body: "scheduled body",
+        visibility: "listed",
+        tags: ["soon"],
+      });
+      await admin.mutation(api.posts.mutations.setPublished, { postId, published: true });
+      return { admin, postId };
+    }
+
+    async function publicView(t: ReturnType<typeof createT>) {
+      const post = await t.query(api.posts.publicQueries.getBySlug, { slug: "later" });
+      const listed = await t.query(api.posts.publicQueries.listPublished, {
+        paginationOpts: pageOpts,
+      });
+      const tagged = await t.query(api.posts.publicQueries.listByTag, {
+        tag: "soon",
+        paginationOpts: pageOpts,
+      });
+      return { post, listed: listed.page.length, tagged: tagged.page.length };
+    }
+
+    test("a future published date hides the post until the scheduled time", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-24T12:00:00Z"));
+      const t = createT();
+      const { admin, postId } = await seedPublished(t);
+      const now = Date.now();
+      const publishAt = now + 60 * 60 * 1000;
+
+      await admin.mutation(api.posts.mutations.setTimes, {
+        postId,
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: publishAt,
+      });
+      expect(await publicView(t)).toEqual({ post: null, listed: 0, tagged: 0 });
+      const preview = await admin.query(api.posts.queries.getBySlug, { slug: "later" });
+      expect(preview).toMatchObject({ status: "scheduled", publishedAt: publishAt });
+
+      vi.setSystemTime(publishAt);
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      const view = await publicView(t);
+      expect(view.post).toMatchObject({ status: "published", publishedAt: publishAt });
+      expect(view.listed).toBe(1);
+      expect(view.tagged).toBe(1);
+    });
+
+    test("moving the date back to the past publishes immediately and old jobs no-op", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-24T12:00:00Z"));
+      const t = createT();
+      const { admin, postId } = await seedPublished(t);
+      const now = Date.now();
+      await admin.mutation(api.posts.mutations.setTimes, {
+        postId,
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: now + 60 * 60 * 1000,
+      });
+      await admin.mutation(api.posts.mutations.setTimes, {
+        postId,
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: now - 1000,
+      });
+      expect((await publicView(t)).post).toMatchObject({ publishedAt: now - 1000 });
+
+      await admin.mutation(api.posts.mutations.setPublished, { postId, published: false });
+      vi.setSystemTime(now + 2 * 60 * 60 * 1000);
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      expect((await publicView(t)).post).toBeNull();
+    });
+
+    test("a draft with a future date is scheduled when published", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-24T12:00:00Z"));
+      const t = createT();
+      const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+      const postId = await admin.mutation(api.posts.mutations.create, {});
+      await admin.mutation(api.posts.mutations.save, {
+        postId,
+        title: "Later",
+        excerpt: "",
+        body: "b",
+        visibility: "listed",
+        tags: [],
+      });
+      const now = Date.now();
+      await admin.mutation(api.posts.mutations.setTimes, {
+        postId,
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: now + 60_000,
+      });
+      await admin.mutation(api.posts.mutations.setPublished, { postId, published: true });
+      expect((await publicView(t)).post).toBeNull();
+      vi.setSystemTime(now + 60_000);
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      expect((await publicView(t)).post).toMatchObject({ status: "published" });
+    });
   });
 
   test("createdAt backfill copies _creationTime and then no-ops", async () => {

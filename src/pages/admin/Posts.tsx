@@ -4,7 +4,7 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 const PAGE_SIZE = 20;
 
@@ -64,13 +64,22 @@ export default function AdminPosts() {
             {posts.map((post) => (
               <div
                 key={post._id}
-                className="cursor-pointer rounded-xl border border-border bg-card p-4"
+                className={`cursor-pointer rounded-xl border p-4 ${
+                  post.status === "scheduled"
+                    ? "border-destructive bg-destructive/10"
+                    : "border-border bg-card"
+                }`}
                 onClick={() => navigate(`/admin/posts/${post._id}`)}
               >
                 <p className="font-medium">{post.title || "Untitled"}</p>
                 <p className="mt-1 text-xs capitalize text-muted">
                   {post.status} · {post.visibility} · {formatDate(post.updatedAt)}
                 </p>
+                {post.status === "scheduled" && post.publishedAt !== null ? (
+                  <p className="mt-1 text-xs font-medium text-destructive">
+                    Not public until {formatDateTime(post.publishedAt)}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-xs text-muted">
                   {post.imageCount} {post.imageCount === 1 ? "image" : "images"} ·{" "}
                   {post.characterCount.toLocaleString()} chars
@@ -110,11 +119,28 @@ export default function AdminPosts() {
                 {posts.map((post) => (
                   <tr
                     key={post._id}
-                    className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/40"
+                    className={`cursor-pointer border-b border-border last:border-0 ${
+                      post.status === "scheduled"
+                        ? "bg-destructive/10 hover:bg-destructive/20"
+                        : "hover:bg-secondary/40"
+                    }`}
                     onClick={() => navigate(`/admin/posts/${post._id}`)}
                   >
                     <td className="px-4 py-3">{post.title || "Untitled"}</td>
-                    <td className="px-4 py-3 capitalize">{post.status}</td>
+                    <td className="px-4 py-3">
+                      {post.status === "scheduled" ? (
+                        <>
+                          <span className="block font-medium text-destructive">Scheduled</span>
+                          {post.publishedAt !== null ? (
+                            <span className="block text-xs text-destructive">
+                              Not public until {formatDateTime(post.publishedAt)}
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="capitalize">{post.status}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 capitalize">{post.visibility}</td>
                     <td className="px-4 py-3 text-muted">
                       <span className="block">

@@ -18,6 +18,7 @@ import { writeAgentStatus } from "../apiKeyAgentStatuses/internal";
 import { agentStateValidator, agentStatusValidator } from "../apiKeyAgentStatuses/validators";
 import { readSiteSettings } from "../siteSettings/internal";
 import { apiPostInputValidator } from "./validators";
+import { statusValidator } from "../lib/validators";
 import {
   ALLOWED_ASSET_TYPES,
   MAX_ASSET_BYTES,
@@ -75,7 +76,7 @@ const apiPostValidator = v.object({
   slug: v.string(),
   excerpt: v.string(),
   body: v.string(),
-  status: v.union(v.literal("draft"), v.literal("published")),
+  status: statusValidator,
   visibility: v.union(v.literal("listed"), v.literal("unlisted")),
   publishedAt: v.union(v.number(), v.null()),
   updatedAt: v.number(),
@@ -150,7 +151,7 @@ export const listPosts = internalQuery({
       id: v.id("posts"),
       title: v.string(),
       slug: v.string(),
-      status: v.union(v.literal("draft"), v.literal("published")),
+      status: statusValidator,
       visibility: v.union(v.literal("listed"), v.literal("unlisted")),
       updatedAt: v.number(),
     }),
@@ -208,11 +209,9 @@ export const createPost = internalMutation({
       kind: "created",
       postId,
     });
-    return {
-      id: postId,
-      slug: saved.slug,
-      status: input.published === true ? "published" : "draft",
-    };
+    const created = await ctx.db.get("posts", postId);
+    if (!created) throw new Error("Post not found");
+    return { id: postId, slug: saved.slug, status: created.status };
   },
 });
 
@@ -248,9 +247,9 @@ export const updatePost = internalMutation({
       kind: "updated",
       postId: post._id,
     });
-    const status =
-      input.published === undefined ? post.status : input.published ? "published" : "draft";
-    return { id: post._id, slug: saved.slug, status };
+    const updated = await ctx.db.get("posts", post._id);
+    if (!updated) throw new Error("Post not found");
+    return { id: post._id, slug: saved.slug, status: updated.status };
   },
 });
 

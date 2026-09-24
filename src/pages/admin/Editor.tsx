@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { assetSnippet, markdownHasStorageId, type OverlayImage } from "@/lib/images";
 import { sha256Hex } from "@/lib/hash";
 import { assetContentType, isArchiveAsset, isImageAsset, isVideoAsset } from "@/lib/assets";
+import { formatDateTime } from "@/lib/format";
 
 type SaveState = "saved" | "saving" | "error";
 
@@ -82,7 +83,7 @@ export default function Editor() {
     setBody(post.body);
     setTagInput(post.tags.join(", "));
     setVisibility(post.visibility);
-    setPublishedLocal(post.status === "published");
+    setPublishedLocal(post.status !== "draft");
     setChannelIds(post.channels.map((channel) => channel._id));
     setBookmarkGroupIds(post.bookmarkGroups.map((group) => group._id));
     setHydrated(true);
@@ -331,6 +332,11 @@ export default function Editor() {
                 />
                 Published
               </label>
+              {post.status === "scheduled" && post.publishedAt !== null ? (
+                <span className="font-medium text-destructive">
+                  Scheduled for {formatDateTime(post.publishedAt)}
+                </span>
+              ) : null}
               {published ? null : (
                 <Button
                   variant="destructive"
