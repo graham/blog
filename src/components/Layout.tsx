@@ -57,7 +57,7 @@ export function Layout({
           {showNav ? (
             <div className="grid min-w-0 gap-10 md:grid-cols-[11rem_minmax(0,1fr)] md:items-start">
               <div className="min-w-0 md:col-start-2 md:row-start-1">{children}</div>
-              <aside className="min-w-0 space-y-10 md:col-start-1 md:row-start-1 md:pt-2">
+              <aside className="min-w-0 space-y-10 md:col-start-1 md:row-start-1 md:pt-16">
                 {showBookmarks ? <BookmarkNav groups={groups ?? []} /> : null}
                 {showTags ? <TagNav groups={tagGroups ?? []} /> : null}
               </aside>
