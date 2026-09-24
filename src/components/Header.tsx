@@ -17,6 +17,7 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const features = useQuery(api.features.publicQueries.get);
   const bookmarksEnabled = features !== undefined && features.bookmarks !== "off";
   const calendar = features !== undefined && featureOn(features.calendar, admin);
+  const readReceipts = features !== undefined && featureOn(features.readReceipts, admin);
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -44,6 +45,11 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
 
   const extraLinks = (
     <>
+      {readReceipts ? (
+        <Link to="/?unread=1" className="text-muted hover:text-foreground">
+          Unread
+        </Link>
+      ) : null}
       {calendar ? (
         <Link to="/calendar" className="text-muted hover:text-foreground">
           Calendar

@@ -12,7 +12,7 @@ import { useImagesOnly } from "@/lib/useImagesOnly";
 const PAGE_SIZE = 10;
 
 export default function Home() {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const q = (params.get("q") ?? "").trim();
   const unreadOnly = params.get("unread") === "1";
   const searching = q.length > 0;
@@ -65,30 +65,10 @@ export default function Home() {
           <h1 className="font-sans text-3xl font-semibold tracking-tight">
             {searching ? `Search: ${q}` : unreadOnly ? "Unread" : "Posts"}
           </h1>
-          {receiptsOn && !searching ? (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={unreadOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  const next = new URLSearchParams(params);
-                  if (unreadOnly) next.delete("unread");
-                  else next.set("unread", "1");
-                  setParams(next, { replace: true });
-                }}
-              >
-                {unreadOnly ? "All posts" : "Unread"}
-              </Button>
-              {unreadOnly ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void markAllRead({})}
-                >
-                  Mark all read
-                </Button>
-              ) : null}
-            </div>
+          {receiptsOn && unreadOnly && !searching ? (
+            <Button variant="outline" size="sm" onClick={() => void markAllRead({})}>
+              Mark all read
+            </Button>
           ) : null}
         </div>
         {loading ? (
