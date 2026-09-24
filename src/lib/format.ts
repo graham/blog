@@ -14,11 +14,12 @@ export function toDateTimeLocal(ts: number): string {
 }
 
 export function postTime(post: {
-  publishedAt: number | null;
+  createdAt?: number;
+  publishedAt?: number | null;
   updatedAt?: number;
   _creationTime?: number;
 }): number {
-  return post.publishedAt ?? post.updatedAt ?? post._creationTime ?? 0;
+  return post.createdAt ?? post._creationTime ?? 0;
 }
 
 export function formatTimeDelta(newer: number, older: number): string {
