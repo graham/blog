@@ -1,6 +1,6 @@
 import { DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useConvex, useMutation, useQuery } from "convex/react";
+import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Layout } from "@/components/Layout";
@@ -32,7 +32,7 @@ export default function Editor() {
   const assets = assetRows ?? [];
   const savePost = useMutation(api.posts.mutations.save);
   const setPublished = useMutation(api.posts.mutations.setPublished);
-  const removePost = useMutation(api.posts.mutations.remove);
+  const removePost = useAction(api.posts.actions.remove);
   const generateUploadUrl = useMutation(api.postAssets.mutations.generateUploadUrl);
   const saveAsset = useMutation(api.postAssets.mutations.save);
   const removeAsset = useMutation(api.postAssets.mutations.remove);
@@ -64,6 +64,7 @@ export default function Editor() {
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [mode, setMode] = useState<"write" | "preview">("write");
+  const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dropping, setDropping] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
@@ -330,16 +331,22 @@ export default function Editor() {
                 />
                 Published
               </label>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  if (!window.confirm("Delete this post?")) return;
-                  void removePost({ postId }).then(() => navigate("/admin"));
-                }}
-              >
-                Delete
-              </Button>
+              {published ? null : (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting}
+                  onClick={() => {
+                    if (!window.confirm("Delete this draft and its files?")) return;
+                    setDeleting(true);
+                    void removePost({ postId })
+                      .then(() => navigate("/admin/drafts"))
+                      .catch(() => setDeleting(false));
+                  }}
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </Button>
+              )}
             </div>
           </div>
 

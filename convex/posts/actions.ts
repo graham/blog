@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 import { generateText } from "ai";
 import { convexGateway } from "@convex-dev/ai-sdk-provider";
-import { internalAction } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 function parseSuggestion(text: string): { titles: string[]; summary: string } {
   const trimmed = text
@@ -66,6 +67,25 @@ ${draft}`,
         error: message,
       });
       throw error;
+    }
+    return null;
+  },
+});
+
+export const remove = action({
+  args: { postId: v.id("posts") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.runQuery(internal.posts.internal.assertAdmin, {});
+    const storageIds: Id<"_storage">[] = await ctx.runMutation(internal.posts.internal.remove, {
+      postId: args.postId,
+    });
+    for (const storageId of storageIds) {
+      try {
+        await ctx.storage.delete(storageId);
+      } catch (error) {
+        console.error("Failed to delete post file", storageId, error);
+      }
     }
     return null;
   },

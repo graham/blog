@@ -191,7 +191,8 @@ const schema = defineSchema({
     lastReadAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_and_postId", ["userId", "postId"]),
+    .index("by_userId_and_postId", ["userId", "postId"])
+    .index("by_postId", ["postId"]),
 
   postAssets: defineTable({
     postId: v.id("posts"),

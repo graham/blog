@@ -28,7 +28,8 @@ import {
 import { readSiteSettings } from "../siteSettings/internal";
 import { countPostImages, loadPostAssets } from "../postAssets/internal";
 import { ensureTag } from "../tags/internal";
-import { getReadBefore, readStateForPost } from "../postReads/internal";
+import { deletePostReads, getReadBefore, readStateForPost } from "../postReads/internal";
+import { requireAdmin } from "../lib/auth";
 import { featureVisible } from "../lib/featureMode";
 import { isImageContentType } from "../postAssets/contentTypes";
 import { dayCountQueries, publishedByDay, syncPublishedByDay } from "./aggregate";
@@ -424,41 +425,65 @@ export const setTimes = internalMutation({
   handler: setTimesHandler,
 });
 
+export const assertAdmin = internalQuery({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return null;
+  },
+});
+
 export const remove = internalMutation({
   args: { postId: v.id("posts") },
-  returns: v.null(),
+  returns: v.array(v.id("_storage")),
   handler: async (ctx, args) => {
     const post = await ctx.db.get("posts", args.postId);
     if (!post) {
       throw new Error("Post not found");
     }
-    const tags = await ctx.db
-      .query("postTags")
-      .withIndex("by_postId", (q) => q.eq("postId", post._id))
-      .take(32);
-    for (const row of tags) {
-      await ctx.db.delete("postTags", row._id);
+    if (post.status === "published") {
+      throw new Error("Published posts cannot be deleted");
     }
-    const aiJobs = await ctx.db
-      .query("postAiJobs")
-      .withIndex("by_postId", (q) => q.eq("postId", post._id))
-      .take(8);
-    for (const job of aiJobs) {
-      await ctx.db.delete("postAiJobs", job._id);
+    const storageIds = new Set<Id<"_storage">>();
+    if (post.coverImageId) storageIds.add(post.coverImageId);
+    for (;;) {
+      const assets = await ctx.db
+        .query("postAssets")
+        .withIndex("by_postId", (q) => q.eq("postId", post._id))
+        .take(32);
+      if (assets.length === 0) break;
+      for (const row of assets) {
+        storageIds.add(row.storageId);
+        await ctx.db.delete("postAssets", row._id);
+      }
     }
+    for (;;) {
+      const tags = await ctx.db
+        .query("postTags")
+        .withIndex("by_postId", (q) => q.eq("postId", post._id))
+        .take(32);
+      if (tags.length === 0) break;
+      for (const row of tags) {
+        await ctx.db.delete("postTags", row._id);
+      }
+    }
+    for (;;) {
+      const jobs = await ctx.db
+        .query("postAiJobs")
+        .withIndex("by_postId", (q) => q.eq("postId", post._id))
+        .take(8);
+      if (jobs.length === 0) break;
+      for (const row of jobs) {
+        await ctx.db.delete("postAiJobs", row._id);
+      }
+    }
+    await deletePostReads(ctx, post._id);
     await deletePostChannelLinks(ctx, post._id);
     await deletePostBookmarkLinks(ctx, post._id);
-    const assets = await ctx.db
-      .query("postAssets")
-      .withIndex("by_postId", (q) => q.eq("postId", post._id))
-      .take(50);
-    for (const row of assets) {
-      await ctx.storage.delete(row.storageId);
-      await ctx.db.delete("postAssets", row._id);
-    }
     await syncPublishedByDay(ctx, post, null);
     await ctx.db.delete("posts", post._id);
-    return null;
+    return [...storageIds];
   },
 });
 

@@ -77,12 +77,4 @@ export const setTimes = mutation({
   },
 });
 
-export const remove = mutation({
-  args: { postId: v.id("posts") },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-    await ctx.runMutation(internal.posts.internal.remove, args);
-    return null;
-  },
-});
+

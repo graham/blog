@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { useMutation, useQuery } from "convex/react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Layout } from "@/components/Layout";
@@ -73,6 +73,9 @@ export default function Post({ preview = false }: { preview?: boolean }) {
   const features = useFeatures();
   const receiptsOn = useFeatureOn(features.readReceipts);
   const markRead = useMutation(api.postReads.mutations.markRead);
+  const removePost = useAction(api.posts.actions.remove);
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -192,6 +195,23 @@ export default function Post({ preview = false }: { preview?: boolean }) {
               >
                 Edit
               </Link>
+            ) : null}
+            {preview && post.status === "draft" && isAdminUser(currentUser) ? (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={deleting}
+                onClick={() => {
+                  if (!window.confirm("Delete this draft and its files?")) return;
+                  setDeleting(true);
+                  void removePost({ postId: post._id })
+                    .then(() => navigate("/admin/drafts"))
+                    .catch(() => setDeleting(false));
+                }}
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
             ) : null}
           </div>
         </div>

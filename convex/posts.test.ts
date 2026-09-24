@@ -743,4 +743,62 @@ describe("posts", () => {
     );
     expect(state?.done).toBe(true);
   });
+
+  test("admin can delete a draft and its files; published posts stay", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    const { asUser: reader } = await seedUser(t, "reader@example.com", "user");
+    const postId = await admin.mutation(api.posts.mutations.create, {});
+    await admin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Throwaway",
+      excerpt: "",
+      body: "draft body",
+      visibility: "listed",
+      tags: ["notes"],
+    });
+    const storageId = await t.run(async (ctx) => {
+      return await ctx.storage.store(new Blob(["img"], { type: "image/png" }));
+    });
+    await admin.mutation(api.postAssets.mutations.save, {
+      postId,
+      storageId,
+      filename: "cat.png",
+      contentType: "image/png",
+      sha256: "b".repeat(64),
+    });
+    await expect(reader.action(api.posts.actions.remove, { postId })).rejects.toThrow(/Forbidden/);
+    await admin.action(api.posts.actions.remove, { postId });
+    expect(await admin.query(api.posts.queries.getById, { postId })).toBeNull();
+    const leftover = await t.run(async (ctx) => {
+      const assets = await ctx.db
+        .query("postAssets")
+        .withIndex("by_postId", (q) => q.eq("postId", postId))
+        .collect();
+      const tags = await ctx.db
+        .query("postTags")
+        .withIndex("by_postId", (q) => q.eq("postId", postId))
+        .collect();
+      const blob = await ctx.db.system.get("_storage", storageId);
+      return { assets: assets.length, tags: tags.length, blob };
+    });
+    expect(leftover).toEqual({ assets: 0, tags: 0, blob: null });
+
+    const liveId = await admin.mutation(api.posts.mutations.create, {});
+    await admin.mutation(api.posts.mutations.save, {
+      postId: liveId,
+      title: "Keep me",
+      excerpt: "",
+      body: "published",
+      visibility: "listed",
+      tags: [],
+    });
+    await admin.mutation(api.posts.mutations.setPublished, { postId: liveId, published: true });
+    await expect(admin.action(api.posts.actions.remove, { postId: liveId })).rejects.toThrow(
+      /Published posts cannot be deleted/,
+    );
+    expect((await admin.query(api.posts.queries.getById, { postId: liveId }))?.title).toBe(
+      "Keep me",
+    );
+  });
 });

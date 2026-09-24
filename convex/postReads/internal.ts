@@ -106,3 +106,19 @@ export const markAllRead = internalMutation({
     return deleted;
   },
 });
+
+export async function deletePostReads(
+  ctx: MutationCtx,
+  postId: Id<"posts">,
+): Promise<void> {
+  for (;;) {
+    const rows = await ctx.db
+      .query("postReads")
+      .withIndex("by_postId", (q) => q.eq("postId", postId))
+      .take(32);
+    if (rows.length === 0) break;
+    for (const row of rows) {
+      await ctx.db.delete("postReads", row._id);
+    }
+  }
+}
