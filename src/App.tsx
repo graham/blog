@@ -18,6 +18,7 @@ import Editor from "./pages/admin/Editor";
 import AdminChannels from "./pages/admin/Channels";
 import ChannelDetail from "./pages/admin/ChannelDetail";
 import ApiKeys from "./pages/admin/ApiKeys";
+import AgentStatus from "./pages/admin/AgentStatus";
 import AdminUsers from "./pages/admin/Users";
 import AdminSettings from "./pages/admin/Settings";
 import AdminBookmarkGroups from "./pages/admin/BookmarkGroups";
@@ -130,6 +131,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <ApiKeys />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/api-keys/agents"
+            element={
+              <AdminRoute>
+                <AgentStatus />
               </AdminRoute>
             }
           />

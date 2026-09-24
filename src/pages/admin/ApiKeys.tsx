@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -11,6 +12,12 @@ import {
   type AgentPlatform,
 } from "@/lib/agentApiPrompt";
 import { formatDate, formatTimeDelta } from "@/lib/format";
+import {
+  AGENT_STATE_LABELS,
+  AGENT_STATE_TEXT,
+  useNow,
+  type AgentStatus,
+} from "@/lib/agentStatus";
 
 type Revealed = {
   key: {
@@ -20,35 +27,14 @@ type Revealed = {
   token: string;
 };
 
-type AgentStatus = {
-  state: "waiting_for_work" | "working" | "waiting_for_input" | "blocked";
-  status: string;
-  question: string | null;
-  updatedAt: number;
-};
-
 const siteUrl = convexSiteUrl(import.meta.env.VITE_CONVEX_URL);
-
-const STATE_LABELS: Record<AgentStatus["state"], string> = {
-  waiting_for_work: "Waiting for work",
-  working: "Working",
-  waiting_for_input: "Waiting for input",
-  blocked: "Blocked",
-};
-
-const STATE_CLASSES: Record<AgentStatus["state"], string> = {
-  waiting_for_work: "text-muted",
-  working: "text-foreground",
-  waiting_for_input: "text-accent",
-  blocked: "text-destructive",
-};
 
 function AgentStatusCell({ agentStatus, now }: { agentStatus: AgentStatus | null; now: number }) {
   if (!agentStatus) return <span className="text-muted">No reports</span>;
   return (
     <div className="max-w-xs space-y-1">
-      <p className={`font-medium ${STATE_CLASSES[agentStatus.state]}`}>
-        {STATE_LABELS[agentStatus.state]}
+      <p className={`font-medium ${AGENT_STATE_TEXT[agentStatus.state]}`}>
+        {AGENT_STATE_LABELS[agentStatus.state]}
       </p>
       <p className="font-mono text-xs text-muted">
         {agentStatus.status} · {formatTimeDelta(now, agentStatus.updatedAt)} ago
@@ -73,12 +59,7 @@ export default function ApiKeys() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const now = useNow();
 
   const prompt = useMemo(
     () =>
@@ -118,12 +99,17 @@ export default function ApiKeys() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="font-sans text-2xl font-semibold tracking-tight">API keys</h1>
-          <p className="mt-1 text-sm text-muted">
-            Keys can create and update posts, upload images, and publish. Active key prompts can be
-            viewed again.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-sans text-2xl font-semibold tracking-tight">API keys</h1>
+            <p className="mt-1 text-sm text-muted">
+              Keys can create and update posts, upload images, and publish. Active key prompts can
+              be viewed again.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/api-keys/agents">Agent status</Link>
+          </Button>
         </div>
 
         <form
