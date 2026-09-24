@@ -6,11 +6,13 @@ import { requireAdmin } from "../lib/auth";
 import {
   adminPostDetailValidator,
   adminPostSummaryValidator,
+  postDetailValidator,
 } from "../lib/validators";
 import type { Infer } from "convex/values";
 
 type PostSummary = Infer<typeof adminPostSummaryValidator>;
 type PostDetail = Infer<typeof adminPostDetailValidator>;
+type PublicPostDetail = Infer<typeof postDetailValidator>;
 type Page<T> = {
   page: T[];
   continueCursor: string;
@@ -26,6 +28,28 @@ export const listAll = query({
     await requireAdmin(ctx);
     const result: Page<PostSummary> = await ctx.runQuery(
       internal.posts.internal.listAll,
+      args,
+    );
+    return result;
+  },
+});
+
+export const getBySlug = query({
+  args: { slug: v.string() },
+  returns: v.union(postDetailValidator, v.null()),
+  handler: async (ctx, args): Promise<PublicPostDetail | null> => {
+    await requireAdmin(ctx);
+    return await ctx.runQuery(internal.posts.internal.getBySlugForAdmin, args);
+  },
+});
+
+export const listDrafts = query({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(adminPostSummaryValidator),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const result: Page<PostSummary> = await ctx.runQuery(
+      internal.posts.internal.listDrafts,
       args,
     );
     return result;

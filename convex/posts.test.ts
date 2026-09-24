@@ -72,6 +72,15 @@ describe("posts", () => {
     const editorView = await asUser.query(api.posts.queries.getById, { postId });
     expect(editorView?.title).toBe("Secret draft");
     expect(editorView?.status).toBe("draft");
+
+    const adminPreview = await asUser.query(api.posts.queries.getBySlug, {
+      slug: "secret-draft",
+    });
+    expect(adminPreview?.title).toBe("Secret draft");
+    expect(adminPreview?.status).toBe("draft");
+    await expect(t.query(api.posts.queries.getBySlug, { slug: "secret-draft" })).rejects.toThrow(
+      /Not authenticated/,
+    );
   });
 
   test("unpublishing hides a post from public getBySlug", async () => {

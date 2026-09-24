@@ -13,6 +13,7 @@ import WhoAmI from "./pages/WhoAmI";
 import Limbo from "./pages/Limbo";
 import Invite from "./pages/Invite";
 import AdminPosts from "./pages/admin/Posts";
+import AdminDrafts from "./pages/admin/Drafts";
 import Editor from "./pages/admin/Editor";
 import AdminChannels from "./pages/admin/Channels";
 import ChannelDetail from "./pages/admin/ChannelDetail";
@@ -73,6 +74,22 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminPosts />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/drafts"
+            element={
+              <AdminRoute>
+                <AdminDrafts />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/preview/:slug"
+            element={
+              <AdminRoute>
+                <Post preview />
               </AdminRoute>
             }
           />

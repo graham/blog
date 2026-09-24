@@ -52,11 +52,22 @@ function PostNavigation({
   );
 }
 
-export default function Post() {
+export default function Post({ preview = false }: { preview?: boolean }) {
   const { slug } = useParams();
-  const post = useQuery(api.posts.publicQueries.getBySlug, slug ? { slug } : "skip");
+  const publicPost = useQuery(
+    api.posts.publicQueries.getBySlug,
+    !preview && slug ? { slug } : "skip",
+  );
+  const adminPost = useQuery(
+    api.posts.queries.getBySlug,
+    preview && slug ? { slug } : "skip",
+  );
+  const post = preview ? adminPost : publicPost;
   const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
-  const navigation = useQuery(api.posts.publicQueries.getAdjacentBySlug, slug ? { slug } : "skip");
+  const navigation = useQuery(
+    api.posts.publicQueries.getAdjacentBySlug,
+    !preview && slug ? { slug } : "skip",
+  );
   const imagesOnly = useImagesOnly();
   const [wide, toggleWide] = usePostWide();
   const features = useFeatures();
@@ -68,9 +79,9 @@ export default function Post() {
   }, [slug]);
 
   useEffect(() => {
-    if (!post || !receiptsOn) return;
+    if (preview || !post || !receiptsOn) return;
     void markRead({ postId: post._id });
-  }, [post?._id, receiptsOn, markRead]);
+  }, [preview, post?._id, receiptsOn, markRead]);
 
   if (post === undefined) {
     return (
@@ -105,18 +116,22 @@ export default function Post() {
       bookmarks
       wide={wide}
       header={
+        preview ? undefined : (
         <div className="border-b border-border pb-4">
           <div className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
             <PostNavigation previous={prev} next={next} />
           </div>
         </div>
+        )
       }
       footer={
+        preview ? undefined : (
         <div className="border-t border-border pt-4">
           <div className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
             <PostNavigation previous={prev} next={next} />
           </div>
         </div>
+        )
       }
     >
       <article className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>

@@ -525,6 +525,7 @@ export const getBySlug = internalQuery({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     if (!post) return null;
+    if (post.status !== "published") return null;
     if (!(await canViewPost(ctx, post, viewerFrom(args)))) return null;
     const detail = await toDetail(ctx, post);
     const [withRead] = await attachReadStates(ctx, args.viewerUserId, args.asAdmin, [detail]);
@@ -656,6 +657,35 @@ export const getDraftForAi = internalQuery({
       title: post.title,
       body: post.body,
       excerpt: post.excerpt,
+    };
+  },
+});
+
+export const getBySlugForAdmin = internalQuery({
+  args: { slug: v.string() },
+  returns: v.union(postDetailValidator, v.null()),
+  handler: async (ctx, args) => {
+    const post = await ctx.db
+      .query("posts")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+    if (!post) return null;
+    return await toDetail(ctx, post);
+  },
+});
+
+export const listDrafts = internalQuery({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(adminPostSummaryValidator),
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("posts")
+      .withIndex("by_status", (q) => q.eq("status", "draft"))
+      .order("desc")
+      .paginate(args.paginationOpts);
+    return {
+      ...result,
+      page: await Promise.all(result.page.map((post) => toAdminSummary(ctx, post))),
     };
   },
 });

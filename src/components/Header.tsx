@@ -54,6 +54,9 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
           <Link to="/admin" className="text-muted hover:text-foreground">
             Posts
           </Link>
+          <Link to="/admin/drafts" className="text-muted hover:text-foreground">
+            Drafts
+          </Link>
           <Link to="/admin/channels" className="text-muted hover:text-foreground">
             Channels
           </Link>

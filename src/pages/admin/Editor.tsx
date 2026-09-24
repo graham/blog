@@ -285,7 +285,14 @@ export default function Editor() {
               <Link to="/admin" className="text-muted hover:text-foreground">
                 All posts
               </Link>
-              <Link to={`/posts/${post.slug}`} className="text-muted hover:text-foreground">
+              <Link
+                to={
+                  post.status === "published"
+                    ? `/posts/${post.slug}`
+                    : `/admin/preview/${post.slug}`
+                }
+                className="text-muted hover:text-foreground"
+              >
                 View post →
               </Link>
             </div>

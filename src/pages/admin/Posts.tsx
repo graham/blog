@@ -44,6 +44,9 @@ export default function AdminPosts() {
             placeholder="Search posts"
             className="h-10 w-full min-w-0 max-w-56 rounded-md border border-input bg-card px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
           />
+          <Button asChild variant="outline">
+            <Link to="/admin/drafts">Drafts</Link>
+          </Button>
           <Button onClick={() => void onCreate()}>New post</Button>
         </div>
       </div>
@@ -77,7 +80,15 @@ export default function AdminPosts() {
                   onClick={(event) => event.stopPropagation()}
                 >
                   <Button asChild variant="outline" size="sm">
-                    <Link to={`/posts/${post.slug}`}>View</Link>
+                    <Link
+                      to={
+                        post.status === "published"
+                          ? `/posts/${post.slug}`
+                          : `/admin/preview/${post.slug}`
+                      }
+                    >
+                      View
+                    </Link>
                   </Button>
                 </div>
               </div>
@@ -121,7 +132,15 @@ export default function AdminPosts() {
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Button asChild variant="outline" size="sm">
-                        <Link to={`/posts/${post.slug}`}>View</Link>
+                        <Link
+                          to={
+                            post.status === "published"
+                              ? `/posts/${post.slug}`
+                              : `/admin/preview/${post.slug}`
+                          }
+                        >
+                          View
+                        </Link>
                       </Button>
                     </td>
                   </tr>
