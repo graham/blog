@@ -36,7 +36,9 @@ export default function SignIn() {
             ) : null}
             {config?.googleAuthEnabled && (
               <Button
-                onClick={() => void signIn("google")}
+                onClick={() =>
+                  void signIn("google", { redirectTo: `${window.location.origin}/signin` })
+                }
                 variant="outline"
                 size="lg"
                 className="w-full relative hover:bg-accent"

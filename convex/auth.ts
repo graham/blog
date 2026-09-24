@@ -48,6 +48,32 @@ if (providers.length === 0) {
 }
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 90;
+const JWT_DURATION_MS = 1000 * 60 * 60 * 24 * 30;
+
+function safeOAuthRedirect(redirectTo: string): string {
+  const fallback = (process.env.SITE_URL ?? process.env.CONVEX_SITE_URL ?? "").replace(
+    /\/$/,
+    "",
+  );
+  const allowed = new Set(
+    [
+      process.env.SITE_URL,
+      process.env.CONVEX_SITE_URL,
+      "https://blog.grahamalot.com",
+      "http://localhost:5173",
+    ]
+      .filter((value): value is string => Boolean(value))
+      .map((value) => value.replace(/\/$/, "")),
+  );
+  try {
+    const url = new URL(redirectTo, fallback || "http://localhost:5173");
+    if (url.protocol !== "http:" && url.protocol !== "https:") return fallback;
+    if (allowed.has(url.origin)) return url.toString();
+  } catch {
+    if (redirectTo.startsWith("/") && fallback) return `${fallback}${redirectTo}`;
+  }
+  return fallback;
+}
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers,
@@ -55,7 +81,13 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     totalDurationMs: SESSION_DURATION_MS,
     inactiveDurationMs: SESSION_DURATION_MS,
   },
+  jwt: {
+    durationMs: JWT_DURATION_MS,
+  },
   callbacks: {
+    async redirect({ redirectTo }) {
+      return safeOAuthRedirect(redirectTo);
+    },
     async createOrUpdateUser(ctx: any, args: any) {
       if (!args.profile.email) {
         throw new Error("No email, no access");

@@ -91,7 +91,9 @@ export default function Invite() {
                   type="button"
                   size="lg"
                   className="w-full"
-                  onClick={() => void signIn("google")}
+                  onClick={() =>
+                    void signIn("google", { redirectTo: window.location.href })
+                  }
                 >
                   Continue with Google
                 </Button>
@@ -112,7 +114,9 @@ export default function Invite() {
                 type="button"
                 size="lg"
                 className="w-full"
-                onClick={() => void signIn("google")}
+                onClick={() =>
+                  void signIn("google", { redirectTo: window.location.href })
+                }
               >
                 Continue with Google
               </Button>
