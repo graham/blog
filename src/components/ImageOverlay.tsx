@@ -32,15 +32,28 @@ export function ImageOverlay({
   open,
   onClose,
   onIndexChange,
+  onStepPast,
 }: {
   images: OverlayImage[];
   index: number;
   open: boolean;
   onClose: () => void;
   onIndexChange: (index: number) => void;
+  // When set, stepping before the first or after the last image calls this
+  // instead of wrapping, so the caller can load the neighbouring images.
+  onStepPast?: (direction: -1 | 1) => void;
 }) {
   const current = images[index];
-  const canStep = images.length > 1;
+  const canStep = images.length > 1 || onStepPast !== undefined;
+
+  function step(direction: -1 | 1) {
+    const next = index + direction;
+    if (onStepPast && (next < 0 || next >= images.length)) {
+      onStepPast(direction);
+      return;
+    }
+    onIndexChange(wrapIndex(index, images.length, direction));
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -52,11 +65,11 @@ export function ImageOverlay({
       if (!canStep) return;
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        onIndexChange(wrapIndex(index, images.length, -1));
+        step(-1);
       }
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        onIndexChange(wrapIndex(index, images.length, 1));
+        step(1);
       }
     }
     const previous = document.body.style.overflow;
@@ -66,7 +79,7 @@ export function ImageOverlay({
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose, onIndexChange, index, images.length, canStep]);
+  });
 
   if (!open || current === undefined) return null;
 
@@ -85,7 +98,7 @@ export function ImageOverlay({
           className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/75 sm:left-6"
           onClick={(event) => {
             event.stopPropagation();
-            onIndexChange(wrapIndex(index, images.length, -1));
+            step(-1);
           }}
         >
           <Chevron dir="left" />
@@ -98,7 +111,7 @@ export function ImageOverlay({
           className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/75 sm:right-6"
           onClick={(event) => {
             event.stopPropagation();
-            onIndexChange(wrapIndex(index, images.length, 1));
+            step(1);
           }}
         >
           <Chevron dir="right" />
@@ -118,7 +131,7 @@ export function ImageOverlay({
             {current.caption ?? current.alt}
           </figcaption>
         ) : null}
-        {canStep ? (
+        {images.length > 1 ? (
           <div className="mt-2 font-mono text-xs tabular-nums text-white/70">
             {index + 1} / {images.length}
           </div>

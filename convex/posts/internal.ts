@@ -1025,7 +1025,8 @@ export const listPhotos = internalQuery({
         };
       }
       if (!(await canViewPost(ctx, post, viewer, memberships))) continue;
-      const postImages = (await postPhotos(ctx, post)).slice(skip);
+      const allImages = await postPhotos(ctx, post);
+      const postImages = allImages.slice(skip);
       if (postImages.length === 0) continue;
       let seen: boolean | null = null;
       if (receiptsOn && args.viewerUserId) {
@@ -1056,6 +1057,7 @@ export const listPhotos = internalQuery({
           slug: post.slug,
           title: post.title,
           publishedAt: post.publishedAt,
+          postPhotoCount: allImages.length,
           seen,
         });
       }

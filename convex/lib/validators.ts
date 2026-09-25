@@ -257,6 +257,7 @@ export const photoValidator = v.object({
   slug: v.string(),
   title: v.string(),
   publishedAt: v.number(),
+  postPhotoCount: v.number(),
   seen: v.union(v.boolean(), v.null()),
 });
 

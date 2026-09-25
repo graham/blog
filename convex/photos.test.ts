@@ -105,6 +105,8 @@ describe("photos", () => {
     ]);
     expect(first.photos.every((photo) => photo.seen === null)).toBe(true);
     expect(first.nextCursor).toMatchObject({ skip: 3 });
+    expect(first.photos[0].postPhotoCount).toBe(21);
+    expect(first.photos[23].postPhotoCount).toBe(15);
 
     const second = await t.query(api.posts.publicQueries.listPhotos, {
       cursor: first.nextCursor,

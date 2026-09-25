@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { useQuery } from "convex/react";
-import type { FunctionArgs } from "convex/server";
+import { useMutation, useQueries, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { ImageOverlay } from "@/components/ImageOverlay";
-import { Button } from "@/components/ui/button";
 import { featureOn } from "@/lib/features";
 import { formatDate, isAdminUser } from "@/lib/format";
 import type { OverlayImage } from "@/lib/images";
 
 type PhotoCursor = FunctionArgs<typeof api.posts.publicQueries.listPhotos>["cursor"];
+type PhotoPage = FunctionReturnType<typeof api.posts.publicQueries.listPhotos>;
 
 export default function Photos() {
   const features = useQuery(api.features.publicQueries.get);
@@ -20,44 +20,91 @@ export default function Photos() {
     currentUser !== undefined &&
     featureOn(features.photos, isAdminUser(currentUser));
 
-  // cursors[n] starts page n; page 0 starts at the newest photo.
+  // One entry per loaded batch; cursors[0] starts at the newest photo.
   const [cursors, setCursors] = useState<PhotoCursor[]>([null]);
-  const [pageIndex, setPageIndex] = useState(0);
   const [viewing, setViewing] = useState<number | null>(null);
-  const result = useQuery(
-    api.posts.publicQueries.listPhotos,
-    allowed ? { cursor: cursors[pageIndex] ?? null } : "skip",
+  const [advanceTo, setAdvanceTo] = useState<number | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const markRead = useMutation(api.postReads.mutations.markRead);
+  // Photo keys opened in the viewer, grouped by post, for unread posts only.
+  const viewedRef = useRef(new Map<string, Set<string>>());
+
+  const results = useQueries(
+    allowed
+      ? Object.fromEntries(
+          cursors.map((cursor, index) => [
+            String(index),
+            { query: api.posts.publicQueries.listPhotos, args: { cursor } },
+          ]),
+        )
+      : {},
   );
-  const photos = result?.photos ?? [];
-  const nextCursor = result?.nextCursor ?? null;
-  const canGoNewer = pageIndex > 0;
-  const canGoOlder = nextCursor !== null;
 
-  function goOlder() {
-    if (!nextCursor) return;
-    setCursors((current) => [...current.slice(0, pageIndex + 1), nextCursor]);
-    setPageIndex(pageIndex + 1);
-    setViewing(null);
-    window.scrollTo({ top: 0 });
-  }
+  // Batches load in order; stop at the first one still in flight so the grid
+  // never shows a gap.
+  const { photos, nextCursor, loading } = useMemo(() => {
+    const flat: PhotoPage["photos"] = [];
+    const keys = new Set<string>();
+    let next: PhotoCursor = null;
+    for (let index = 0; index < cursors.length; index += 1) {
+      const page = results[String(index)] as PhotoPage | Error | undefined;
+      if (page === undefined || page instanceof Error) {
+        return { photos: flat, nextCursor: null, loading: page === undefined };
+      }
+      for (const photo of page.photos) {
+        if (keys.has(photo.key)) continue;
+        keys.add(photo.key);
+        flat.push(photo);
+      }
+      next = page.nextCursor;
+    }
+    return { photos: flat, nextCursor: next, loading: false };
+  }, [results, cursors.length]);
 
-  function goNewer() {
-    if (pageIndex === 0) return;
-    setPageIndex(pageIndex - 1);
-    setViewing(null);
-    window.scrollTo({ top: 0 });
+  function loadMore() {
+    if (!nextCursor || loading) return;
+    setCursors((current) => [...current, nextCursor]);
   }
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
 
   useEffect(() => {
-    if (viewing !== null) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.target instanceof HTMLInputElement) return;
-      if (event.key === "ArrowRight" && canGoOlder) goOlder();
-      if (event.key === "ArrowLeft" && canGoNewer) goNewer();
+    const node = sentinelRef.current;
+    if (!node || !nextCursor || loading) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreRef.current();
+      },
+      { rootMargin: "800px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [nextCursor, loading]);
+
+  // Opening every photo of an unread post in the viewer marks the post read.
+  // seen is null when read receipts do not apply to this viewer.
+  const viewedPhoto = viewing === null ? undefined : photos[viewing];
+  useEffect(() => {
+    if (!viewedPhoto || viewedPhoto.seen !== false) return;
+    const viewed = viewedRef.current.get(viewedPhoto.postId) ?? new Set<string>();
+    viewed.add(viewedPhoto.key);
+    viewedRef.current.set(viewedPhoto.postId, viewed);
+    if (viewed.size === viewedPhoto.postPhotoCount) {
+      viewedRef.current.delete(viewedPhoto.postId);
+      void markRead({ postId: viewedPhoto.postId }).catch((error: unknown) =>
+        console.warn("Could not mark post read", error),
+      );
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+  }, [viewedPhoto, markRead]);
+
+  // Stepping past the last photo in the viewer loads the next batch and
+  // moves on once it arrives.
+  useEffect(() => {
+    if (advanceTo !== null && photos.length > advanceTo) {
+      setViewing(advanceTo);
+      setAdvanceTo(null);
+    }
+  }, [advanceTo, photos.length]);
 
   if (features === undefined || currentUser === undefined) {
     return (
@@ -74,30 +121,15 @@ export default function Photos() {
     caption: [formatDate(photo.publishedAt), photo.title || photo.alt].filter(Boolean).join(" · "),
   }));
 
-  const pager = (
-    <div className="flex items-center justify-between gap-3">
-      <Button variant="outline" size="sm" disabled={!canGoNewer} onClick={goNewer}>
-        Newer
-      </Button>
-      <span className="text-sm tabular-nums text-muted">Page {pageIndex + 1}</span>
-      <Button variant="outline" size="sm" disabled={!canGoOlder} onClick={goOlder}>
-        Older
-      </Button>
-    </div>
-  );
-
   return (
     <Layout wide>
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h1 className="font-sans text-3xl font-semibold tracking-tight">Photos</h1>
-          <p className="text-xs text-muted">Arrow keys change pages. Click a photo to view it.</p>
+          <p className="text-xs text-muted">Click a photo to view it. Arrow keys step through.</p>
         </div>
-        {pager}
-        {result === undefined ? (
-          <p className="text-sm text-muted">Loading...</p>
-        ) : photos.length === 0 ? (
-          <p className="text-sm text-muted">No photos yet.</p>
+        {photos.length === 0 ? (
+          <p className="text-sm text-muted">{loading ? "Loading..." : "No photos yet."}</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {photos.map((photo, index) => (
@@ -135,14 +167,28 @@ export default function Photos() {
             ))}
           </div>
         )}
-        {photos.length > 0 ? pager : null}
+        <div ref={sentinelRef} aria-hidden="true" />
+        {photos.length > 0 ? (
+          <p className="py-4 text-center text-xs text-muted">
+            {loading ? "Loading more..." : nextCursor ? "" : "No more photos."}
+          </p>
+        ) : null}
       </div>
       <ImageOverlay
         images={gallery}
         index={viewing ?? 0}
         open={viewing !== null}
-        onClose={() => setViewing(null)}
+        onClose={() => {
+          setViewing(null);
+          setAdvanceTo(null);
+        }}
         onIndexChange={setViewing}
+        onStepPast={(direction) => {
+          if (direction === 1 && nextCursor) {
+            setAdvanceTo(photos.length);
+            loadMore();
+          }
+        }}
       />
     </Layout>
   );
