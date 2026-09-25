@@ -51,11 +51,6 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
           Unread
         </Link>
       ) : null}
-      {photos ? (
-        <Link to="/photos" className="text-muted hover:text-foreground">
-          Photos
-        </Link>
-      ) : null}
       {calendar ? (
         <Link to="/calendar" className="text-muted hover:text-foreground">
           Calendar
@@ -112,6 +107,11 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
             className="h-8 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
           />
         </form>
+        {photos ? (
+          <Link to="/photos" className="shrink-0 text-sm font-semibold tracking-tight">
+            Photos
+          </Link>
+        ) : null}
         <details className="relative shrink-0">
           <summary className="cursor-pointer list-none text-sm text-muted hover:text-foreground [&::-webkit-details-marker]:hidden">
             Menu
