@@ -72,11 +72,15 @@ export function ImageOverlay({
         step(1);
       }
     }
-    const previous = document.body.style.overflow;
+    // The page scrolls on <html>, so lock both to hide its scrollbar too.
+    const previousBody = document.body.style.overflow;
+    const previousRoot = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = previous;
+      document.body.style.overflow = previousBody;
+      document.documentElement.style.overflow = previousRoot;
       window.removeEventListener("keydown", onKey);
     };
   });
@@ -85,12 +89,23 @@ export function ImageOverlay({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={current.alt || "Image"}
     >
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-xl leading-none text-white hover:bg-black/75"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose();
+        }}
+      >
+        ×
+      </button>
       {canStep ? (
         <button
           type="button"
@@ -117,24 +132,27 @@ export function ImageOverlay({
           <Chevron dir="right" />
         </button>
       ) : null}
-      <figure
-        className="flex max-h-full max-w-5xl flex-col items-center"
-        onClick={(event) => event.stopPropagation()}
-      >
+      {/* The image fills whatever the caption leaves, scaling up small
+          images while object-contain keeps their proportions. */}
+      <figure className="flex h-full w-full min-w-0 flex-col items-center">
         <img
           src={current.src}
           alt={current.alt}
-          className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain"
+          onClick={(event) => event.stopPropagation()}
+          className="min-h-0 w-full flex-1 object-contain"
         />
-        {(current.caption ?? current.alt) ? (
-          <figcaption className="mt-3 max-w-2xl text-center font-sans text-sm leading-6 text-white">
-            {current.caption ?? current.alt}
+        {(current.caption ?? current.alt) || images.length > 1 ? (
+          <figcaption
+            onClick={(event) => event.stopPropagation()}
+            className="flex w-full shrink-0 items-baseline justify-center gap-3 px-4 py-2 text-center font-sans text-sm text-white"
+          >
+            <span className="min-w-0 truncate">{current.caption ?? current.alt}</span>
+            {images.length > 1 ? (
+              <span className="shrink-0 font-mono text-xs tabular-nums text-white/60">
+                {index + 1} / {images.length}
+              </span>
+            ) : null}
           </figcaption>
-        ) : null}
-        {images.length > 1 ? (
-          <div className="mt-2 font-mono text-xs tabular-nums text-white/70">
-            {index + 1} / {images.length}
-          </div>
         ) : null}
       </figure>
     </div>,
