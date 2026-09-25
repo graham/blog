@@ -59,3 +59,7 @@ export function isAdminUser(
   if (user?.disabled === true) return false;
   return user?.isAdmin === true || user?.userType === "admin";
 }
+
+export function formatViews(count: number): string {
+  return count === 1 ? "1 view" : `${count.toLocaleString()} views`;
+}

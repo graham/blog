@@ -252,3 +252,21 @@ export const photoPageValidator = v.object({
   photos: v.array(photoValidator),
   nextCursor: v.union(photoCursorValidator, v.null()),
 });
+
+export const postViewCountValidator = v.object({
+  _id: v.id("postViews"),
+  postId: v.id("posts"),
+  title: v.union(v.string(), v.null()),
+  slug: v.union(v.string(), v.null()),
+  status: v.union(statusValidator, v.null()),
+  count: v.number(),
+});
+
+export const imageViewCountValidator = v.object({
+  _id: v.id("imageViews"),
+  postId: v.id("posts"),
+  src: v.string(),
+  title: v.union(v.string(), v.null()),
+  slug: v.union(v.string(), v.null()),
+  count: v.number(),
+});

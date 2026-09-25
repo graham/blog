@@ -172,3 +172,19 @@ export async function deletePostBookmarkLinks(
     await ctx.db.delete("bookmarkGroupPosts", row._id);
   }
 }
+
+// The post if the current caller (signed in or anonymous) may view it.
+export async function getViewablePost(
+  ctx: Ctx,
+  postId: Id<"posts">,
+): Promise<Doc<"posts"> | null> {
+  const viewer = await resolvePublicViewer(ctx);
+  if (viewer.blocked) return null;
+  const post = await ctx.db.get("posts", postId);
+  if (!post) return null;
+  const allowed = await canViewPost(ctx, post, {
+    userId: viewer.viewerUserId,
+    isAdmin: viewer.asAdmin,
+  });
+  return allowed ? post : null;
+}

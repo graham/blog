@@ -26,6 +26,7 @@ import AdminBookmarkGroups from "./pages/admin/BookmarkGroups";
 import BookmarkGroupDetail from "./pages/admin/BookmarkGroupDetail";
 import AdminTags from "./pages/admin/Tags";
 import TagDetail from "./pages/admin/TagDetail";
+import AdminViews from "./pages/admin/Views";
 
 export default function App() {
   return (
@@ -180,6 +181,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminTags />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/views"
+            element={
+              <AdminRoute>
+                <AdminViews />
               </AdminRoute>
             }
           />

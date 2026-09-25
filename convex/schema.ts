@@ -220,6 +220,21 @@ const schema = defineSchema({
     .index("by_postId", ["postId"])
     .index("by_storageId", ["storageId"])
     .index("by_postId_and_sha256", ["postId", "sha256"]),
+
+  postViews: defineTable({
+    postId: v.id("posts"),
+    count: v.number(),
+  })
+    .index("by_postId", ["postId"])
+    .index("by_count", ["count"]),
+
+  imageViews: defineTable({
+    postId: v.id("posts"),
+    src: v.string(),
+    count: v.number(),
+  })
+    .index("by_postId_and_src", ["postId", "src"])
+    .index("by_count", ["count"]),
 });
 
 export default schema;

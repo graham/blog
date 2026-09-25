@@ -1,3 +1,5 @@
+import type { Id } from "../../convex/_generated/dataModel";
+
 export function imageSnippet(alt: string, storageId: string): string {
   const safe = alt.replace(/[[\]]/g, "").trim() || "image";
   return `![${safe}](convex://${storageId})`;
@@ -18,6 +20,8 @@ export type OverlayImage = {
   src: string;
   alt: string;
   caption?: string;
+  // Set when the image belongs to a published post, so opening it counts a view.
+  postId?: Id<"posts">;
 };
 
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)/g;

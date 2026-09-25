@@ -1,6 +1,9 @@
 import { useEffect, useState, type DragEvent } from "react";
 import { createPortal } from "react-dom";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { cn } from "@/lib/utils";
+import { formatViews } from "@/lib/format";
 import type { OverlayImage } from "@/lib/images";
 
 function wrapIndex(index: number, length: number, delta: number) {
@@ -45,6 +48,20 @@ export function ImageOverlay({
 }) {
   const current = images[index];
   const canStep = images.length > 1 || onStepPast !== undefined;
+  const viewPostId = open ? current?.postId : undefined;
+  const viewSrc = current?.src;
+  const recordView = useMutation(api.imageViews.publicMutations.record);
+  const views = useQuery(
+    api.imageViews.publicQueries.getCount,
+    viewPostId && viewSrc ? { postId: viewPostId, src: viewSrc } : "skip",
+  );
+
+  useEffect(() => {
+    if (!viewPostId || !viewSrc) return;
+    void recordView({ postId: viewPostId, src: viewSrc }).catch((error: unknown) =>
+      console.warn("Could not record image view", error),
+    );
+  }, [viewPostId, viewSrc, recordView]);
 
   function step(direction: -1 | 1) {
     const next = index + direction;
@@ -141,7 +158,7 @@ export function ImageOverlay({
           onClick={(event) => event.stopPropagation()}
           className="min-h-0 w-full flex-1 object-contain"
         />
-        {(current.caption ?? current.alt) || images.length > 1 ? (
+        {(current.caption ?? current.alt) || images.length > 1 || views !== undefined ? (
           <figcaption
             onClick={(event) => event.stopPropagation()}
             className="flex w-full shrink-0 items-baseline justify-center gap-3 px-4 py-2 text-center font-sans text-sm text-white"
@@ -150,6 +167,11 @@ export function ImageOverlay({
             {images.length > 1 ? (
               <span className="shrink-0 font-mono text-xs tabular-nums text-white/60">
                 {index + 1} / {images.length}
+              </span>
+            ) : null}
+            {views !== undefined ? (
+              <span className="shrink-0 font-mono text-xs tabular-nums text-white/60">
+                {formatViews(views)}
               </span>
             ) : null}
           </figcaption>
@@ -180,7 +202,7 @@ export function ZoomableImage({
     gallery && gallery.length > 0
       ? gallery.some((image) => image.src === src)
         ? gallery
-        : [{ src, alt }, ...gallery]
+        : [{ src, alt, postId: gallery[0]?.postId }, ...gallery]
       : [{ src, alt }];
   const startIndex = Math.max(
     0,

@@ -6,7 +6,7 @@ import { Layout } from "@/components/Layout";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { ZoomableImage } from "@/components/ImageOverlay";
 import { Button } from "@/components/ui/button";
-import { formatDate, formatDateTime, isAdminUser } from "@/lib/format";
+import { formatDate, formatDateTime, formatViews, isAdminUser } from "@/lib/format";
 import { markdownOverlayImages, postOverlayImages } from "@/lib/images";
 import { hasPublicMedia, NO_PUBLIC_TEXT_MESSAGE } from "@/lib/mediaOnly";
 import { useImagesOnly } from "@/lib/useImagesOnly";
@@ -69,6 +69,12 @@ export default function Post({ preview = false }: { preview?: boolean }) {
   const features = useFeatures();
   const receiptsOn = useFeatureOn(features.readReceipts);
   const markRead = useMutation(api.postReads.mutations.markRead);
+  const recordView = useMutation(api.postViews.publicMutations.record);
+  const viewPostId = !preview && post ? post._id : undefined;
+  const views = useQuery(
+    api.postViews.publicQueries.getCount,
+    viewPostId ? { postId: viewPostId } : "skip",
+  );
   const removePost = useAction(api.posts.actions.remove);
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
@@ -81,6 +87,13 @@ export default function Post({ preview = false }: { preview?: boolean }) {
     if (preview || !post || !receiptsOn) return;
     void markRead({ postId: post._id });
   }, [preview, post?._id, receiptsOn, markRead]);
+
+  useEffect(() => {
+    if (!viewPostId) return;
+    void recordView({ postId: viewPostId }).catch((error: unknown) =>
+      console.warn("Could not record post view", error),
+    );
+  }, [viewPostId, recordView]);
 
   if (post === undefined) {
     return (
@@ -104,7 +117,7 @@ export default function Post({ preview = false }: { preview?: boolean }) {
   const gallery = postOverlayImages(
     post.coverImageUrl ? { src: post.coverImageUrl, alt: post.title || "Cover image" } : null,
     markdownOverlayImages(post.body, post.assets),
-  );
+  ).map((image) => ({ ...image, postId: viewPostId }));
 
   const prev = navigation?.previous ?? null;
   const next = navigation?.next ?? null;
@@ -156,9 +169,10 @@ export default function Post({ preview = false }: { preview?: boolean }) {
               </p>
             ) : null}
             {imagesOnly ? null : (
-              <time className="text-xs uppercase tracking-wide text-muted">
-                {formatDate(post.publishedAt ?? post.updatedAt)}
-              </time>
+              <p className="text-xs uppercase tracking-wide text-muted">
+                <time>{formatDate(post.publishedAt ?? post.updatedAt)}</time>
+                {views !== undefined ? <span> · {formatViews(views)}</span> : null}
+              </p>
             )}
             <h1
               className={`${imagesOnly ? "" : "mt-2"} font-sans text-3xl font-semibold tracking-tight sm:text-4xl`}

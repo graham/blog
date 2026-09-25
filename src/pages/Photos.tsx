@@ -187,6 +187,7 @@ export default function Photos() {
   const gallery: OverlayImage[] = photos.map((photo) => ({
     src: photo.src,
     alt: photo.alt,
+    postId: photo.postId,
     caption: [formatDate(photo.publishedAt), photo.title || photo.alt].filter(Boolean).join(" · "),
   }));
 

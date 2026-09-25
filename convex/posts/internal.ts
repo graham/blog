@@ -32,6 +32,8 @@ import { readSiteSettings } from "../siteSettings/internal";
 import { countPostImages, loadPostAssets } from "../postAssets/internal";
 import { ensureTag } from "../tags/internal";
 import { deletePostReads, getReadBefore, readStateForPost } from "../postReads/internal";
+import { deletePostViews } from "../postViews/internal";
+import { deleteImageViews } from "../imageViews/internal";
 import { requireAdmin } from "../lib/auth";
 import { featureVisible } from "../lib/featureMode";
 import { isImageContentType } from "../postAssets/contentTypes";
@@ -568,6 +570,8 @@ export const remove = internalMutation({
       }
     }
     await deletePostReads(ctx, post._id);
+    await deletePostViews(ctx, post._id);
+    await deleteImageViews(ctx, post._id);
     await deletePostChannelLinks(ctx, post._id);
     await deletePostBookmarkLinks(ctx, post._id);
     await syncPublishedByDay(ctx, post, null);
@@ -944,7 +948,7 @@ type PostPhoto = { key: string; src: string; alt: string };
 
 // A post's photos in reading order: the cover first, then each image in the
 // body. Uploaded videos and ZIPs referenced from the body are skipped.
-async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostPhoto[]> {
+export async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostPhoto[]> {
   const hasConvexImages = post.body.includes("convex://");
   if (!post.coverImageId && !post.body.includes("![")) return [];
   const assets =
