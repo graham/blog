@@ -29,16 +29,21 @@ export default function Photos() {
   // Photo keys opened in the viewer, grouped by post, for unread posts only.
   const viewedRef = useRef(new Map<string, Set<string>>());
 
-  const results = useQueries(
-    allowed
-      ? Object.fromEntries(
-          cursors.map((cursor, index) => [
-            String(index),
-            { query: api.posts.publicQueries.listPhotos, args: { cursor } },
-          ]),
-        )
-      : {},
+  // useQueries resubscribes whenever this object's identity changes, so it
+  // must be memoized or the page re-renders forever (React error #301).
+  const requests = useMemo(
+    () =>
+      allowed
+        ? Object.fromEntries(
+            cursors.map((cursor, index) => [
+              String(index),
+              { query: api.posts.publicQueries.listPhotos, args: { cursor } },
+            ]),
+          )
+        : {},
+    [allowed, cursors],
   );
+  const results = useQueries(requests);
 
   // Batches load in order; stop at the first one still in flight so the grid
   // never shows a gap.

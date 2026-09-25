@@ -117,6 +117,27 @@ describe("photos", () => {
     expect(second.nextCursor).toBeNull();
   });
 
+  test("anonymous visitors see photos only when the settings allow it", async () => {
+    const t = createT();
+    const { userId, asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    await seedPost(t, userId, "public", Date.now(), 2);
+    const anonymousCount = async () =>
+      (await t.query(api.posts.publicQueries.listPhotos, { cursor: null })).photos.length;
+
+    await admin.mutation(api.features.mutations.set, { photos: "on" });
+    expect(await anonymousCount()).toBe(2);
+
+    await admin.mutation(api.features.mutations.set, { photos: "adminOnly" });
+    expect(await anonymousCount()).toBe(0);
+    expect(
+      (await admin.query(api.posts.publicQueries.listPhotos, { cursor: null })).photos,
+    ).toHaveLength(2);
+
+    await admin.mutation(api.features.mutations.set, { photos: "on" });
+    await admin.mutation(api.siteSettings.mutations.setRequireAuth, { requireAuth: true });
+    expect(await anonymousCount()).toBe(0);
+  });
+
   test("marks photos seen from the reader's post read receipts", async () => {
     const t = createT();
     const { userId, asUser: admin } = await seedUser(t, "admin@example.com", "admin");
