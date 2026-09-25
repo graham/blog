@@ -1,12 +1,12 @@
 import { Fragment, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { useFeatureOn, useFeatures } from "@/components/FeaturesProvider";
-import { formatTimeDelta } from "@/lib/format";
+import { formatTimeDelta, isAdminUser } from "@/lib/format";
 import { useImagesOnly } from "@/lib/useImagesOnly";
 
 const PAGE_SIZE = 10;
@@ -22,6 +22,11 @@ export default function Home() {
   const receiptsOn = useFeatureOn(features.readReceipts);
   const imagesOnly = useImagesOnly();
   const markAllRead = useMutation(api.postReads.mutations.markAllRead);
+  const currentUser = useQuery(api.users.publicQueries.getCurrentUser);
+  const scheduledCount = useQuery(
+    api.posts.queries.countScheduled,
+    isAdminUser(currentUser) ? {} : "skip",
+  );
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const searchResults = useQuery(
@@ -65,6 +70,11 @@ export default function Home() {
           <h1 className="font-sans text-3xl font-semibold tracking-tight">
             {searching ? `Search: ${q}` : unreadOnly ? "Unread" : "Posts"}
           </h1>
+          {scheduledCount ? (
+            <Link to="/admin" className="text-sm text-muted hover:text-foreground">
+              {scheduledCount > 500 ? "500+" : scheduledCount} scheduled
+            </Link>
+          ) : null}
           {receiptsOn && unreadOnly && !searching ? (
             <Button variant="outline" size="sm" onClick={() => void markAllRead({})}>
               Mark all read

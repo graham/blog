@@ -81,3 +81,12 @@ export const searchAll = query({
     return result;
   },
 });
+
+export const countScheduled = query({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx): Promise<number> => {
+    await requireAdmin(ctx);
+    return await ctx.runQuery(internal.posts.internal.countScheduled, {});
+  },
+});

@@ -70,14 +70,21 @@ describe("batch scheduling drafts", () => {
       paginationOpts: { numItems: 10, cursor: null },
     });
     expect(drafts.page.map((post) => post._id)).toEqual([postIds[2]]);
+    expect(await admin.query(api.posts.queries.countScheduled, {})).toBe(2);
+    await expect(t.query(api.posts.queries.countScheduled, {})).rejects.toThrow(
+      /Not authenticated/,
+    );
 
-    vi.setSystemTime(first);
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    vi.advanceTimersByTime(first - now);
+    await t.finishInProgressScheduledFunctions();
     expect((await read(postIds[0]))?.status).toBe("published");
+    expect((await read(postIds[1]))?.status).toBe("scheduled");
+    expect(await admin.query(api.posts.queries.countScheduled, {})).toBe(1);
 
-    vi.setSystemTime(second);
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    vi.advanceTimersByTime(second - first);
+    await t.finishInProgressScheduledFunctions();
     expect((await read(postIds[1]))?.status).toBe("published");
+    expect(await admin.query(api.posts.queries.countScheduled, {})).toBe(0);
   });
 
   test("rejects past times, non-drafts, and non-admins without changing anything", async () => {

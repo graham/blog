@@ -865,6 +865,22 @@ export const getBySlugForAdmin = internalQuery({
   },
 });
 
+export const MAX_SCHEDULED_COUNT = 500;
+
+// Scheduled posts are few, so a bounded scan is enough; past the cap the
+// caller shows "500+".
+export const countScheduled = internalQuery({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("posts")
+      .withIndex("by_status", (q) => q.eq("status", "scheduled"))
+      .take(MAX_SCHEDULED_COUNT + 1);
+    return rows.length;
+  },
+});
+
 export const listDrafts = internalQuery({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(adminPostSummaryValidator),
