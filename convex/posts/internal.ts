@@ -13,6 +13,8 @@ import {
   calendarPostValidator,
   postReadStateValidator,
   visibilityValidator,
+  photoCursorValidator,
+  photoPageValidator,
 } from "../lib/validators";
 import type { Infer } from "convex/values";
 import { buildSearchText, excerptFrom, normalizeTags, slugify } from "../lib/text";
@@ -915,5 +917,149 @@ export const searchAll = internalQuery({
       .withSearchIndex("search_text", (search) => search.search("searchText", q))
       .take(20);
     return await Promise.all(rows.map((post) => toAdminSummary(ctx, post)));
+  },
+});
+
+const PHOTO_PAGE_SIZE = 24;
+const PHOTO_MAX_POSTS_SCANNED = 200;
+const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g;
+
+type Photo = Infer<typeof photoPageValidator>["photos"][number];
+
+// A post's photos in reading order: the cover first, then each image in the
+// body. Uploaded videos and ZIPs referenced from the body are skipped.
+async function postPhotos(
+  ctx: Ctx,
+  post: Doc<"posts">,
+): Promise<Array<{ key: string; src: string; alt: string }>> {
+  const hasConvexImages = post.body.includes("convex://");
+  if (!post.coverImageId && !post.body.includes("![")) return [];
+  const assets =
+    post.coverImageId || hasConvexImages
+      ? await ctx.db
+          .query("postAssets")
+          .withIndex("by_postId", (q) => q.eq("postId", post._id))
+          .take(200)
+      : [];
+  const byStorageId = new Map(assets.map((asset) => [asset.storageId as string, asset]));
+  const photos: Array<{ key: string; src: string; alt: string }> = [];
+  const seen = new Set<string>();
+
+  async function addAsset(storageId: string, fallbackAlt: string) {
+    if (seen.has(storageId)) return;
+    const asset = byStorageId.get(storageId);
+    if (!asset || !isImageContentType(asset.contentType)) return;
+    const url = await ctx.storage.getUrl(asset.storageId);
+    if (!url) return;
+    seen.add(storageId);
+    photos.push({
+      key: `${post._id}:${storageId}`,
+      src: url,
+      alt: (asset.alt || fallbackAlt || asset.filename).trim(),
+    });
+  }
+
+  if (post.coverImageId) await addAsset(post.coverImageId, post.title);
+  for (const match of post.body.matchAll(new RegExp(MARKDOWN_IMAGE_RE.source, "g"))) {
+    const alt = match[1] ?? "";
+    const src = match[2] ?? "";
+    if (src.startsWith("convex://")) {
+      await addAsset(src.slice("convex://".length), alt);
+    } else if (/^https?:\/\//.test(src) && !seen.has(src)) {
+      seen.add(src);
+      photos.push({ key: `${post._id}:${src}`, src, alt: alt.trim() });
+    }
+  }
+  return photos;
+}
+
+// Walks listed published posts newest first and flattens their photos into
+// fixed-size pages. The cursor names the post to resume from (publishedAt,
+// then _creationTime, matching the index order) and how many of its photos
+// the previous page already showed.
+export const listPhotos = internalQuery({
+  args: {
+    cursor: v.union(photoCursorValidator, v.null()),
+    viewerUserId: v.union(v.id("users"), v.null()),
+    asAdmin: v.boolean(),
+  },
+  returns: photoPageValidator,
+  handler: async (ctx, args) => {
+    const cursor = args.cursor;
+    const posts = ctx.db
+      .query("posts")
+      .withIndex("by_status_and_visibility_and_publishedAt", (q) => {
+        const listed = q.eq("status", "published").eq("visibility", "listed");
+        return cursor ? listed.lte("publishedAt", cursor.publishedAt) : listed;
+      })
+      .order("desc");
+    const viewer = viewerFrom(args);
+    const memberships =
+      args.viewerUserId && !args.asAdmin
+        ? await listUserChannelIdSet(ctx, args.viewerUserId)
+        : undefined;
+    const settings = await readSiteSettings(ctx);
+    const receiptsOn =
+      args.viewerUserId !== null && featureVisible(settings.features.readReceipts, args.asAdmin);
+    const readBefore = receiptsOn && args.viewerUserId ? await getReadBefore(ctx, args.viewerUserId) : 0;
+
+    const photos: Photo[] = [];
+    let scanned = 0;
+    for await (const post of posts) {
+      if (post.publishedAt === null) continue;
+      let skip = 0;
+      if (cursor && post.publishedAt === cursor.publishedAt) {
+        if (post._creationTime > cursor.creationTime) continue;
+        if (post._id === cursor.postId) skip = cursor.skip;
+      }
+      scanned += 1;
+      if (scanned > PHOTO_MAX_POSTS_SCANNED) {
+        return {
+          photos,
+          nextCursor: {
+            publishedAt: post.publishedAt,
+            creationTime: post._creationTime,
+            postId: post._id,
+            skip: 0,
+          },
+        };
+      }
+      if (!(await canViewPost(ctx, post, viewer, memberships))) continue;
+      const postImages = (await postPhotos(ctx, post)).slice(skip);
+      if (postImages.length === 0) continue;
+      let seen: boolean | null = null;
+      if (receiptsOn && args.viewerUserId) {
+        const read = await readStateForPost(
+          ctx,
+          args.viewerUserId,
+          post._id,
+          post.updatedAt,
+          readBefore,
+        );
+        seen = read.lastReadAt !== null;
+      }
+      for (let index = 0; index < postImages.length; index += 1) {
+        if (photos.length === PHOTO_PAGE_SIZE) {
+          return {
+            photos,
+            nextCursor: {
+              publishedAt: post.publishedAt,
+              creationTime: post._creationTime,
+              postId: post._id,
+              skip: skip + index,
+            },
+          };
+        }
+        photos.push({
+          ...postImages[index],
+          postId: post._id,
+          slug: post.slug,
+          title: post.title,
+          publishedAt: post.publishedAt,
+          seen,
+        });
+      }
+    }
+    return { photos, nextCursor: null };
   },
 });

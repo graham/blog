@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import ConvexClientProvider from "./components/ConvexClientProvider";
 import { FeaturesProvider } from "./components/FeaturesProvider";
 import Calendar from "./pages/Calendar";
+import Photos from "./pages/Photos";
 import { AdminRoute } from "./components/AdminRoute";
 import { SiteGate } from "./components/SiteGate";
 import Home from "./pages/Home";
@@ -61,6 +62,14 @@ export default function App() {
             element={
               <SiteGate>
                 <Calendar />
+              </SiteGate>
+            }
+          />
+          <Route
+            path="/photos"
+            element={
+              <SiteGate>
+                <Photos />
               </SiteGate>
             }
           />

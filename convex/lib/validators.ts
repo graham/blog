@@ -172,6 +172,7 @@ export const featuresValidator = v.object({
   bookmarks: featureModeValidator,
   timings: featureModeValidator,
   calendar: featureModeValidator,
+  photos: featureModeValidator,
   infiniteScroll: featureModeValidator,
   tagNav: featureModeValidator,
   readReceipts: featureModeValidator,
@@ -239,4 +240,27 @@ export const channelMemberValidator = v.object({
   userId: v.id("users"),
   name: v.union(v.string(), v.null()),
   email: v.union(v.string(), v.null()),
+});
+
+export const photoCursorValidator = v.object({
+  publishedAt: v.number(),
+  creationTime: v.number(),
+  postId: v.id("posts"),
+  skip: v.number(),
+});
+
+export const photoValidator = v.object({
+  key: v.string(),
+  src: v.string(),
+  alt: v.string(),
+  postId: v.id("posts"),
+  slug: v.string(),
+  title: v.string(),
+  publishedAt: v.number(),
+  seen: v.union(v.boolean(), v.null()),
+});
+
+export const photoPageValidator = v.object({
+  photos: v.array(photoValidator),
+  nextCursor: v.union(photoCursorValidator, v.null()),
 });

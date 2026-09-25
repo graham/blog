@@ -13,6 +13,7 @@ export const set = mutation({
     bookmarks: v.optional(v.union(v.boolean(), featureModeValidator)),
     timings: v.optional(v.union(v.boolean(), featureModeValidator)),
     calendar: v.optional(v.union(v.boolean(), featureModeValidator)),
+    photos: v.optional(v.union(v.boolean(), featureModeValidator)),
     infiniteScroll: v.optional(v.union(v.boolean(), featureModeValidator)),
     tagNav: v.optional(v.union(v.boolean(), featureModeValidator)),
     readReceipts: v.optional(v.union(v.boolean(), featureModeValidator)),

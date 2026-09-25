@@ -210,6 +210,19 @@ export default function AdminSettings() {
             </SettingRow>
 
             <SettingRow
+              title="Photos"
+              description="Adds /photos and a header link. Every photo from listed published posts, newest first, four across with pages. With read receipts on, photos from posts the reader has opened are marked Seen. Admin only: hidden from readers."
+            >
+              <ModePicker
+                value={features.photos}
+                disabled={busy !== null}
+                onChange={(photos) =>
+                  void run(`photos-${photos}`, () => setFeatures({ photos }))
+                }
+              />
+            </SettingRow>
+
+            <SettingRow
               title="Tag navigation"
               description="Left rail of tags and posts. Tags never hide a post; they only organize it. Admin only: rail is visible to admins."
             >

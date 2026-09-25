@@ -17,6 +17,7 @@ export function markdownHasStorageId(content: string, storageId: string): boolea
 export type OverlayImage = {
   src: string;
   alt: string;
+  caption?: string;
 };
 
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)/g;

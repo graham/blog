@@ -113,9 +113,9 @@ export function ImageOverlay({
           alt={current.alt}
           className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain"
         />
-        {current.alt ? (
+        {(current.caption ?? current.alt) ? (
           <figcaption className="mt-3 max-w-2xl text-center font-sans text-sm leading-6 text-white">
-            {current.alt}
+            {current.caption ?? current.alt}
           </figcaption>
         ) : null}
         {canStep ? (

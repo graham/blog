@@ -22,6 +22,7 @@ const schema = defineSchema({
     timingsShowDelta: v.optional(storedFeatureModeValidator),
     timingsPage: v.optional(v.boolean()),
     calendar: v.optional(storedFeatureModeValidator),
+    photos: v.optional(storedFeatureModeValidator),
     infiniteScroll: v.optional(storedFeatureModeValidator),
     tagNav: v.optional(storedFeatureModeValidator),
     readReceipts: v.optional(storedFeatureModeValidator),

@@ -8,6 +8,8 @@ import {
   postNavigationValidator,
   postSummaryValidator,
   calendarPostValidator,
+  photoCursorValidator,
+  photoPageValidator,
 } from "../lib/validators";
 import { resolvePublicViewer } from "../lib/access";
 import { readSiteSettings } from "../siteSettings/internal";
@@ -17,6 +19,7 @@ type PostSummary = Infer<typeof postSummaryValidator>;
 type PostDetail = Infer<typeof postDetailValidator>;
 type PostNavigation = Infer<typeof postNavigationValidator>;
 type CalendarPost = Infer<typeof calendarPostValidator>;
+type PhotoPage = Infer<typeof photoPageValidator>;
 type Page<T> = {
   page: T[];
   continueCursor: string;
@@ -158,6 +161,25 @@ export const listByTag = query({
     }
     const result: Page<PostSummary> = await ctx.runQuery(internal.posts.internal.listByTag, {
       ...args,
+      viewerUserId: viewer.viewerUserId,
+      asAdmin: viewer.asAdmin,
+    });
+    return result;
+  },
+});
+
+export const listPhotos = query({
+  args: { cursor: v.union(photoCursorValidator, v.null()) },
+  returns: photoPageValidator,
+  handler: async (ctx, args): Promise<PhotoPage> => {
+    const viewer = await resolvePublicViewer(ctx);
+    if (viewer.blocked) return { photos: [], nextCursor: null };
+    const settings = await readSiteSettings(ctx);
+    if (!featureVisible(settings.features.photos, viewer.asAdmin)) {
+      return { photos: [], nextCursor: null };
+    }
+    const result: PhotoPage = await ctx.runQuery(internal.posts.internal.listPhotos, {
+      cursor: args.cursor,
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });

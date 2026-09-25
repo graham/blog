@@ -18,6 +18,7 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const bookmarksEnabled = features !== undefined && features.bookmarks !== "off";
   const calendar = features !== undefined && featureOn(features.calendar, admin);
   const readReceipts = features !== undefined && featureOn(features.readReceipts, admin);
+  const photos = features !== undefined && featureOn(features.photos, admin);
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -48,6 +49,11 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
       {readReceipts ? (
         <Link to="/?unread=1" className="text-muted hover:text-foreground">
           Unread
+        </Link>
+      ) : null}
+      {photos ? (
+        <Link to="/photos" className="text-muted hover:text-foreground">
+          Photos
         </Link>
       ) : null}
       {calendar ? (

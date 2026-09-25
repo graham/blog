@@ -66,6 +66,7 @@ describe("site-wide requireAuth", () => {
         bookmarks: "off",
         timings: "off",
         calendar: "off",
+        photos: "off",
         infiniteScroll: "off",
         tagNav: "off",
         readReceipts: "off",

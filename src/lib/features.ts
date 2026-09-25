@@ -6,6 +6,7 @@ export type Features = {
   bookmarks: FeatureMode;
   timings: FeatureMode;
   calendar: FeatureMode;
+  photos: FeatureMode;
   infiniteScroll: FeatureMode;
   tagNav: FeatureMode;
   readReceipts: FeatureMode;
@@ -21,6 +22,7 @@ export const DEFAULT_FEATURES: Features = {
   bookmarks: "off",
   timings: "off",
   calendar: "off",
+  photos: "off",
   infiniteScroll: "off",
   tagNav: "off",
   readReceipts: "off",
