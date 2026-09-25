@@ -29,7 +29,10 @@ const schema = defineSchema({
     imagesOnly: v.optional(v.boolean()),
     postSort: v.optional(v.union(v.literal("created"), v.literal("updated"))),
     themeEnabled: v.optional(v.boolean()),
+    // Legacy single palette; read as a fallback for the light or dark slot.
     themeId: v.optional(v.string()),
+    lightThemeId: v.optional(v.string()),
+    darkThemeId: v.optional(v.string()),
     googleSignIn: v.optional(v.boolean()),
     passwordSignIn: v.optional(v.boolean()),
     pushoverEnabled: v.optional(v.boolean()),

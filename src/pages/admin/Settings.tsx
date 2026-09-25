@@ -4,7 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { ThemeSelect } from "@/components/ThemeSelect";
-import type { ThemeId } from "@/lib/themes";
+import { DARK_THEMES, LIGHT_THEMES } from "@/lib/themes";
 import type { FeatureMode } from "@/lib/features";
 
 export default function AdminSettings() {
@@ -56,7 +56,7 @@ export default function AdminSettings() {
           <div className="rounded-xl border border-border bg-card">
             <SettingRow
               title="Theme"
-              description="One palette for every visitor. Off uses Paper, or Ink for visitors in dark mode. Visitors whose light/dark toggle does not match the palette get Paper or Ink instead. Pick a theme to preview its colors."
+              description="A light palette and a dark palette. Visitors see the one matching their light/dark toggle in the header. Off uses Paper and Ink. Pick a theme to preview its colors."
             >
               <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
                 <OnOff
@@ -68,15 +68,26 @@ export default function AdminSettings() {
                     )
                   }
                 />
-                <ThemeSelect
-                  value={features.theme.id}
-                  disabled={busy !== null || !features.theme.enabled}
-                  onChange={(themeId) =>
-                    void run(`theme-${themeId}`, () =>
-                      setFeatures({ themeId: themeId as ThemeId }),
-                    )
-                  }
-                />
+                <ThemeSlot label="Light">
+                  <ThemeSelect
+                    value={features.theme.lightId}
+                    themes={LIGHT_THEMES}
+                    disabled={busy !== null || !features.theme.enabled}
+                    onChange={(lightThemeId) =>
+                      void run(`light-${lightThemeId}`, () => setFeatures({ lightThemeId }))
+                    }
+                  />
+                </ThemeSlot>
+                <ThemeSlot label="Dark">
+                  <ThemeSelect
+                    value={features.theme.darkId}
+                    themes={DARK_THEMES}
+                    disabled={busy !== null || !features.theme.enabled}
+                    onChange={(darkThemeId) =>
+                      void run(`dark-${darkThemeId}`, () => setFeatures({ darkThemeId }))
+                    }
+                  />
+                </ThemeSlot>
               </div>
             </SettingRow>
 
@@ -327,6 +338,15 @@ function settingErrorMessage(caught: unknown): string {
     return inner[1].replace(/\n\s*Called by client\s*$/, "").trim();
   }
   return raw.replace(/\n\s*Called by client\s*$/, "").trim();
+}
+
+function ThemeSlot({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="w-10 shrink-0 text-xs text-muted sm:text-right">{label}</span>
+      {children}
+    </div>
+  );
 }
 
 function SettingRow({

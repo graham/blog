@@ -1,3 +1,5 @@
+import { isDarkThemeId, isLightThemeId } from "../../convex/lib/themes";
+
 export const THEME_IDS = [
   "paper",
   "ink",
@@ -107,6 +109,18 @@ export const THEMES: Array<{
     colors: { background: "#fffbeb", foreground: "#171717", accent: "#ea580c" },
   },
 ];
+
+export {
+  DARK_THEME_IDS,
+  LIGHT_THEME_IDS,
+  isDarkThemeId,
+  isLightThemeId,
+  type DarkThemeId,
+  type LightThemeId,
+} from "../../convex/lib/themes";
+
+export const LIGHT_THEMES = THEMES.filter((theme) => isLightThemeId(theme.id));
+export const DARK_THEMES = THEMES.filter((theme) => isDarkThemeId(theme.id));
 
 export function isThemeId(value: string): value is ThemeId {
   return (THEME_IDS as readonly string[]).includes(value);

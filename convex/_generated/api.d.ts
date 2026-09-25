@@ -54,6 +54,7 @@ import type * as lib_mediaOnly from "../lib/mediaOnly.js";
 import type * as lib_password from "../lib/password.js";
 import type * as lib_sha256 from "../lib/sha256.js";
 import type * as lib_text from "../lib/text.js";
+import type * as lib_themes from "../lib/themes.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as lib_workpool from "../lib/workpool.js";
 import type * as migrations from "../migrations.js";
@@ -139,6 +140,7 @@ declare const fullApi: ApiFromModules<{
   "lib/password": typeof lib_password;
   "lib/sha256": typeof lib_sha256;
   "lib/text": typeof lib_text;
+  "lib/themes": typeof lib_themes;
   "lib/validators": typeof lib_validators;
   "lib/workpool": typeof lib_workpool;
   migrations: typeof migrations;

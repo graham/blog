@@ -59,17 +59,14 @@ export function FeaturesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    const theme = resolveTheme(
-      colorMode.mode,
-      features.theme.enabled ? features.theme.id : null,
-    );
+    const theme = resolveTheme(colorMode.mode, features.theme.enabled ? features.theme : null);
     if (theme === "paper") {
       delete root.dataset.theme;
     } else {
       root.dataset.theme = theme;
     }
     root.style.colorScheme = colorMode.mode;
-  }, [features.theme.enabled, features.theme.id, colorMode.mode]);
+  }, [features.theme, colorMode.mode]);
 
   return (
     <FeaturesContext.Provider value={features}>

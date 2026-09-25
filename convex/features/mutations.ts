@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requireAdmin } from "../lib/auth";
-import { featuresValidator, postSortValidator, themeIdValidator } from "../lib/validators";
+import { featuresValidator, postSortValidator } from "../lib/validators";
+import { darkThemeIdValidator, lightThemeIdValidator } from "../lib/themes";
 import { featureModeValidator } from "../lib/featureMode";
 import type { Infer } from "convex/values";
 
@@ -20,7 +21,8 @@ export const set = mutation({
     imagesOnly: v.optional(v.boolean()),
     sortOrder: v.optional(postSortValidator),
     themeEnabled: v.optional(v.boolean()),
-    themeId: v.optional(themeIdValidator),
+    lightThemeId: v.optional(lightThemeIdValidator),
+    darkThemeId: v.optional(darkThemeIdValidator),
   },
   returns: featuresValidator,
   handler: async (ctx, args): Promise<Features> => {

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { featureModeValidator } from "./featureMode";
+import { darkThemeIdValidator, lightThemeIdValidator } from "./themes";
 
 export const statusValidator = v.union(
   v.literal("draft"),
@@ -150,21 +151,6 @@ export const userSummaryValidator = v.object({
   disabledAt: v.union(v.number(), v.null()),
 });
 
-export const themeIdValidator = v.union(
-  v.literal("paper"),
-  v.literal("ink"),
-  v.literal("ocean"),
-  v.literal("forest"),
-  v.literal("sunset"),
-  v.literal("violet"),
-  v.literal("contrast"),
-  v.literal("news"),
-  v.literal("midnight"),
-  v.literal("ember"),
-  v.literal("signal"),
-  v.literal("citrus"),
-);
-
 export const postSortValidator = v.union(v.literal("created"), v.literal("updated"));
 
 export const featuresValidator = v.object({
@@ -179,7 +165,8 @@ export const featuresValidator = v.object({
   sortOrder: postSortValidator,
   theme: v.object({
     enabled: v.boolean(),
-    id: themeIdValidator,
+    lightId: lightThemeIdValidator,
+    darkId: darkThemeIdValidator,
   }),
 });
 

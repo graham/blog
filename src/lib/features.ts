@@ -1,4 +1,4 @@
-import type { ThemeId } from "./themes";
+import type { DarkThemeId, LightThemeId } from "./themes";
 
 export type FeatureMode = "off" | "on" | "adminOnly";
 
@@ -14,7 +14,8 @@ export type Features = {
   sortOrder: "created" | "updated";
   theme: {
     enabled: boolean;
-    id: ThemeId;
+    lightId: LightThemeId;
+    darkId: DarkThemeId;
   };
 };
 
@@ -28,7 +29,7 @@ export const DEFAULT_FEATURES: Features = {
   readReceipts: "off",
   imagesOnly: false,
   sortOrder: "created",
-  theme: { enabled: false, id: "paper" },
+  theme: { enabled: false, lightId: "paper", darkId: "ink" },
 };
 
 export function featureOn(mode: FeatureMode, isAdmin: boolean): boolean {

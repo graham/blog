@@ -34,7 +34,7 @@ const DEFAULT_FEATURES = {
   readReceipts: "off",
   imagesOnly: false,
   sortOrder: "created",
-  theme: { enabled: false, id: "paper" },
+  theme: { enabled: false, lightId: "paper", darkId: "ink" },
 };
 
 describe("features", () => {
@@ -99,7 +99,7 @@ describe("features", () => {
       infiniteScroll: true,
       imagesOnly: true,
       themeEnabled: true,
-      themeId: "ink",
+      darkThemeId: "midnight",
     });
     expect(features).toEqual({
       bookmarks: "on",
@@ -111,7 +111,7 @@ describe("features", () => {
       readReceipts: "off",
       imagesOnly: true,
       sortOrder: "created",
-      theme: { enabled: true, id: "ink" },
+      theme: { enabled: true, lightId: "paper", darkId: "midnight" },
     });
     expect(await t.query(api.features.publicQueries.get, {})).toEqual(features);
     expect((await t.query(api.config.getConfig, {})).bookmarksEnabled).toBe(true);
@@ -165,20 +165,46 @@ describe("features", () => {
     const t = createT();
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
     await expect(
-      asAdmin.mutation(api.features.mutations.set, { themeId: "neon" as "paper" }),
+      asAdmin.mutation(api.features.mutations.set, { lightThemeId: "neon" as "paper" }),
     ).rejects.toThrow();
   });
 
-  test("admin can pick the extra dark and high-contrast themes", async () => {
+  test("light slots take only light themes and dark slots only dark ones", async () => {
     const t = createT();
     const { asUser: asAdmin } = await seedUser(t, "admin@example.com", "admin");
-    for (const themeId of ["midnight", "ember", "signal", "citrus"] as const) {
+    for (const lightThemeId of ["signal", "citrus"] as const) {
       const features = await asAdmin.mutation(api.features.mutations.set, {
         themeEnabled: true,
-        themeId,
+        lightThemeId,
       });
-      expect(features.theme).toEqual({ enabled: true, id: themeId });
+      expect(features.theme.lightId).toBe(lightThemeId);
     }
+    for (const darkThemeId of ["midnight", "ember"] as const) {
+      const features = await asAdmin.mutation(api.features.mutations.set, { darkThemeId });
+      expect(features.theme).toEqual({ enabled: true, lightId: "citrus", darkId: darkThemeId });
+    }
+    await expect(
+      asAdmin.mutation(api.features.mutations.set, { lightThemeId: "ember" as "paper" }),
+    ).rejects.toThrow();
+    await expect(
+      asAdmin.mutation(api.features.mutations.set, { darkThemeId: "ocean" as "ink" }),
+    ).rejects.toThrow();
+  });
+
+  test("a legacy single palette fills the matching slot", async () => {
+    const t = createT();
+    const { userId } = await seedUser(t, "admin@example.com", "admin");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("siteSettings", {
+        requireAuth: false,
+        themeEnabled: true,
+        themeId: "ocean",
+        updatedAt: Date.now(),
+        updatedBy: userId,
+      });
+    });
+    const features = await t.query(api.features.publicQueries.get, {});
+    expect(features.theme).toEqual({ enabled: true, lightId: "ocean", darkId: "ink" });
   });
 });
 

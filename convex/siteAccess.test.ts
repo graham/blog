@@ -72,7 +72,7 @@ describe("site-wide requireAuth", () => {
         readReceipts: "off",
         imagesOnly: false,
         sortOrder: "created",
-        theme: { enabled: false, id: "paper" },
+        theme: { enabled: false, lightId: "paper", darkId: "ink" },
       },
     });
     const list = await t.query(api.posts.publicQueries.listPublished, {

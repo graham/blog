@@ -6,8 +6,15 @@ import {
   featuresValidator,
   postSortValidator,
   siteSettingsValidator,
-  themeIdValidator,
 } from "../lib/validators";
+import {
+  DEFAULT_DARK_THEME,
+  DEFAULT_LIGHT_THEME,
+  darkThemeIdValidator,
+  isDarkThemeId,
+  isLightThemeId,
+  lightThemeIdValidator,
+} from "../lib/themes";
 import {
   coerceFeatureMode,
   featureModeValidator,
@@ -18,24 +25,8 @@ import type { Infer } from "convex/values";
 
 type Ctx = QueryCtx | MutationCtx;
 type Features = Infer<typeof featuresValidator>;
-type ThemeId = Infer<typeof themeIdValidator>;
 type PostSort = Infer<typeof postSortValidator>;
 type Settings = Infer<typeof siteSettingsValidator>;
-
-const THEME_IDS: ThemeId[] = [
-  "paper",
-  "ink",
-  "ocean",
-  "forest",
-  "sunset",
-  "violet",
-  "contrast",
-  "news",
-  "midnight",
-  "ember",
-  "signal",
-  "citrus",
-];
 
 export const DEFAULT_FEATURES: Features = {
   bookmarks: "off",
@@ -47,7 +38,7 @@ export const DEFAULT_FEATURES: Features = {
   readReceipts: "off",
   imagesOnly: false,
   sortOrder: "created",
-  theme: { enabled: false, id: "paper" },
+  theme: { enabled: false, lightId: DEFAULT_LIGHT_THEME, darkId: DEFAULT_DARK_THEME },
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -58,13 +49,6 @@ export const DEFAULT_SETTINGS: Settings = {
   pushoverEnabled: false,
   features: DEFAULT_FEATURES,
 };
-
-function parseThemeId(value: string | undefined): ThemeId {
-  if (value && (THEME_IDS as string[]).includes(value)) {
-    return value as ThemeId;
-  }
-  return "paper";
-}
 
 function parseSortOrder(value: string | undefined): PostSort {
   return value === "updated" ? "updated" : "created";
@@ -88,7 +72,8 @@ export async function readSiteSettings(ctx: Ctx): Promise<Settings> {
     sortOrder: parseSortOrder(row.postSort),
     theme: {
       enabled: row.themeEnabled === true,
-      id: parseThemeId(row.themeId),
+      lightId: [row.lightThemeId, row.themeId].find(isLightThemeId) ?? DEFAULT_LIGHT_THEME,
+      darkId: [row.darkThemeId, row.themeId].find(isDarkThemeId) ?? DEFAULT_DARK_THEME,
     },
   };
   return {
@@ -115,7 +100,9 @@ function toRow(settings: Settings, updatedBy: Id<"users">) {
     imagesOnly: settings.features.imagesOnly,
     postSort: settings.features.sortOrder,
     themeEnabled: settings.features.theme.enabled,
-    themeId: settings.features.theme.id,
+    themeId: undefined,
+    lightThemeId: settings.features.theme.lightId,
+    darkThemeId: settings.features.theme.darkId,
     googleSignIn: settings.googleSignIn,
     passwordSignIn: settings.passwordSignIn,
     pushoverEnabled: settings.pushoverEnabled,
@@ -239,7 +226,8 @@ export const setFeatures = internalMutation({
     imagesOnly: v.optional(v.boolean()),
     sortOrder: v.optional(postSortValidator),
     themeEnabled: v.optional(v.boolean()),
-    themeId: v.optional(themeIdValidator),
+    lightThemeId: v.optional(lightThemeIdValidator),
+    darkThemeId: v.optional(darkThemeIdValidator),
   },
   returns: featuresValidator,
   handler: async (ctx, args) => {
@@ -256,7 +244,8 @@ export const setFeatures = internalMutation({
       sortOrder: args.sortOrder ?? current.features.sortOrder,
       theme: {
         enabled: args.themeEnabled ?? current.features.theme.enabled,
-        id: args.themeId ?? current.features.theme.id,
+        lightId: args.lightThemeId ?? current.features.theme.lightId,
+        darkId: args.darkThemeId ?? current.features.theme.darkId,
       },
     };
     const saved = await writeSettings(

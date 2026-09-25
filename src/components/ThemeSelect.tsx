@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { THEMES, type ThemeId } from "@/lib/themes";
 
+type Theme = (typeof THEMES)[number];
+
 function Palette({
   colors,
 }: {
@@ -15,19 +17,21 @@ function Palette({
   );
 }
 
-export function ThemeSelect({
+export function ThemeSelect<Id extends ThemeId>({
   value,
+  themes,
   disabled,
   onChange,
 }: {
-  value: ThemeId;
+  value: Id;
+  themes: Theme[];
   disabled: boolean;
-  onChange: (id: ThemeId) => void;
+  onChange: (id: Id) => void;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
-  const selected = THEMES.find((theme) => theme.id === value) ?? THEMES[0];
+  const selected = themes.find((theme) => theme.id === value) ?? themes[0];
 
   useEffect(() => {
     if (!open) return;
@@ -72,14 +76,14 @@ export function ThemeSelect({
           role="listbox"
           className="absolute right-0 z-30 mt-1 max-h-80 w-full min-w-0 overflow-auto rounded-md border-2 border-foreground/50 bg-card py-1 shadow-md sm:w-80"
         >
-          {THEMES.map((theme) => {
+          {themes.map((theme) => {
             const active = theme.id === selected.id;
             return (
               <li key={theme.id} role="option" aria-selected={active}>
                 <button
                   type="button"
                   onClick={() => {
-                    onChange(theme.id);
+                    onChange(theme.id as Id);
                     setOpen(false);
                   }}
                   className={`flex w-full items-start gap-2 px-2 py-2 text-left text-sm hover:bg-secondary/60 ${
