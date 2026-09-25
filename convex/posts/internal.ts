@@ -40,10 +40,6 @@ import { dayCountQueries, publishedByDay, syncPublishedByDay } from "./aggregate
 type Ctx = QueryCtx | MutationCtx;
 type PostStatus = Doc<"posts">["status"];
 
-export function createdAtOf(post: { createdAt?: number; _creationTime: number }): number {
-  return post.createdAt ?? post._creationTime;
-}
-
 async function patchPostTagTimes(
   ctx: MutationCtx,
   postId: Id<"posts">,
@@ -98,14 +94,13 @@ async function toSummary(ctx: Ctx, post: Doc<"posts">) {
   const coverImageUrl = post.coverImageId ? await ctx.storage.getUrl(post.coverImageId) : null;
   return {
     _id: post._id,
-    _creationTime: post._creationTime,
     title: post.title,
     slug: post.slug,
     excerpt: post.excerpt,
     status: post.status,
     visibility: post.visibility,
     publishedAt: post.publishedAt,
-    createdAt: createdAtOf(post),
+    createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     authorId: post.authorId,
     authorName: author?.name ?? null,
@@ -296,7 +291,7 @@ export async function saveHandler(
     args.tags,
     post.status,
     args.visibility,
-    createdAtOf(post),
+    post.createdAt,
     updatedAt,
   );
   const excerpt = excerptFrom(args.excerpt, args.body);
@@ -386,7 +381,7 @@ async function applyPublication(
     await ctx.db.patch("postTags", row._id, {
       status,
       visibility: post.visibility,
-      postCreatedAt: createdAtOf(post),
+      postCreatedAt: post.createdAt,
       postUpdatedAt: args.updatedAt,
     });
   }
@@ -708,7 +703,7 @@ export const getAdjacentBySlug = internalQuery({
               .query("posts")
               .withIndex("by_status_and_visibility_and_createdAt", (q) => {
                 const published = q.eq("status", "published").eq("visibility", "listed");
-                const createdAt = createdAtOf(current);
+                const createdAt = current.createdAt;
                 return direction === "older"
                   ? published.lt("createdAt", createdAt)
                   : published.gt("createdAt", createdAt);
@@ -996,9 +991,9 @@ async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostPhoto[]> {
 }
 
 // Walks listed published posts newest first and flattens their photos into
-// fixed-size pages. The cursor names the post to resume from (publishedAt,
-// then _creationTime, matching the index order) and how many of its photos
-// the previous page already showed.
+// fixed-size pages. The cursor names the post to resume from (its publishedAt,
+// then its position among posts sharing that publishedAt) and how many of its
+// photos the previous page already showed.
 export const listPhotos = internalQuery({
   args: {
     cursor: v.union(photoCursorValidator, v.null()),
@@ -1027,11 +1022,13 @@ export const listPhotos = internalQuery({
 
     const photos: Photo[] = [];
     let scanned = 0;
+    let resumed = cursor === null;
     for await (const post of posts) {
       if (post.publishedAt === null) continue;
       let skip = 0;
-      if (cursor && post.publishedAt === cursor.publishedAt) {
-        if (post._creationTime > cursor.creationTime) continue;
+      if (!resumed && cursor) {
+        if (post.publishedAt === cursor.publishedAt && post._id !== cursor.postId) continue;
+        resumed = true;
         if (post._id === cursor.postId) skip = cursor.skip;
       }
       scanned += 1;
@@ -1040,7 +1037,6 @@ export const listPhotos = internalQuery({
           photos,
           nextCursor: {
             publishedAt: post.publishedAt,
-            creationTime: post._creationTime,
             postId: post._id,
             skip: 0,
           },
@@ -1067,7 +1063,6 @@ export const listPhotos = internalQuery({
             photos,
             nextCursor: {
               publishedAt: post.publishedAt,
-              creationTime: post._creationTime,
               postId: post._id,
               skip: skip + index,
             },
@@ -1119,7 +1114,6 @@ export const photoAnchor = internalQuery({
     if (args.index >= photos.length) return null;
     return {
       publishedAt: post.publishedAt,
-      creationTime: post._creationTime,
       postId: post._id,
       skip: args.index,
     };

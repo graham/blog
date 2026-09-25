@@ -121,14 +121,13 @@ export const listByGroup = internalQuery({
       }
       page.push({
         _id: post._id,
-        _creationTime: post._creationTime,
         title: post.title,
         slug: post.slug,
         excerpt: post.excerpt,
         status: post.status,
         visibility: post.visibility,
         publishedAt: post.publishedAt,
-        createdAt: post.createdAt ?? post._creationTime,
+        createdAt: post.createdAt,
         updatedAt: post.updatedAt,
         authorId: post.authorId,
         authorName: author?.name ?? null,

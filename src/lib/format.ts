@@ -23,15 +23,6 @@ export function toDateTimeLocal(ts: number): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function postTime(post: {
-  createdAt?: number;
-  publishedAt?: number | null;
-  updatedAt?: number;
-  _creationTime?: number;
-}): number {
-  return post.createdAt ?? post._creationTime ?? 0;
-}
-
 export function formatTimeDelta(newer: number, older: number): string {
   const ms = Math.abs(newer - older);
   const minutes = Math.round(ms / 60_000);

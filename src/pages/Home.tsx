@@ -6,7 +6,7 @@ import { Layout } from "@/components/Layout";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { useFeatureOn, useFeatures } from "@/components/FeaturesProvider";
-import { formatTimeDelta, postTime } from "@/lib/format";
+import { formatTimeDelta } from "@/lib/format";
 import { useImagesOnly } from "@/lib/useImagesOnly";
 
 const PAGE_SIZE = 10;
@@ -89,8 +89,8 @@ export default function Home() {
                 !timingsOn || imagesOnly
                   ? null
                   : previous
-                    ? `${formatTimeDelta(postTime(previous), postTime(post))} earlier`
-                    : `${formatTimeDelta(Date.now(), postTime(post))} ago`;
+                    ? `${formatTimeDelta(previous.createdAt, post.createdAt)} earlier`
+                    : `${formatTimeDelta(Date.now(), post.createdAt)} ago`;
               return (
                 <Fragment key={post._id}>
                   {delta ? (

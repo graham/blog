@@ -82,7 +82,7 @@ const schema = defineSchema({
     visibility: v.union(v.literal("listed"), v.literal("unlisted")),
     publishedAt: v.union(v.number(), v.null()),
     authorId: v.id("users"),
-    createdAt: v.optional(v.number()),
+    createdAt: v.number(),
     updatedAt: v.number(),
     coverImageId: v.union(v.id("_storage"), v.null()),
     searchText: v.string(),
@@ -126,8 +126,8 @@ const schema = defineSchema({
     tag: v.string(),
     status: statusValidator,
     visibility: v.union(v.literal("listed"), v.literal("unlisted")),
-    postCreatedAt: v.optional(v.number()),
-    postUpdatedAt: v.optional(v.number()),
+    postCreatedAt: v.number(),
+    postUpdatedAt: v.number(),
   })
     .index("by_postId", ["postId"])
     .index("by_tag", ["tag"])

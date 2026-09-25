@@ -115,7 +115,7 @@ export const addPost = internalMutation({
       tag: tag.name,
       status: post.status,
       visibility: post.visibility,
-      postCreatedAt: post.createdAt ?? post._creationTime,
+      postCreatedAt: post.createdAt,
       postUpdatedAt: post.updatedAt,
     });
     return null;

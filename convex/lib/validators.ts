@@ -46,7 +46,6 @@ export const tagNavGroupValidator = v.object({
 
 export const postSummaryValidator = v.object({
   _id: v.id("posts"),
-  _creationTime: v.number(),
   title: v.string(),
   slug: v.string(),
   excerpt: v.string(),
@@ -244,7 +243,6 @@ export const channelMemberValidator = v.object({
 
 export const photoCursorValidator = v.object({
   publishedAt: v.number(),
-  creationTime: v.number(),
   postId: v.id("posts"),
   skip: v.number(),
 });

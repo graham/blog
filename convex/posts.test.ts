@@ -521,6 +521,7 @@ describe("posts", () => {
         visibility: "listed",
         publishedAt: null,
         authorId: userId,
+        createdAt: Date.now(),
         updatedAt: Date.now(),
         coverImageId: null,
         searchText: "",
@@ -824,46 +825,6 @@ describe("posts", () => {
     }
   });
 
-  test("createdAt backfill copies _creationTime and then no-ops", async () => {
-    const t = createT();
-    const ids = await t.run(async (ctx) => {
-      const userId = await ctx.db.insert("users", {
-        email: "admin@example.com",
-        name: "admin",
-        userType: "admin",
-      });
-      const postId = await ctx.db.insert("posts", {
-        title: "Old",
-        slug: "old",
-        excerpt: "",
-        body: "b",
-        status: "published",
-        visibility: "listed",
-        publishedAt: Date.now(),
-        authorId: userId,
-        updatedAt: Date.now(),
-        coverImageId: null,
-        searchText: "old",
-      });
-      return { postId, creationTime: (await ctx.db.get("posts", postId))!._creationTime };
-    });
-    await t.mutation(internal.migrations.backfillPostsCreatedAt, {
-      cursor: null,
-    });
-    const post = await t.run(async (ctx) => ctx.db.get("posts", ids.postId));
-    expect(post?.createdAt).toBe(ids.creationTime);
-    const state = await t.run(async (ctx) =>
-      ctx.db
-        .query("migrationState")
-        .withIndex("by_name", (q) => q.eq("name", "posts.createdAt"))
-        .unique(),
-    );
-    expect(state?.done).toBe(true);
-    await t.mutation(internal.migrations.backfillPostsCreatedAt, { cursor: null });
-    const again = await t.run(async (ctx) => ctx.db.get("posts", ids.postId));
-    expect(again?.createdAt).toBe(ids.creationTime);
-  });
-
   test("publishedByDay backfill inserts existing listed published posts", async () => {
     const t = createT();
     const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
@@ -884,6 +845,7 @@ describe("posts", () => {
         visibility: "listed",
         publishedAt,
         authorId: userId,
+        createdAt: publishedAt,
         updatedAt: publishedAt,
         coverImageId: null,
         searchText: "old",
