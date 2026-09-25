@@ -135,12 +135,26 @@ export function ImageOverlay({
       {/* The image fills whatever the caption leaves, scaling up small
           images while object-contain keeps their proportions. */}
       <figure className="flex h-full w-full min-w-0 flex-col items-center">
-        <img
-          src={current.src}
-          alt={current.alt}
-          onClick={(event) => event.stopPropagation()}
-          className="min-h-0 w-full flex-1 object-contain"
-        />
+        {current.kind === "video" ? (
+          // Readers press Play themselves; videos never autoplay.
+          <video
+            key={current.src}
+            src={current.src}
+            controls
+            playsInline
+            preload="metadata"
+            aria-label={current.alt}
+            onClick={(event) => event.stopPropagation()}
+            className="min-h-0 w-full flex-1 object-contain"
+          />
+        ) : (
+          <img
+            src={current.src}
+            alt={current.alt}
+            onClick={(event) => event.stopPropagation()}
+            className="min-h-0 w-full flex-1 object-contain"
+          />
+        )}
         {(current.caption ?? current.alt) || images.length > 1 ? (
           <figcaption
             onClick={(event) => event.stopPropagation()}

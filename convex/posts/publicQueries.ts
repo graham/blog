@@ -20,6 +20,7 @@ type PostDetail = Infer<typeof postDetailValidator>;
 type PostNavigation = Infer<typeof postNavigationValidator>;
 type CalendarPost = Infer<typeof calendarPostValidator>;
 type PhotoPage = Infer<typeof photoPageValidator>;
+type PhotoCursor = Infer<typeof photoCursorValidator>;
 type Page<T> = {
   page: T[];
   continueCursor: string;
@@ -180,6 +181,24 @@ export const listPhotos = query({
     }
     const result: PhotoPage = await ctx.runQuery(internal.posts.internal.listPhotos, {
       cursor: args.cursor,
+      viewerUserId: viewer.viewerUserId,
+      asAdmin: viewer.asAdmin,
+    });
+    return result;
+  },
+});
+
+export const photoAnchor = query({
+  args: { slug: v.string(), index: v.number() },
+  returns: v.union(photoCursorValidator, v.null()),
+  handler: async (ctx, args): Promise<PhotoCursor | null> => {
+    const viewer = await resolvePublicViewer(ctx);
+    if (viewer.blocked) return null;
+    const settings = await readSiteSettings(ctx);
+    if (!featureVisible(settings.features.photos, viewer.asAdmin)) return null;
+    const result: PhotoCursor | null = await ctx.runQuery(internal.posts.internal.photoAnchor, {
+      slug: args.slug,
+      index: args.index,
       viewerUserId: viewer.viewerUserId,
       asAdmin: viewer.asAdmin,
     });

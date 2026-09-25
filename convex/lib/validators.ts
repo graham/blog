@@ -249,15 +249,20 @@ export const photoCursorValidator = v.object({
   skip: v.number(),
 });
 
+export const photoKindValidator = v.union(v.literal("image"), v.literal("video"));
+
 export const photoValidator = v.object({
   key: v.string(),
+  kind: photoKindValidator,
   src: v.string(),
   alt: v.string(),
   postId: v.id("posts"),
   slug: v.string(),
   title: v.string(),
   publishedAt: v.number(),
-  postPhotoCount: v.number(),
+  // Position of this item in its post's media, and how many the post has.
+  postIndex: v.number(),
+  postMediaCount: v.number(),
   seen: v.union(v.boolean(), v.null()),
 });
 

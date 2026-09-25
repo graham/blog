@@ -24,13 +24,14 @@ async function seedUser(t: T, email: string, userType: string) {
 }
 
 // Inserts a listed published post whose cover is its first image and whose
-// body references the rest, plus one video that must never show as a photo.
+// body references the rest, optionally followed by an uploaded video and a ZIP.
 async function seedPost(
   t: T,
   authorId: Id<"users">,
   slug: string,
   publishedAt: number,
   imageCount: number,
+  options: { video?: boolean } = {},
 ) {
   return await t.run(async (ctx) => {
     const postId = await ctx.db.insert("posts", {
@@ -59,18 +60,27 @@ async function seedPost(
       });
       storageIds.push(storageId);
     }
-    const video = await ctx.storage.store(new Blob([`${slug}-video`]));
-    await ctx.db.insert("postAssets", {
-      postId,
-      storageId: video,
-      filename: `${slug}.mp4`,
-      contentType: "video/mp4",
-    });
-    const [cover, ...rest] = storageIds;
-    const body = [
-      ...rest.map((id) => `![image](convex://${id})`),
-      `![clip](convex://${video})`,
-    ].join("\n\n");
+    const lines = storageIds.slice(1).map((id) => `![image](convex://${id})`);
+    if (options.video) {
+      const video = await ctx.storage.store(new Blob([`${slug}-video`]));
+      await ctx.db.insert("postAssets", {
+        postId,
+        storageId: video,
+        filename: `${slug}.mp4`,
+        contentType: "video/mp4",
+        alt: `${slug} video`,
+      });
+      const zip = await ctx.storage.store(new Blob([`${slug}-zip`]));
+      await ctx.db.insert("postAssets", {
+        postId,
+        storageId: zip,
+        filename: `${slug}.zip`,
+        contentType: "application/zip",
+      });
+      lines.push(`![clip](convex://${video})`, `[Download](convex://${zip})`);
+    }
+    const [cover] = storageIds;
+    const body = lines.join("\n\n");
     await ctx.db.patch("posts", postId, { coverImageId: cover ?? null, body });
     return postId;
   });
@@ -105,8 +115,8 @@ describe("photos", () => {
     ]);
     expect(first.photos.every((photo) => photo.seen === null)).toBe(true);
     expect(first.nextCursor).toMatchObject({ skip: 3 });
-    expect(first.photos[0].postPhotoCount).toBe(21);
-    expect(first.photos[23].postPhotoCount).toBe(15);
+    expect(first.photos[0]).toMatchObject({ kind: "image", postIndex: 0, postMediaCount: 21 });
+    expect(first.photos[23]).toMatchObject({ postIndex: 2, postMediaCount: 15 });
 
     const second = await t.query(api.posts.publicQueries.listPhotos, {
       cursor: first.nextCursor,
@@ -134,6 +144,48 @@ describe("photos", () => {
       "published-middle",
       "published-first",
     ]);
+  });
+
+  test("includes uploaded videos in post order but not downloads", async () => {
+    const t = createT();
+    const { userId, asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    await admin.mutation(api.features.mutations.set, { photos: "on" });
+    await seedPost(t, userId, "clip", Date.now(), 2, { video: true });
+
+    const page = await t.query(api.posts.publicQueries.listPhotos, { cursor: null });
+    expect(page.photos.map((photo) => [photo.kind, photo.alt, photo.postIndex])).toEqual([
+      ["image", "clip 0", 0],
+      ["image", "clip 1", 1],
+      ["video", "clip video", 2],
+    ]);
+    expect(page.photos.every((photo) => photo.postMediaCount === 3)).toBe(true);
+  });
+
+  test("a shared link anchors the list at that post's item", async () => {
+    const t = createT();
+    const { userId, asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    await admin.mutation(api.features.mutations.set, { photos: "on" });
+    const now = Date.now();
+    await seedPost(t, userId, "newest", now, 2);
+    await seedPost(t, userId, "shared", now - 1000, 3);
+    await seedPost(t, userId, "oldest", now - 2000, 1);
+
+    const cursor = await t.query(api.posts.publicQueries.photoAnchor, { slug: "shared", index: 1 });
+    expect(cursor).toMatchObject({ skip: 1 });
+    const page = await t.query(api.posts.publicQueries.listPhotos, { cursor });
+    expect(page.photos.map((photo) => photo.alt)).toEqual(["shared 1", "shared 2", "oldest 0"]);
+
+    for (const args of [
+      { slug: "shared", index: 3 },
+      { slug: "shared", index: -1 },
+      { slug: "missing", index: 0 },
+    ]) {
+      expect(await t.query(api.posts.publicQueries.photoAnchor, args)).toBeNull();
+    }
+    await admin.mutation(api.features.mutations.set, { photos: "adminOnly" });
+    expect(
+      await t.query(api.posts.publicQueries.photoAnchor, { slug: "shared", index: 1 }),
+    ).toBeNull();
   });
 
   test("anonymous visitors see photos only when the settings allow it", async () => {

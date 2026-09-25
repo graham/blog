@@ -18,6 +18,7 @@ export type OverlayImage = {
   src: string;
   alt: string;
   caption?: string;
+  kind?: "image" | "video";
 };
 
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)/g;

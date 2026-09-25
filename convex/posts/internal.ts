@@ -949,13 +949,11 @@ const PHOTO_MAX_POSTS_SCANNED = 200;
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g;
 
 type Photo = Infer<typeof photoPageValidator>["photos"][number];
+type PostMedia = { key: string; kind: Photo["kind"]; src: string; alt: string };
 
-// A post's photos in reading order: the cover first, then each image in the
-// body. Uploaded videos and ZIPs referenced from the body are skipped.
-async function postPhotos(
-  ctx: Ctx,
-  post: Doc<"posts">,
-): Promise<Array<{ key: string; src: string; alt: string }>> {
+// A post's photos and uploaded videos in reading order: the cover first, then
+// each image or video in the body. ZIPs and other downloads are skipped.
+async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostMedia[]> {
   const hasConvexImages = post.body.includes("convex://");
   if (!post.coverImageId && !post.body.includes("![")) return [];
   const assets =
@@ -966,18 +964,25 @@ async function postPhotos(
           .take(200)
       : [];
   const byStorageId = new Map(assets.map((asset) => [asset.storageId as string, asset]));
-  const photos: Array<{ key: string; src: string; alt: string }> = [];
+  const photos: PostMedia[] = [];
   const seen = new Set<string>();
 
   async function addAsset(storageId: string, fallbackAlt: string) {
     if (seen.has(storageId)) return;
     const asset = byStorageId.get(storageId);
-    if (!asset || !isImageContentType(asset.contentType)) return;
+    if (!asset) return;
+    const kind = isImageContentType(asset.contentType)
+      ? "image"
+      : asset.contentType.startsWith("video/")
+        ? "video"
+        : null;
+    if (kind === null) return;
     const url = await ctx.storage.getUrl(asset.storageId);
     if (!url) return;
     seen.add(storageId);
     photos.push({
       key: `${post._id}:${storageId}`,
+      kind,
       src: url,
       alt: (asset.alt || fallbackAlt || asset.filename).trim(),
     });
@@ -991,7 +996,7 @@ async function postPhotos(
       await addAsset(src.slice("convex://".length), alt);
     } else if (/^https?:\/\//.test(src) && !seen.has(src)) {
       seen.add(src);
-      photos.push({ key: `${post._id}:${src}`, src, alt: alt.trim() });
+      photos.push({ key: `${post._id}:${src}`, kind: "image", src, alt: alt.trim() });
     }
   }
   return photos;
@@ -1081,11 +1086,49 @@ export const listPhotos = internalQuery({
           slug: post.slug,
           title: post.title,
           publishedAt: post.publishedAt,
-          postPhotoCount: allImages.length,
+          postIndex: skip + index,
+          postMediaCount: allImages.length,
           seen,
         });
       }
     }
     return { photos, nextCursor: null };
+  },
+});
+
+// Resolves a shared /photos?post=<slug>&n=<index> link to a listPhotos cursor
+// that starts at that item, or null when the post or item is not visible.
+export const photoAnchor = internalQuery({
+  args: {
+    slug: v.string(),
+    index: v.number(),
+    viewerUserId: v.union(v.id("users"), v.null()),
+    asAdmin: v.boolean(),
+  },
+  returns: v.union(photoCursorValidator, v.null()),
+  handler: async (ctx, args) => {
+    const post = await ctx.db
+      .query("posts")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+    if (
+      !post ||
+      post.status !== "published" ||
+      post.visibility !== "listed" ||
+      post.publishedAt === null ||
+      !Number.isInteger(args.index) ||
+      args.index < 0
+    ) {
+      return null;
+    }
+    if (!(await canViewPost(ctx, post, viewerFrom(args)))) return null;
+    const media = await postPhotos(ctx, post);
+    if (args.index >= media.length) return null;
+    return {
+      publishedAt: post.publishedAt,
+      creationTime: post._creationTime,
+      postId: post._id,
+      skip: args.index,
+    };
   },
 });
