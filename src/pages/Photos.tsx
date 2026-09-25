@@ -121,7 +121,7 @@ export default function Photos() {
     const viewed = viewedRef.current.get(viewedPhoto.postId) ?? new Set<string>();
     viewed.add(viewedPhoto.key);
     viewedRef.current.set(viewedPhoto.postId, viewed);
-    if (viewed.size === viewedPhoto.postMediaCount) {
+    if (viewed.size === viewedPhoto.postPhotoCount) {
       viewedRef.current.delete(viewedPhoto.postId);
       void markRead({ postId: viewedPhoto.postId }).catch((error: unknown) =>
         console.warn("Could not mark post read", error),
@@ -187,7 +187,6 @@ export default function Photos() {
   const gallery: OverlayImage[] = photos.map((photo) => ({
     src: photo.src,
     alt: photo.alt,
-    kind: photo.kind,
     caption: [formatDate(photo.publishedAt), photo.title || photo.alt].filter(Boolean).join(" · "),
   }));
 
@@ -197,8 +196,8 @@ export default function Photos() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h1 className="font-sans text-3xl font-semibold tracking-tight">Photos</h1>
           <p className="text-xs text-muted">
-            Click a photo or video to view it. Arrow keys step through. The address bar links to
-            the open one.
+            Click a photo to view it. Arrow keys step through. The address bar links to the open
+            photo.
           </p>
         </div>
         {anchored && photos.length > 0 ? (
@@ -227,30 +226,12 @@ export default function Photos() {
                   onClick={() => setViewing(index)}
                   className="relative block aspect-square w-full cursor-zoom-in bg-secondary"
                 >
-                  {photo.kind === "video" ? (
-                    <>
-                      <video
-                        src={photo.src}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        aria-label={photo.alt}
-                        className={`pointer-events-none h-full w-full object-cover ${photo.seen ? "opacity-70" : ""}`}
-                      />
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60 pl-1 text-xl text-white">
-                          ▶
-                        </span>
-                      </span>
-                    </>
-                  ) : (
-                    <img
-                      src={photo.src}
-                      alt={photo.alt}
-                      loading="lazy"
-                      className={`h-full w-full object-cover ${photo.seen ? "opacity-70" : ""}`}
-                    />
-                  )}
+                  <img
+                    src={photo.src}
+                    alt={photo.alt}
+                    loading="lazy"
+                    className={`h-full w-full object-cover ${photo.seen ? "opacity-70" : ""}`}
+                  />
                   {photo.seen ? (
                     <span className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white">
                       Seen

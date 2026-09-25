@@ -115,8 +115,8 @@ describe("photos", () => {
     ]);
     expect(first.photos.every((photo) => photo.seen === null)).toBe(true);
     expect(first.nextCursor).toMatchObject({ skip: 3 });
-    expect(first.photos[0]).toMatchObject({ kind: "image", postIndex: 0, postMediaCount: 21 });
-    expect(first.photos[23]).toMatchObject({ postIndex: 2, postMediaCount: 15 });
+    expect(first.photos[0]).toMatchObject({ postIndex: 0, postPhotoCount: 21 });
+    expect(first.photos[23]).toMatchObject({ postIndex: 2, postPhotoCount: 15 });
 
     const second = await t.query(api.posts.publicQueries.listPhotos, {
       cursor: first.nextCursor,
@@ -146,19 +146,18 @@ describe("photos", () => {
     ]);
   });
 
-  test("includes uploaded videos in post order but not downloads", async () => {
+  test("leaves out uploaded videos and downloads", async () => {
     const t = createT();
     const { userId, asUser: admin } = await seedUser(t, "admin@example.com", "admin");
     await admin.mutation(api.features.mutations.set, { photos: "on" });
     await seedPost(t, userId, "clip", Date.now(), 2, { video: true });
 
     const page = await t.query(api.posts.publicQueries.listPhotos, { cursor: null });
-    expect(page.photos.map((photo) => [photo.kind, photo.alt, photo.postIndex])).toEqual([
-      ["image", "clip 0", 0],
-      ["image", "clip 1", 1],
-      ["video", "clip video", 2],
+    expect(page.photos.map((photo) => [photo.alt, photo.postIndex])).toEqual([
+      ["clip 0", 0],
+      ["clip 1", 1],
     ]);
-    expect(page.photos.every((photo) => photo.postMediaCount === 3)).toBe(true);
+    expect(page.photos.every((photo) => photo.postPhotoCount === 2)).toBe(true);
   });
 
   test("a shared link anchors the list at that post's item", async () => {

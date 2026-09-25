@@ -949,11 +949,11 @@ const PHOTO_MAX_POSTS_SCANNED = 200;
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g;
 
 type Photo = Infer<typeof photoPageValidator>["photos"][number];
-type PostMedia = { key: string; kind: Photo["kind"]; src: string; alt: string };
+type PostPhoto = { key: string; src: string; alt: string };
 
-// A post's photos and uploaded videos in reading order: the cover first, then
-// each image or video in the body. ZIPs and other downloads are skipped.
-async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostMedia[]> {
+// A post's photos in reading order: the cover first, then each image in the
+// body. Uploaded videos and ZIPs referenced from the body are skipped.
+async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostPhoto[]> {
   const hasConvexImages = post.body.includes("convex://");
   if (!post.coverImageId && !post.body.includes("![")) return [];
   const assets =
@@ -964,25 +964,18 @@ async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostMedia[]> {
           .take(200)
       : [];
   const byStorageId = new Map(assets.map((asset) => [asset.storageId as string, asset]));
-  const photos: PostMedia[] = [];
+  const photos: PostPhoto[] = [];
   const seen = new Set<string>();
 
   async function addAsset(storageId: string, fallbackAlt: string) {
     if (seen.has(storageId)) return;
     const asset = byStorageId.get(storageId);
-    if (!asset) return;
-    const kind = isImageContentType(asset.contentType)
-      ? "image"
-      : asset.contentType.startsWith("video/")
-        ? "video"
-        : null;
-    if (kind === null) return;
+    if (!asset || !isImageContentType(asset.contentType)) return;
     const url = await ctx.storage.getUrl(asset.storageId);
     if (!url) return;
     seen.add(storageId);
     photos.push({
       key: `${post._id}:${storageId}`,
-      kind,
       src: url,
       alt: (asset.alt || fallbackAlt || asset.filename).trim(),
     });
@@ -996,7 +989,7 @@ async function postPhotos(ctx: Ctx, post: Doc<"posts">): Promise<PostMedia[]> {
       await addAsset(src.slice("convex://".length), alt);
     } else if (/^https?:\/\//.test(src) && !seen.has(src)) {
       seen.add(src);
-      photos.push({ key: `${post._id}:${src}`, kind: "image", src, alt: alt.trim() });
+      photos.push({ key: `${post._id}:${src}`, src, alt: alt.trim() });
     }
   }
   return photos;
@@ -1087,7 +1080,7 @@ export const listPhotos = internalQuery({
           title: post.title,
           publishedAt: post.publishedAt,
           postIndex: skip + index,
-          postMediaCount: allImages.length,
+          postPhotoCount: allImages.length,
           seen,
         });
       }
@@ -1097,7 +1090,7 @@ export const listPhotos = internalQuery({
 });
 
 // Resolves a shared /photos?post=<slug>&n=<index> link to a listPhotos cursor
-// that starts at that item, or null when the post or item is not visible.
+// that starts at that photo, or null when the post or photo is not visible.
 export const photoAnchor = internalQuery({
   args: {
     slug: v.string(),
@@ -1122,8 +1115,8 @@ export const photoAnchor = internalQuery({
       return null;
     }
     if (!(await canViewPost(ctx, post, viewerFrom(args)))) return null;
-    const media = await postPhotos(ctx, post);
-    if (args.index >= media.length) return null;
+    const photos = await postPhotos(ctx, post);
+    if (args.index >= photos.length) return null;
     return {
       publishedAt: post.publishedAt,
       creationTime: post._creationTime,
