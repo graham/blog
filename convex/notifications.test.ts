@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { registerAggregate } from "../tests/registerAggregate";
 
@@ -57,5 +57,44 @@ describe("pushover settings", () => {
     const asAdmin = await seedAdmin(t);
     const postId = await asAdmin.mutation(api.posts.mutations.create, {});
     expect(postId).toBeTruthy();
+  });
+});
+
+describe("post change notifications", () => {
+  async function pushoverSends(t: ReturnType<typeof createT>) {
+    const jobs = await t.run(async (ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    return jobs.filter((job) => job.name.includes("notifications/actions"));
+  }
+
+  test("website edits do not notify but API writes do", async () => {
+    process.env.API_KEY_ENCRYPTION_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
+    const t = createT();
+    const asAdmin = await seedAdmin(t);
+    await asAdmin.mutation(api.siteSettings.mutations.setPushoverEnabled, {
+      pushoverEnabled: true,
+    });
+
+    const postId = await asAdmin.mutation(api.posts.mutations.create, {});
+    await asAdmin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "From the site",
+      excerpt: "",
+      body: "b",
+      visibility: "listed",
+      tags: [],
+    });
+    expect(await pushoverSends(t)).toHaveLength(0);
+
+    const { token } = await asAdmin.mutation(api.apiKeys.mutations.create, { name: "writer" });
+    const created = await t.mutation(internal.apiKeys.internal.createPost, {
+      token,
+      input: { title: "From the API", body: "b" },
+    });
+    await t.mutation(internal.apiKeys.internal.updatePost, {
+      token,
+      postId: created.id,
+      input: { body: "edited" },
+    });
+    expect(await pushoverSends(t)).toHaveLength(2);
   });
 });

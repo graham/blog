@@ -430,10 +430,6 @@ export const publishScheduled = internalMutation({
     for (const row of tags) {
       await ctx.db.patch("postTags", row._id, { status: "published" });
     }
-    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
-      kind: "updated",
-      postId: post._id,
-    });
     return null;
   },
 });

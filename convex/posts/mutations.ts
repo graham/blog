@@ -14,10 +14,6 @@ export const create = mutation({
       internal.posts.internal.create,
       { authorId: admin._id },
     );
-    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
-      kind: "created",
-      postId,
-    });
     return postId;
   },
 });
@@ -42,10 +38,6 @@ export const save = mutation({
       internal.posts.internal.save,
       args,
     );
-    await ctx.runMutation(internal.notifications.internal.enqueuePostChange, {
-      kind: "updated",
-      postId: args.postId,
-    });
     return result;
   },
 });
