@@ -516,6 +516,54 @@ export const publishNow = internalMutation({
   handler: publishNowHandler,
 });
 
+export const MAX_BATCH_SCHEDULE = 100;
+
+// Schedules several drafts at the given future times, as if each were written
+// at its launch time: created, updated, and published all become that time.
+export async function scheduleDraftsHandler(
+  ctx: MutationCtx,
+  args: { items: Array<{ postId: Id<"posts">; publishAt: number }> },
+): Promise<null> {
+  if (args.items.length === 0) throw new Error("Select at least one draft");
+  if (args.items.length > MAX_BATCH_SCHEDULE) {
+    throw new Error(`Schedule at most ${MAX_BATCH_SCHEDULE} drafts at once`);
+  }
+  const ids = new Set(args.items.map((item) => item.postId));
+  if (ids.size !== args.items.length) throw new Error("A draft is listed twice");
+  const now = Date.now();
+  const posts = [];
+  for (const item of args.items) {
+    assertTimestamp(item.publishAt, "Publish time");
+    if (item.publishAt <= now) {
+      throw new Error("A publish time is already in the past; run the dry run again");
+    }
+    const post = await ctx.db.get("posts", item.postId);
+    if (!post) throw new Error("Post not found");
+    if (post.status !== "draft") throw new Error(`"${post.title || "Untitled"}" is not a draft`);
+    posts.push({ post, publishAt: item.publishAt });
+  }
+  for (const { post, publishAt } of posts) {
+    await ctx.db.patch("posts", post._id, { createdAt: publishAt, updatedAt: publishAt });
+    await patchPostTagTimes(ctx, post._id, publishAt, publishAt);
+    const current = await ctx.db.get("posts", post._id);
+    if (!current) throw new Error("Post not found");
+    await applyPublication(ctx, current, {
+      published: true,
+      publishedAt: publishAt,
+      updatedAt: publishAt,
+    });
+  }
+  return null;
+}
+
+export const scheduleDrafts = internalMutation({
+  args: {
+    items: v.array(v.object({ postId: v.id("posts"), publishAt: v.number() })),
+  },
+  returns: v.null(),
+  handler: scheduleDraftsHandler,
+});
+
 export const assertAdmin = internalQuery({
   args: {},
   returns: v.null(),

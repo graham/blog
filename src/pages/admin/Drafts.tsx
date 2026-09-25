@@ -39,9 +39,14 @@ export default function AdminDrafts() {
     <Layout>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-sans text-2xl font-semibold tracking-tight">Drafts</h1>
-        <Button asChild variant="outline">
-          <Link to="/admin">All posts</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link to="/admin/schedule_drafts">Schedule drafts</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/admin">All posts</Link>
+          </Button>
+        </div>
       </div>
       {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
       {list.status === "LoadingFirstPage" ? (

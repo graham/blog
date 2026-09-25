@@ -65,6 +65,18 @@ export const publishNow = mutation({
   },
 });
 
+export const scheduleDrafts = mutation({
+  args: {
+    items: v.array(v.object({ postId: v.id("posts"), publishAt: v.number() })),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.runMutation(internal.posts.internal.scheduleDrafts, args);
+    return null;
+  },
+});
+
 export const setTimes = mutation({
   args: {
     postId: v.id("posts"),

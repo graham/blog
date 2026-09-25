@@ -27,6 +27,7 @@ import BookmarkGroupDetail from "./pages/admin/BookmarkGroupDetail";
 import AdminTags from "./pages/admin/Tags";
 import TagDetail from "./pages/admin/TagDetail";
 import AdminViews from "./pages/admin/Views";
+import ScheduleDrafts from "./pages/admin/ScheduleDrafts";
 
 export default function App() {
   return (
@@ -93,6 +94,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminDrafts />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/schedule_drafts"
+            element={
+              <AdminRoute>
+                <ScheduleDrafts />
               </AdminRoute>
             }
           />
