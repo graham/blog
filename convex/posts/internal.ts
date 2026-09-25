@@ -499,6 +499,30 @@ export const setTimes = internalMutation({
   handler: setTimesHandler,
 });
 
+// Publishes a held post as if it were written right now: created, updated,
+// and published all become the current time, so it lands at the top of the
+// list and is live immediately.
+export async function publishNowHandler(
+  ctx: MutationCtx,
+  args: { postId: Id<"posts"> },
+): Promise<null> {
+  const post = await ctx.db.get("posts", args.postId);
+  if (!post) throw new Error("Post not found");
+  const now = Date.now();
+  await ctx.db.patch("posts", post._id, { createdAt: now, updatedAt: now });
+  await patchPostTagTimes(ctx, post._id, now, now);
+  const current = await ctx.db.get("posts", post._id);
+  if (!current) throw new Error("Post not found");
+  await applyPublication(ctx, current, { published: true, publishedAt: now, updatedAt: now });
+  return null;
+}
+
+export const publishNow = internalMutation({
+  args: { postId: v.id("posts") },
+  returns: v.null(),
+  handler: publishNowHandler,
+});
+
 export const assertAdmin = internalQuery({
   args: {},
   returns: v.null(),

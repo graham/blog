@@ -775,6 +775,55 @@ describe("posts", () => {
     });
   });
 
+  test("publishNow sets created, updated, and published to now and publishes", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-09-20T08:00:00Z"));
+      const t = createT();
+      const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+      const { asUser: reader } = await seedUser(t, "reader@example.com", "user");
+      const postId = await admin.mutation(api.posts.mutations.create, {});
+      await admin.mutation(api.posts.mutations.save, {
+        postId,
+        title: "Held",
+        excerpt: "",
+        body: "held body",
+        visibility: "listed",
+        tags: ["held"],
+      });
+      // An old future date must not leave the post scheduled.
+      await admin.mutation(api.posts.mutations.setTimes, {
+        postId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        publishedAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      });
+      await expect(reader.mutation(api.posts.mutations.publishNow, { postId })).rejects.toThrow(
+        /Forbidden/,
+      );
+
+      vi.setSystemTime(new Date("2026-09-24T12:00:00Z"));
+      const now = Date.now();
+      await admin.mutation(api.posts.mutations.publishNow, { postId });
+      const post = await t.query(api.posts.publicQueries.getBySlug, { slug: "held" });
+      expect(post).toMatchObject({
+        status: "published",
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: now,
+      });
+      const tagged = await t.query(api.posts.publicQueries.listByTag, {
+        tag: "held",
+        paginationOpts: pageOpts,
+      });
+      expect(tagged.page).toHaveLength(1);
+      const drafts = await admin.query(api.posts.queries.listDrafts, { paginationOpts: pageOpts });
+      expect(drafts.page).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("createdAt backfill copies _creationTime and then no-ops", async () => {
     const t = createT();
     const ids = await t.run(async (ctx) => {

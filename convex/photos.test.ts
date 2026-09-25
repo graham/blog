@@ -117,6 +117,25 @@ describe("photos", () => {
     expect(second.nextCursor).toBeNull();
   });
 
+  test("orders by the post's published date, not when posts or photos were created", async () => {
+    const t = createT();
+    const { userId, asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    await admin.mutation(api.features.mutations.set, { photos: "on" });
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    // Created first but published most recently, so it must come first.
+    await seedPost(t, userId, "published-last", now, 1);
+    await seedPost(t, userId, "published-first", now - 3 * day, 1);
+    await seedPost(t, userId, "published-middle", now - day, 1);
+
+    const page = await t.query(api.posts.publicQueries.listPhotos, { cursor: null });
+    expect(page.photos.map((photo) => photo.slug)).toEqual([
+      "published-last",
+      "published-middle",
+      "published-first",
+    ]);
+  });
+
   test("anonymous visitors see photos only when the settings allow it", async () => {
     const t = createT();
     const { userId, asUser: admin } = await seedUser(t, "admin@example.com", "admin");

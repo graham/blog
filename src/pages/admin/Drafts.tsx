@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
@@ -10,6 +12,28 @@ const PAGE_SIZE = 20;
 export default function AdminDrafts() {
   const navigate = useNavigate();
   const list = usePaginatedQuery(api.posts.queries.listDrafts, {}, { initialNumItems: PAGE_SIZE });
+  const publishNow = useMutation(api.posts.mutations.publishNow);
+  const [publishing, setPublishing] = useState<Id<"posts"> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onPublishNow(postId: Id<"posts">, title: string) {
+    if (
+      !window.confirm(
+        `Publish "${title || "Untitled"}" now? Its created, updated, and published dates become now.`,
+      )
+    ) {
+      return;
+    }
+    setPublishing(postId);
+    setError(null);
+    try {
+      await publishNow({ postId });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not publish");
+    } finally {
+      setPublishing(null);
+    }
+  }
 
   return (
     <Layout>
@@ -19,6 +43,7 @@ export default function AdminDrafts() {
           <Link to="/admin">All posts</Link>
         </Button>
       </div>
+      {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
       {list.status === "LoadingFirstPage" ? (
         <p className="text-sm text-muted">Loading...</p>
       ) : list.results.length === 0 ? (
@@ -46,6 +71,13 @@ export default function AdminDrafts() {
                 </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link to={`/admin/posts/${post._id}`}>Edit</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={publishing !== null}
+                  onClick={() => void onPublishNow(post._id, post.title)}
+                >
+                  {publishing === post._id ? "Publishing..." : "Publish now"}
                 </Button>
               </div>
             </div>
