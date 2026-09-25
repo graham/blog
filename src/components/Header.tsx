@@ -5,6 +5,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import { isAdminUser } from "@/lib/format";
 import { featureOn } from "@/lib/features";
+import { ColorModeToggle } from "@/components/ColorModeToggle";
 
 export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
   const { isAuthenticated } = useConvexAuth();
@@ -121,6 +122,7 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
             {authLink}
           </div>
         </details>
+        <ColorModeToggle />
       </div>
     </header>
   );

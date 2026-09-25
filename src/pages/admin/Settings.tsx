@@ -56,7 +56,7 @@ export default function AdminSettings() {
           <div className="rounded-xl border border-border bg-card">
             <SettingRow
               title="Theme"
-              description="One palette for every visitor. Off uses Paper. Pick a theme to preview its colors."
+              description="One palette for every visitor. Off uses Paper, or Ink for visitors in dark mode. Visitors whose light/dark toggle does not match the palette get Paper or Ink instead. Pick a theme to preview its colors."
             >
               <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
                 <OnOff

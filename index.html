@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Blog</title>
+    <script>
+      // Apply the stored light/dark choice before the app loads to avoid a
+      // flash of the wrong theme. Key matches src/lib/colorMode.ts.
+      try {
+        var mode = localStorage.getItem("blog-color-mode");
+        if (mode !== "light" && mode !== "dark") {
+          mode = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        if (mode === "dark") document.documentElement.dataset.theme = "ink";
+        document.documentElement.style.colorScheme = mode;
+      } catch (error) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
