@@ -881,6 +881,21 @@ export const countScheduled = internalQuery({
   },
 });
 
+// The publish time of the last post still waiting to go live, across both
+// listed and unlisted posts, or null when nothing is scheduled.
+export const lastScheduledPublishAt = internalQuery({
+  args: {},
+  returns: v.union(v.number(), v.null()),
+  handler: async (ctx) => {
+    const last = await ctx.db
+      .query("posts")
+      .withIndex("by_status_and_publishedAt", (q) => q.eq("status", "scheduled"))
+      .order("desc")
+      .first();
+    return last?.publishedAt ?? null;
+  },
+});
+
 export const listDrafts = internalQuery({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(adminPostSummaryValidator),

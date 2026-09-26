@@ -22,4 +22,14 @@ describe("planSchedule", () => {
     ]);
     expect(planSchedule(["a", "b"], start, 30, 60, () => 1)[1].publishAt).toBe(60 * 60_000);
   });
+
+  test("jitterFirst puts a gap before the first item too", () => {
+    const anchor = Date.parse("2026-10-02T02:00:00Z");
+    const plan = planSchedule(["a", "b"], anchor, 15, 20, () => 0, true);
+    expect(plan.map((entry) => entry.publishAt)).toEqual([
+      anchor + 15 * 60_000,
+      anchor + 30 * 60_000,
+    ]);
+    expect(plan[0].gapMinutes).toBe(15);
+  });
 });

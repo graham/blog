@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Layout } from "@/components/Layout";
@@ -29,8 +29,12 @@ const inputClass =
 export default function ScheduleDrafts() {
   const list = usePaginatedQuery(api.posts.queries.listDrafts, {}, { initialNumItems: PAGE_SIZE });
   const scheduleDrafts = useMutation(api.posts.mutations.scheduleDrafts);
+  const lastScheduled = useQuery(api.posts.queries.lastScheduledPublishAt);
   const [selected, setSelected] = useState<Set<Id<"posts">>>(new Set());
   const [start, setStart] = useState(defaultStart);
+  // When set, the batch follows the last already-scheduled post by a random
+  // gap instead of starting at a fixed time.
+  const [afterLast, setAfterLast] = useState(false);
   const [minGap, setMinGap] = useState("15");
   const [maxGap, setMaxGap] = useState("20");
   const [shuffle, setShuffle] = useState(false);
@@ -69,27 +73,34 @@ export default function ScheduleDrafts() {
   function onDryRun() {
     setError(null);
     setNotice(null);
-    const startAt = new Date(start).getTime();
+    const startAt = afterLast ? lastScheduled : new Date(start).getTime();
     const min = Number(minGap);
     const max = Number(maxGap);
     if (selectedDrafts.length === 0) return setError("Select at least one draft");
     if (selectedDrafts.length > MAX_BATCH) return setError(`Select at most ${MAX_BATCH} drafts`);
-    if (!Number.isFinite(startAt)) return setError("Enter a valid start time");
-    if (startAt <= Date.now()) return setError("The start time must be in the future");
+    if (afterLast && (startAt === null || startAt === undefined)) {
+      return setError("No posts are scheduled to follow");
+    }
+    if (startAt === null || startAt === undefined || !Number.isFinite(startAt)) {
+      return setError("Enter a valid start time");
+    }
+    if (!afterLast && startAt <= Date.now()) {
+      return setError("The start time must be in the future");
+    }
     if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0 || max < min) {
       return setError("Enter a gap range like 15 to 20 minutes");
     }
     // Drafts are listed newest first, so publish from the bottom up: the
     // oldest selected draft goes out first and the feed keeps this order.
     const ordered = shuffle ? shuffled(selectedDrafts) : [...selectedDrafts].reverse();
-    setPlan(planSchedule(ordered, startAt, min, max));
+    setPlan(planSchedule(ordered, startAt, min, max, Math.random, afterLast));
   }
 
   async function onCommit() {
     if (!plan) return;
     if (plan[0].publishAt <= Date.now()) {
       setPlan(null);
-      setError("The start time has passed; pick a new one and dry run again");
+      setError("The first publish time has passed; dry run again");
       return;
     }
     const last = plan[plan.length - 1].publishAt;
@@ -124,15 +135,36 @@ export default function ScheduleDrafts() {
 
       <div className="mb-6 space-y-4 rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-end gap-4">
-          <label className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-1 text-sm">
             <span className="text-muted">First post publishes at</span>
-            <input
-              type="datetime-local"
-              value={start}
-              onChange={(event) => edit(setStart)(event.target.value)}
-              className={inputClass}
-            />
-          </label>
+            <div className="flex flex-wrap items-center gap-2">
+              {afterLast ? (
+                <span className="flex h-10 items-center rounded-md border border-input bg-secondary px-3">
+                  {lastScheduled
+                    ? `${formatDateTime(lastScheduled)} + gap`
+                    : "Nothing scheduled"}
+                </span>
+              ) : (
+                <input
+                  type="datetime-local"
+                  value={start}
+                  onChange={(event) => edit(setStart)(event.target.value)}
+                  className={inputClass}
+                  aria-label="First post publishes at"
+                />
+              )}
+              <Button
+                type="button"
+                variant={afterLast ? "default" : "outline"}
+                size="sm"
+                disabled={!afterLast && !lastScheduled}
+                title={lastScheduled ? undefined : "No posts are scheduled yet"}
+                onClick={() => edit(setAfterLast)(!afterLast)}
+              >
+                {afterLast ? "Pick a time instead" : "After last scheduled"}
+              </Button>
+            </div>
+          </div>
           <div className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Minutes between posts</span>
             <div className="flex items-center gap-2">

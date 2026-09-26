@@ -90,3 +90,12 @@ export const countScheduled = query({
     return await ctx.runQuery(internal.posts.internal.countScheduled, {});
   },
 });
+
+export const lastScheduledPublishAt = query({
+  args: {},
+  returns: v.union(v.number(), v.null()),
+  handler: async (ctx): Promise<number | null> => {
+    await requireAdmin(ctx);
+    return await ctx.runQuery(internal.posts.internal.lastScheduledPublishAt, {});
+  },
+});

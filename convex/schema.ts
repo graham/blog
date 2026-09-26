@@ -93,6 +93,7 @@ const schema = defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_status_and_createdAt", ["status", "createdAt"])
+    .index("by_status_and_publishedAt", ["status", "publishedAt"])
     .index("by_status_and_visibility", ["status", "visibility"])
     .index("by_status_and_visibility_and_createdAt", [
       "status",
