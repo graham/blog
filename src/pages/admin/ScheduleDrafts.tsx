@@ -13,6 +13,7 @@ const MAX_BATCH = 100;
 const GAP_PRESETS: Array<[number, number]> = [
   [15, 20],
   [30, 60],
+  [60, 120],
 ];
 
 type Draft = { _id: Id<"posts">; title: string; slug: string; createdAt: number };
