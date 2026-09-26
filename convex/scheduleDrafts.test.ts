@@ -117,4 +117,24 @@ describe("batch scheduling drafts", () => {
       }),
     ).rejects.toThrow(/is not a draft/);
   });
+
+  test("drafts are listed newest createdAt first", async () => {
+    const t = createT();
+    const { admin, postIds } = await seedDrafts(t, 2);
+    const base = Date.parse("2026-01-01T00:00:00Z");
+    await admin.mutation(api.posts.mutations.setTimes, {
+      postId: postIds[0],
+      createdAt: base + MINUTE,
+      updatedAt: base + MINUTE,
+    });
+    await admin.mutation(api.posts.mutations.setTimes, {
+      postId: postIds[1],
+      createdAt: base,
+      updatedAt: base,
+    });
+    const drafts = await admin.query(api.posts.queries.listDrafts, {
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(drafts.page.map((post) => post._id)).toEqual([postIds[0], postIds[1]]);
+  });
 });

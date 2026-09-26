@@ -92,7 +92,7 @@ const schema = defineSchema({
     aiSummary: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
-    .index("by_status", ["status"])
+    .index("by_status_and_createdAt", ["status", "createdAt"])
     .index("by_status_and_visibility", ["status", "visibility"])
     .index("by_status_and_visibility_and_createdAt", [
       "status",

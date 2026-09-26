@@ -63,7 +63,7 @@ export const backfillPublishedAtFromCreatedAt = internalMutation({
     const now = Date.now();
     const page = await ctx.db
       .query("posts")
-      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .withIndex("by_status_and_createdAt", (q) => q.eq("status", "published"))
       .paginate({ numItems: PAGE_SIZE, cursor: args.cursor });
     let updated = 0;
     for (const post of page.page) {

@@ -875,7 +875,7 @@ export const countScheduled = internalQuery({
   handler: async (ctx) => {
     const rows = await ctx.db
       .query("posts")
-      .withIndex("by_status", (q) => q.eq("status", "scheduled"))
+      .withIndex("by_status_and_createdAt", (q) => q.eq("status", "scheduled"))
       .take(MAX_SCHEDULED_COUNT + 1);
     return rows.length;
   },
@@ -887,7 +887,7 @@ export const listDrafts = internalQuery({
   handler: async (ctx, args) => {
     const result = await ctx.db
       .query("posts")
-      .withIndex("by_status", (q) => q.eq("status", "draft"))
+      .withIndex("by_status_and_createdAt", (q) => q.eq("status", "draft"))
       .order("desc")
       .paginate(args.paginationOpts);
     return {

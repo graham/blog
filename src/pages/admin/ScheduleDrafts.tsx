@@ -15,7 +15,7 @@ const GAP_PRESETS: Array<[number, number]> = [
   [30, 60],
 ];
 
-type Draft = { _id: Id<"posts">; title: string; slug: string; updatedAt: number };
+type Draft = { _id: Id<"posts">; title: string; slug: string; createdAt: number };
 
 function defaultStart(): string {
   const minute = 60_000;
@@ -78,7 +78,9 @@ export default function ScheduleDrafts() {
     if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0 || max < min) {
       return setError("Enter a gap range like 15 to 20 minutes");
     }
-    const ordered = shuffle ? shuffled(selectedDrafts) : selectedDrafts;
+    // Drafts are listed newest first, so publish from the bottom up: the
+    // oldest selected draft goes out first and the feed keeps this order.
+    const ordered = shuffle ? shuffled(selectedDrafts) : [...selectedDrafts].reverse();
     setPlan(planSchedule(ordered, startAt, min, max));
   }
 
@@ -182,7 +184,10 @@ export default function ScheduleDrafts() {
           <Button type="button" onClick={() => void onCommit()} disabled={!plan || busy}>
             {busy ? "Scheduling..." : `Schedule ${plan?.length ?? selectedDrafts.length} posts`}
           </Button>
-          <span className="text-sm text-muted">{selectedDrafts.length} selected</span>
+          <span className="text-sm text-muted">
+            {selectedDrafts.length} selected ·{" "}
+            {shuffle ? "random order" : "oldest first, so the feed keeps the order below"}
+          </span>
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {notice ? <p className="text-sm text-accent">{notice}</p> : null}
@@ -232,7 +237,7 @@ export default function ScheduleDrafts() {
                   />
                 </th>
                 <th className="px-4 py-2 font-medium">Draft</th>
-                <th className="px-4 py-2 font-medium">Updated</th>
+                <th className="px-4 py-2 font-medium">Created</th>
               </tr>
             </thead>
             <tbody>
@@ -264,7 +269,7 @@ export default function ScheduleDrafts() {
                         {draft.title || "Untitled"}
                       </Link>
                     </td>
-                    <td className="px-4 py-2 text-muted">{formatDate(draft.updatedAt)}</td>
+                    <td className="px-4 py-2 text-muted">{formatDate(draft.createdAt)}</td>
                   </tr>
                 ))
               )}
