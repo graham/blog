@@ -11,7 +11,7 @@ import {
   photoCursorValidator,
   photoPageValidator,
 } from "../lib/validators";
-import { resolvePublicViewer } from "../lib/access";
+import { getViewablePost, resolvePublicViewer } from "../lib/access";
 import { readSiteSettings } from "../siteSettings/internal";
 import { featureVisible } from "../lib/featureMode";
 
@@ -66,6 +66,17 @@ export const getBySlug = query({
       asAdmin: viewer.asAdmin,
     });
     return result;
+  },
+});
+
+// Used to bounce a non-admin off an admin post URL (editor, preview) onto
+// the post's public URL when they're already allowed to see it there.
+export const getPublicSlugById = query({
+  args: { postId: v.id("posts") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args): Promise<string | null> => {
+    const post = await getViewablePost(ctx, args.postId);
+    return post?.slug ?? null;
   },
 });
 

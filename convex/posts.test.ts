@@ -86,6 +86,28 @@ describe("posts", () => {
     );
   });
 
+  test("getPublicSlugById only resolves once the post is publicly viewable", async () => {
+    const t = createT();
+    const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");
+    const postId = await admin.mutation(api.posts.mutations.create, {});
+    await admin.mutation(api.posts.mutations.save, {
+      postId,
+      title: "Coming soon",
+      excerpt: "",
+      body: "b",
+      visibility: "listed",
+      tags: [],
+    });
+    expect(
+      await t.query(api.posts.publicQueries.getPublicSlugById, { postId }),
+    ).toBeNull();
+
+    await admin.mutation(api.posts.mutations.publishNow, { postId });
+    expect(await t.query(api.posts.publicQueries.getPublicSlugById, { postId })).toBe(
+      "coming-soon",
+    );
+  });
+
   test("unpublishing hides a post from public getBySlug", async () => {
     const t = createT();
     const { asUser: admin } = await seedUser(t, "admin@example.com", "admin");

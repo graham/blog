@@ -1,10 +1,12 @@
-import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route, useParams } from "react-router-dom";
 import ConvexClientProvider from "./components/ConvexClientProvider";
 import { FeaturesProvider } from "./components/FeaturesProvider";
 import Calendar from "./pages/Calendar";
 import Photos from "./pages/Photos";
 import { AdminRoute } from "./components/AdminRoute";
+import { AdminOrPublicPostRoute } from "./components/AdminOrPublicPostRoute";
 import { SiteGate } from "./components/SiteGate";
+import type { Id } from "../convex/_generated/dataModel";
 import Home from "./pages/Home";
 import Post from "./pages/Post";
 import Tag from "./pages/Tag";
@@ -28,6 +30,26 @@ import AdminTags from "./pages/admin/Tags";
 import TagDetail from "./pages/admin/TagDetail";
 import AdminViews from "./pages/admin/Views";
 import ScheduleDrafts from "./pages/admin/ScheduleDrafts";
+
+function PreviewRoute() {
+  const { slug } = useParams<{ slug: string }>();
+  if (!slug) return <Navigate to="/admin/drafts" replace />;
+  return (
+    <AdminOrPublicPostRoute slug={slug}>
+      <Post preview />
+    </AdminOrPublicPostRoute>
+  );
+}
+
+function EditorRoute() {
+  const { id } = useParams<{ id: string }>();
+  if (!id) return <Navigate to="/admin" replace />;
+  return (
+    <AdminOrPublicPostRoute postId={id as Id<"posts">}>
+      <Editor />
+    </AdminOrPublicPostRoute>
+  );
+}
 
 export default function App() {
   return (
@@ -105,22 +127,8 @@ export default function App() {
               </AdminRoute>
             }
           />
-          <Route
-            path="/admin/preview/:slug"
-            element={
-              <AdminRoute>
-                <Post preview />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/posts/:id"
-            element={
-              <AdminRoute>
-                <Editor />
-              </AdminRoute>
-            }
-          />
+          <Route path="/admin/preview/:slug" element={<PreviewRoute />} />
+          <Route path="/admin/posts/:id" element={<EditorRoute />} />
           <Route
             path="/admin/channels"
             element={
