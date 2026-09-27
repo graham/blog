@@ -76,8 +76,10 @@ export default function Post({ preview = false }: { preview?: boolean }) {
     viewPostId ? { postId: viewPostId } : "skip",
   );
   const removePost = useAction(api.posts.actions.remove);
+  const publishNow = useMutation(api.posts.mutations.publishNow);
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -207,6 +209,26 @@ export default function Post({ preview = false }: { preview?: boolean }) {
               >
                 Edit
               </Link>
+            ) : null}
+            {preview && post.status === "draft" && isAdminUser(currentUser) ? (
+              <Button
+                type="button"
+                size="sm"
+                disabled={publishing}
+                onClick={() => {
+                  setPublishing(true);
+                  void publishNow({ postId: post._id })
+                    .then(() => navigate("/admin/drafts"))
+                    .catch((caught) => {
+                      setPublishing(false);
+                      window.alert(
+                        caught instanceof Error ? caught.message : "Could not publish",
+                      );
+                    });
+                }}
+              >
+                {publishing ? "Publishing..." : "Publish"}
+              </Button>
             ) : null}
             {preview && post.status === "draft" && isAdminUser(currentUser) ? (
               <Button
