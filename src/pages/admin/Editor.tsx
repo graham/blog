@@ -34,6 +34,7 @@ export default function Editor() {
   const assets = assetRows ?? [];
   const savePost = useMutation(api.posts.mutations.save);
   const setPublished = useMutation(api.posts.mutations.setPublished);
+  const publishNow = useMutation(api.posts.mutations.publishNow);
   const removePost = useAction(api.posts.actions.remove);
   const generateUploadUrl = useMutation(api.postAssets.mutations.generateUploadUrl);
   const saveAsset = useMutation(api.postAssets.mutations.save);
@@ -65,6 +66,7 @@ export default function Editor() {
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [deleting, setDeleting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dropping, setDropping] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
@@ -335,6 +337,25 @@ export default function Editor() {
                 <span className="font-medium text-destructive">
                   Scheduled for {formatDateTime(post.publishedAt)}
                 </span>
+              ) : null}
+              {post.status === "draft" ? (
+                <Button
+                  size="sm"
+                  disabled={publishing}
+                  onClick={() => {
+                    setPublishing(true);
+                    void publishNow({ postId })
+                      .then(() => navigate("/admin/drafts"))
+                      .catch((caught) => {
+                        setPublishing(false);
+                        window.alert(
+                          caught instanceof Error ? caught.message : "Could not publish",
+                        );
+                      });
+                  }}
+                >
+                  {publishing ? "Publishing..." : "Publish"}
+                </Button>
               ) : null}
               {published ? null : (
                 <Button
