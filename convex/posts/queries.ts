@@ -38,8 +38,11 @@ export const getBySlug = query({
   args: { slug: v.string() },
   returns: v.union(postDetailValidator, v.null()),
   handler: async (ctx, args): Promise<PublicPostDetail | null> => {
-    await requireAdmin(ctx);
-    return await ctx.runQuery(internal.posts.internal.getBySlugForAdmin, args);
+    const admin = await requireAdmin(ctx);
+    return await ctx.runQuery(internal.posts.internal.getBySlugForAdmin, {
+      ...args,
+      viewerUserId: admin._id,
+    });
   },
 });
 
@@ -47,10 +50,10 @@ export const listDrafts = query({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(adminPostSummaryValidator),
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
     const result: Page<PostSummary> = await ctx.runQuery(
       internal.posts.internal.listDrafts,
-      args,
+      { ...args, viewerUserId: admin._id },
     );
     return result;
   },

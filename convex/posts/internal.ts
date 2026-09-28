@@ -32,6 +32,11 @@ import { readSiteSettings } from "../siteSettings/internal";
 import { countPostImages, loadPostAssets } from "../postAssets/internal";
 import { ensureTag } from "../tags/internal";
 import { deletePostReads, getReadBefore, readStateForPost } from "../postReads/internal";
+import {
+  deleteDraftReads,
+  getDraftReadBefore,
+  readStateForDraft,
+} from "../draftReads/internal";
 import { deletePostViews } from "../postViews/internal";
 import { deleteImageViews } from "../imageViews/internal";
 import { requireAdmin } from "../lib/auth";
@@ -182,6 +187,33 @@ async function attachReadStates<
     next.push({
       ...summary,
       read: await readStateForPost(ctx, viewerUserId, summary._id, summary.updatedAt, readBefore),
+    });
+  }
+  return next;
+}
+
+async function attachDraftReadStates<
+  T extends {
+    _id: Id<"posts">;
+    status: PostStatus;
+    updatedAt: number;
+    read: Infer<typeof postReadStateValidator> | null;
+  },
+>(ctx: Ctx, adminUserId: Id<"users">, summaries: T[]): Promise<T[]> {
+  const settings = await readSiteSettings(ctx);
+  if (!featureVisible(settings.features.readReceipts, true)) {
+    return summaries;
+  }
+  const readBefore = await getDraftReadBefore(ctx, adminUserId);
+  const next: T[] = [];
+  for (const summary of summaries) {
+    if (summary.status !== "draft") {
+      next.push(summary);
+      continue;
+    }
+    next.push({
+      ...summary,
+      read: await readStateForDraft(ctx, adminUserId, summary._id, summary.updatedAt, readBefore),
     });
   }
   return next;
@@ -618,6 +650,7 @@ export const remove = internalMutation({
       }
     }
     await deletePostReads(ctx, post._id);
+    await deleteDraftReads(ctx, post._id);
     await deletePostViews(ctx, post._id);
     await deleteImageViews(ctx, post._id);
     await deletePostChannelLinks(ctx, post._id);
@@ -853,7 +886,7 @@ export const getDraftForAi = internalQuery({
 });
 
 export const getBySlugForAdmin = internalQuery({
-  args: { slug: v.string() },
+  args: { slug: v.string(), viewerUserId: v.id("users") },
   returns: v.union(postDetailValidator, v.null()),
   handler: async (ctx, args) => {
     const post = await ctx.db
@@ -861,7 +894,9 @@ export const getBySlugForAdmin = internalQuery({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     if (!post) return null;
-    return await toDetail(ctx, post);
+    const detail = await toDetail(ctx, post);
+    const [withRead] = await attachDraftReadStates(ctx, args.viewerUserId, [detail]);
+    return withRead ?? detail;
   },
 });
 
@@ -897,7 +932,7 @@ export const lastScheduledPublishAt = internalQuery({
 });
 
 export const listDrafts = internalQuery({
-  args: { paginationOpts: paginationOptsValidator },
+  args: { paginationOpts: paginationOptsValidator, viewerUserId: v.id("users") },
   returns: paginationResultValidator(adminPostSummaryValidator),
   handler: async (ctx, args) => {
     const result = await ctx.db
@@ -905,9 +940,10 @@ export const listDrafts = internalQuery({
       .withIndex("by_status_and_createdAt", (q) => q.eq("status", "draft"))
       .order("desc")
       .paginate(args.paginationOpts);
+    const page = await Promise.all(result.page.map((post) => toAdminSummary(ctx, post)));
     return {
       ...result,
-      page: await Promise.all(result.page.map((post) => toAdminSummary(ctx, post))),
+      page: await attachDraftReadStates(ctx, args.viewerUserId, page),
     };
   },
 });

@@ -37,6 +37,8 @@ import type * as channels_mutations from "../channels/mutations.js";
 import type * as channels_queries from "../channels/queries.js";
 import type * as config from "../config.js";
 import type * as crons from "../crons.js";
+import type * as draftReads_internal from "../draftReads/internal.js";
+import type * as draftReads_mutations from "../draftReads/mutations.js";
 import type * as features_mutations from "../features/mutations.js";
 import type * as features_publicQueries from "../features/publicQueries.js";
 import type * as http from "../http.js";
@@ -133,6 +135,8 @@ declare const fullApi: ApiFromModules<{
   "channels/queries": typeof channels_queries;
   config: typeof config;
   crons: typeof crons;
+  "draftReads/internal": typeof draftReads_internal;
+  "draftReads/mutations": typeof draftReads_mutations;
   "features/mutations": typeof features_mutations;
   "features/publicQueries": typeof features_publicQueries;
   http: typeof http;

@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { useFeatureOn, useFeatures } from "@/components/FeaturesProvider";
 import { formatDate } from "@/lib/format";
 
 const PAGE_SIZE = 20;
@@ -13,6 +14,9 @@ export default function AdminDrafts() {
   const navigate = useNavigate();
   const list = usePaginatedQuery(api.posts.queries.listDrafts, {}, { initialNumItems: PAGE_SIZE });
   const publishNow = useMutation(api.posts.mutations.publishNow);
+  const markAllRead = useMutation(api.draftReads.mutations.markAllRead);
+  const features = useFeatures();
+  const receiptsOn = useFeatureOn(features.readReceipts);
   const [publishing, setPublishing] = useState<Id<"posts"> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +44,11 @@ export default function AdminDrafts() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-sans text-2xl font-semibold tracking-tight">Drafts</h1>
         <div className="flex gap-2">
+          {receiptsOn ? (
+            <Button variant="outline" onClick={() => void markAllRead({})}>
+              Mark all read
+            </Button>
+          ) : null}
           <Button asChild variant="outline">
             <Link to="/admin/schedule_drafts">Schedule drafts</Link>
           </Button>
@@ -65,6 +74,13 @@ export default function AdminDrafts() {
                 className="min-w-0 text-left"
                 onClick={() => navigate(`/admin/preview/${post.slug}`)}
               >
+                {post.read?.unread ? (
+                  <p className="mb-1 text-[11px] uppercase tracking-wide text-accent">Unread</p>
+                ) : post.read?.updatedSinceRead ? (
+                  <p className="mb-1 text-[11px] uppercase tracking-wide text-accent">
+                    Updated since you last read
+                  </p>
+                ) : null}
                 <p className="font-medium">{post.title || "Untitled"}</p>
                 <p className="mt-1 text-xs text-muted">
                   {post.visibility} · {formatDate(post.updatedAt)}

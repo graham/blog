@@ -209,6 +209,21 @@ const schema = defineSchema({
     .index("by_userId_and_postId", ["userId", "postId"])
     .index("by_postId", ["postId"]),
 
+  draftReadCursors: defineTable({
+    userId: v.id("users"),
+    readBefore: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  draftReads: defineTable({
+    userId: v.id("users"),
+    postId: v.id("posts"),
+    lastReadAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_and_postId", ["userId", "postId"])
+    .index("by_postId", ["postId"]),
+
   postAssets: defineTable({
     postId: v.id("posts"),
     storageId: v.id("_storage"),

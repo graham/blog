@@ -69,6 +69,7 @@ export default function Post({ preview = false }: { preview?: boolean }) {
   const features = useFeatures();
   const receiptsOn = useFeatureOn(features.readReceipts);
   const markRead = useMutation(api.postReads.mutations.markRead);
+  const markDraftRead = useMutation(api.draftReads.mutations.markRead);
   const recordView = useMutation(api.postViews.publicMutations.record);
   const viewPostId = !preview && post ? post._id : undefined;
   const views = useQuery(
@@ -89,6 +90,12 @@ export default function Post({ preview = false }: { preview?: boolean }) {
     if (preview || !post || !receiptsOn) return;
     void markRead({ postId: post._id });
   }, [preview, post?._id, receiptsOn, markRead]);
+
+  const draftId = preview && post?.status === "draft" ? post._id : undefined;
+  useEffect(() => {
+    if (!draftId || !receiptsOn) return;
+    void markDraftRead({ postId: draftId });
+  }, [draftId, receiptsOn, markDraftRead]);
 
   useEffect(() => {
     if (!viewPostId) return;
