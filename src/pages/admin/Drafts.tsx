@@ -71,7 +71,7 @@ export default function AdminDrafts() {
             >
               <button
                 type="button"
-                className="min-w-0 text-left"
+                className="min-w-0 flex-1 text-left"
                 onClick={() => navigate(`/admin/preview/${post.slug}`)}
               >
                 {post.read?.unread ? (
@@ -81,7 +81,7 @@ export default function AdminDrafts() {
                     Updated since you last read
                   </p>
                 ) : null}
-                <p className="font-medium">{post.title || "Untitled"}</p>
+                <p className="line-clamp-2 break-words font-medium">{post.title || "Untitled"}</p>
                 <p className="mt-1 text-xs text-muted">
                   {post.visibility} · {formatDate(post.updatedAt)}
                 </p>

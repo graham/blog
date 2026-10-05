@@ -156,8 +156,8 @@ export default function Post({ preview = false }: { preview?: boolean }) {
       }
     >
       <article className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
+        <div className="mb-6 flex items-start justify-between gap-6">
+          <div className="min-w-0 flex-1">
             {post.read?.updatedSinceRead ? (
               <p className="mb-2 text-xs uppercase tracking-wide text-accent">
                 New updates since you last read this
@@ -184,7 +184,7 @@ export default function Post({ preview = false }: { preview?: boolean }) {
               </p>
             )}
             <h1
-              className={`${imagesOnly ? "" : "mt-2"} font-sans text-3xl font-semibold tracking-tight sm:text-4xl`}
+              className={`${imagesOnly ? "" : "mt-2"} break-words font-sans text-3xl font-semibold tracking-tight sm:text-4xl`}
             >
               {post.title || "Untitled"}
             </h1>

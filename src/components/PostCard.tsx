@@ -54,7 +54,7 @@ export function PostCard({ post }: { post: PostCardPost }) {
           <time className="text-xs uppercase tracking-wide text-muted">
             {formatDate(post.publishedAt ?? post.updatedAt)}
           </time>
-          <h2 className="mt-1 font-sans text-2xl font-semibold tracking-tight">
+          <h2 className="mt-1 line-clamp-2 break-words font-sans text-2xl font-semibold tracking-tight">
             <Link to={`/posts/${post.slug}`} className="hover:text-accent">
               {post.title || "Untitled"}
             </Link>
