@@ -20,6 +20,8 @@ export type OverlayImage = {
   src: string;
   alt: string;
   caption?: string;
+  // When set, the caption links here (the owning post's page).
+  href?: string;
   // Set when the image belongs to a published post, so opening it counts a view.
   postId?: Id<"posts">;
 };

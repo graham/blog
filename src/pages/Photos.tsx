@@ -188,6 +188,7 @@ export default function Photos() {
     src: photo.src,
     alt: photo.alt,
     postId: photo.postId,
+    href: `/posts/${photo.slug}`,
     caption: [formatDate(photo.publishedAt), photo.title || photo.alt].filter(Boolean).join(" · "),
   }));
 

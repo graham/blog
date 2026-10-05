@@ -1,5 +1,6 @@
 import { useEffect, useState, type DragEvent } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -163,7 +164,13 @@ export function ImageOverlay({
             onClick={(event) => event.stopPropagation()}
             className="flex w-full shrink-0 items-baseline justify-center gap-3 px-4 py-2 text-center font-sans text-sm text-white"
           >
-            <span className="min-w-0 truncate">{current.caption ?? current.alt}</span>
+            {current.href ? (
+              <Link to={current.href} className="min-w-0 truncate underline-offset-4 hover:underline">
+                {current.caption ?? current.alt}
+              </Link>
+            ) : (
+              <span className="min-w-0 truncate">{current.caption ?? current.alt}</span>
+            )}
             {images.length > 1 ? (
               <span className="shrink-0 font-mono text-xs tabular-nums text-white/60">
                 {index + 1} / {images.length}
