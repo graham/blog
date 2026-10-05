@@ -52,9 +52,6 @@ export default function AdminDrafts() {
           <Button asChild variant="outline">
             <Link to="/admin/schedule_drafts">Schedule drafts</Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link to="/admin">All posts</Link>
-          </Button>
         </div>
       </div>
       {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
@@ -87,9 +84,6 @@ export default function AdminDrafts() {
                 </p>
               </button>
               <div className="flex gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <Link to={`/admin/preview/${post.slug}`}>View</Link>
-                </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link to={`/admin/posts/${post._id}`}>Edit</Link>
                 </Button>

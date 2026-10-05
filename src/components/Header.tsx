@@ -107,8 +107,8 @@ export function Header({ fullWidth = false }: { fullWidth?: boolean }) {
           <input
             value={q}
             onChange={(event) => setQ(event.target.value)}
-            placeholder="Search posts"
-            className="h-8 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
+            placeholder="Search"
+            className="h-8 w-full min-w-0 max-w-[9rem] sm:max-w-[12rem] rounded-md border border-input bg-background px-3 text-sm outline-none ring-ring placeholder:text-muted focus:ring-2"
           />
         </form>
         {photos ? (
