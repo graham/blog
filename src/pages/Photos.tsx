@@ -129,7 +129,8 @@ export default function Photos() {
     }
   }, [viewedPhoto, markRead]);
 
-  // Keep the address bar pointing at the open item so it can be shared.
+  // Keep the address bar pointing at the open item so it can be shared. Each
+  // new item is its own history entry, so Back steps to the previous photo.
   useEffect(() => {
     if (!viewedPhoto) return;
     const post = viewedPhoto.slug;
@@ -142,9 +143,32 @@ export default function Photos() {
         next.set("n", n);
         return next;
       },
-      { replace: true },
     );
   }, [viewedPhoto, setSearchParams]);
+
+  // Back and Forward change the URL without touching the viewer state, so
+  // follow the address bar: open the photo it names, or close the viewer.
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  const viewingRef = useRef(viewing);
+  viewingRef.current = viewing;
+  useEffect(() => {
+    const post = searchParams.get("post");
+    if (!post) {
+      if (viewingRef.current !== null) {
+        setViewing(null);
+        setAdvanceTo(null);
+      }
+      return;
+    }
+    const n = Number(searchParams.get("n") ?? "0");
+    const open = viewingRef.current === null ? undefined : photosRef.current[viewingRef.current];
+    if (open && open.slug === post && open.postIndex === n) return;
+    const index = photosRef.current.findIndex(
+      (photo) => photo.slug === post && photo.postIndex === n,
+    );
+    if (index >= 0) setViewing(index);
+  }, [searchParams]);
 
   function closeViewer() {
     setViewing(null);
@@ -156,7 +180,6 @@ export default function Photos() {
         next.delete("n");
         return next;
       },
-      { replace: true },
     );
   }
 
