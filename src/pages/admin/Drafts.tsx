@@ -81,7 +81,7 @@ export default function AdminDrafts() {
                     Updated since you last read
                   </p>
                 ) : null}
-                <p className="line-clamp-2 break-words font-medium">{post.title || "Untitled"}</p>
+                <p className="truncate pr-4 font-medium">{post.title || "Untitled"}</p>
                 <p className="mt-1 text-xs text-muted">
                   {post.visibility} · {formatDate(post.updatedAt)}
                 </p>

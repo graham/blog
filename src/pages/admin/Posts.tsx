@@ -71,7 +71,7 @@ export default function AdminPosts() {
                 }`}
                 onClick={() => navigate(`/admin/posts/${post._id}`)}
               >
-                <p className="line-clamp-2 break-words font-medium">{post.title || "Untitled"}</p>
+                <p className="truncate pr-4 font-medium">{post.title || "Untitled"}</p>
                 <p className="mt-1 text-xs capitalize text-muted">
                   {post.status} · {post.visibility} · {formatDate(post.updatedAt)}
                 </p>

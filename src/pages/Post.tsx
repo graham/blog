@@ -157,7 +157,7 @@ export default function Post({ preview = false }: { preview?: boolean }) {
     >
       <article className={`mx-auto w-full min-w-0 ${wide ? "max-w-none" : "max-w-2xl"}`}>
         <div className="mb-6 flex items-start justify-between gap-6">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pr-4">
             {post.read?.updatedSinceRead ? (
               <p className="mb-2 text-xs uppercase tracking-wide text-accent">
                 New updates since you last read this
