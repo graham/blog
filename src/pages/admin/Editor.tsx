@@ -11,10 +11,56 @@ import { PostTimesEditor } from "@/components/PostTimesEditor";
 import { Button } from "@/components/ui/button";
 import { assetSnippet, markdownHasStorageId, type OverlayImage } from "@/lib/images";
 import { sha256Hex } from "@/lib/hash";
+import { uploadFile } from "@/lib/uploadFile";
 import { assetContentType, isArchiveAsset, isImageAsset, isVideoAsset } from "@/lib/assets";
 import { formatDateTime } from "@/lib/format";
 
 type SaveState = "saved" | "saving" | "error";
+
+type UploadProgress = {
+  stage: "checking" | "uploading" | "saving";
+  name: string;
+  index: number;
+  count: number;
+  fileFraction: number;
+  overallFraction: number;
+};
+
+const UPLOAD_STAGE_LABEL: Record<UploadProgress["stage"], string> = {
+  checking: "Checking",
+  uploading: "Uploading",
+  saving: "Processing",
+};
+
+function UploadStatus({ progress }: { progress: UploadProgress }) {
+  const percent = Math.round(Math.min(Math.max(progress.overallFraction, 0), 1) * 100);
+  const filePercent = Math.round(Math.min(Math.max(progress.fileFraction, 0), 1) * 100);
+  return (
+    <div className="mb-2 space-y-1" aria-live="polite">
+      <div className="flex items-baseline justify-between gap-3 text-xs text-muted">
+        <span className="min-w-0 truncate">
+          {UPLOAD_STAGE_LABEL[progress.stage]} {progress.index} of {progress.count}:{" "}
+          {progress.name}
+          {progress.stage === "uploading" ? ` (${filePercent}%)` : ""}
+        </span>
+        <span className="shrink-0 tabular-nums">{percent}%</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Upload progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        className="h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+      >
+        <div
+          className="h-full rounded-full bg-accent transition-[width] duration-150"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 function insertAtCursor(textarea: HTMLTextAreaElement, value: string, inserted: string) {
   const start = textarea.selectionStart;
@@ -68,6 +114,8 @@ export default function Editor() {
   const [deleting, setDeleting] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [dropping, setDropping] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [captions, setCaptions] = useState<Record<string, { alt: string; description: string }>>(
@@ -209,33 +257,54 @@ export default function Editor() {
 
   async function onFiles(files: FileList | File[] | null) {
     if (!postId || !files || files.length === 0) return;
+    const list = Array.from(files);
+    const totalBytes = list.reduce((sum, file) => sum + file.size, 0);
+    let doneBytes = 0;
     setUploading(true);
+    setUploadError(null);
     try {
-      for (const file of Array.from(files)) {
+      for (const [index, file] of list.entries()) {
+        const report = (stage: UploadProgress["stage"], loaded: number) =>
+          setProgress({
+            stage,
+            name: file.name,
+            index: index + 1,
+            count: list.length,
+            fileFraction: file.size > 0 ? loaded / file.size : 1,
+            overallFraction: totalBytes > 0 ? (doneBytes + loaded) / totalBytes : 1,
+          });
+        report("checking", 0);
         const contentType = assetContentType(file.name, file.type);
         const sha256 = await sha256Hex(file);
         const existing = await convex.query(api.postAssets.queries.findByHash, {
           postId,
           sha256,
         });
-        if (existing) continue;
+        if (existing) {
+          doneBytes += file.size;
+          continue;
+        }
         const uploadUrl = await generateUploadUrl({});
-        const response = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": contentType || "application/octet-stream" },
-          body: file,
-        });
-        const json = (await response.json()) as { storageId: Id<"_storage"> };
+        report("uploading", 0);
+        const json = await uploadFile(uploadUrl, file, contentType, (loaded) =>
+          report("uploading", loaded),
+        );
+        report("saving", file.size);
         await saveAsset({
           postId,
-          storageId: json.storageId,
+          storageId: json.storageId as Id<"_storage">,
           filename: file.name,
           contentType,
           sha256,
         });
+        doneBytes += file.size;
       }
+    } catch (caught) {
+      console.error("Upload failed", caught);
+      setUploadError(caught instanceof Error ? caught.message : "Upload failed");
     } finally {
       setUploading(false);
+      setProgress(null);
     }
   }
 
@@ -654,9 +723,14 @@ export default function Editor() {
                     Add all
                   </button>
                 ) : null}
-                {uploading ? <span className="text-xs text-muted">Uploading...</span> : null}
               </div>
             </div>
+            {progress ? <UploadStatus progress={progress} /> : null}
+            {uploadError ? (
+              <p role="alert" className="mb-2 text-xs text-destructive">
+                {uploadError}
+              </p>
+            ) : null}
             <button
               type="button"
               disabled={uploading}
